@@ -1,1 +1,1 @@
-Drop Elden Ring item tables here as JSON: {"Item Name": "<id>"}. Needed to lift ER from roster to full.
+items.json holds Elden Ring item id->name (5443 entries, from "ITEM IDS Elden Ring.txt"). Not used yet: ER inventory uses gaitem-handle indirection + small dense ids that the DS3 id-scan cannot disambiguate. Kept here for when the ER inventory structure is mapped.
