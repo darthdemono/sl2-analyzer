@@ -6,6 +6,8 @@ You point it at a save, it reads the bytes, and it writes a `.md` that describes
 
 It reads the save and never writes to it. Point it at your live save if you like. The worst case is a bad Markdown file, not a bricked character.
 
+The code lives at **https://github.com/darthdemono/SL2-TO-MD**, and every file it writes says so: the header of each generated `.md` carries the repo link and a one-line note on how that game was read, so a summary you pasted somewhere months ago can still point back at the tool that made it.
+
 ## Supported games, and how far each one goes
 
 Not every Souls save is mapped to the same depth in public tooling, so each game is handled at the highest tier it can be *trusted* at. A tier is a promise: everything printed at any tier is read from the save, never guessed. If a number cannot be trusted, it is left out. A wrong stat is worse than a missing one, and that rule decides every judgement call in the code.
@@ -77,7 +79,9 @@ One `.md` per save. Header, then one section per character. Roughly this:
 - **Support tier:** full
 - **Characters found:** 2
 
-## Joy  ·  slot entry 2
+> Automated dump of the save. Code Repo: https://github.com/darthdemono/SL2-TO-MD . How it works for Dark Souls II: Scholar of the First Sin: the game locks its save with a key it ships inside itself, so the tool unlocks it and reads each character from known spots. Every item is matched to its real name, and the Estus Flask even shows how many charges it is holding.
+
+## Slot 2: Joy
 
 - **Soul Level:** 88
 - **Souls held:** 0
@@ -89,23 +93,34 @@ One `.md` per save. Header, then one section per character. Roughly this:
 |----|----|----|----|----|----|----|----|----|
 |  22 |  16 |  15 |   4 |  45 |  15 |  15 |   3 |   6 |
 
-### Boss Souls Held  _(bosses defeated, soul not yet consumed)_
-- ...
-
 ### Inventory
-**Weapons** (51)
-- ...
+
+#### Weapons
+- Broadsword
+- Blue Wooden Shield
+
+#### Consumables
+- Estus Flask (7/7 charges)
+- Lifegem ×25
+
+#### Great Boss Souls
+- Old Witch Soul
+
+#### Boss Souls
+- Soul of the Lost Sinner
 ```
 
-Paste that whole file into a model and ask it to plan your next steps, tune your build, or tell you what you missed. It has the facts now.
+The inventory mirrors the in-game item menu: one heading per category, and boss souls split into the four "Old" great souls and the ordinary ones, the way the game grades them. Special items carry their state, so the Estus Flask shows its charge count. Paste the whole file into a model and ask it to plan your next steps, tune your build, or tell you what you missed. It has the facts now.
 
 ---
 
 ## How to run it
 
-You need Python 3 and one library, `cryptography`. Install it:
+Clone it, and you need Python 3 and one library, `cryptography`:
 
 ```bash
+git clone https://github.com/darthdemono/SL2-TO-MD
+cd SL2-TO-MD
 pip install -r requirements.txt
 ```
 
@@ -113,6 +128,12 @@ Then point the tool at a save. It figures out the game on its own, so there is n
 
 ```bash
 python3 sl2_to_md.py "/path/to/DS2SOFS0000.sl2" -o playthrough.md
+```
+
+You can also leave the path off entirely. With no file argument the tool looks in the current folder and the usual Steam/Proton and Windows save locations, and takes the most recently modified `.sl2` it finds, which is almost always your live character:
+
+```bash
+python3 sl2_to_md.py -o playthrough.md
 ```
 
 `-o` is the output path, and its folder is created for you if it does not exist. If you leave `-o` off, it writes `playthrough.md` in the current directory. On an unsupported or malformed file the tool prints why and exits non-zero, so it drops cleanly into a script.
