@@ -356,11 +356,14 @@ def load_item_db(db_dir, flat, files):
     if not os.path.isdir(db_dir):
         return {} if flat else {}
     if flat:
+        # DS2 tables are id-keyed ({"<little-endian-hex>": name}), not name-keyed:
+        # the game gives one item name several ids (base + reinforced/infused/variant
+        # forms), which a name-keyed file cannot hold without dropping all but one.
         db = {}
         for stem, cat in files.items():
             path = os.path.join(db_dir, stem + ".json")
             if os.path.exists(path):
-                for name, hx in json.load(open(path, encoding="utf-8")).items():
+                for hx, name in json.load(open(path, encoding="utf-8")).items():
                     db.setdefault(int.from_bytes(bytes.fromhex(hx), "little"), (name, cat))
         return db
     db = {}
@@ -437,10 +440,15 @@ def find_key_goods(goods):
 ## @brief DS2 character-slot offsets (absolute, into decrypted game data).
 DS2_NAME_OFF, DS2_SOULS_OFF, DS2_SOULMEM_OFF, DS2_HP_OFF, DS2_NG_OFF = 960, 60, 64, 72, 1028
 ## @brief DS2 attribute offsets (uint16 each), in display order; Level last.
+#  Adaptability, Intelligence and Faith are NOT stored in display order: memory
+#  keeps Intelligence @44, Faith @46, Adaptability @48 (verified against a known
+#  SL88 character whose real ADP/INT/FTH were 15/3/6 but read out as 3/6/15 under
+#  the naive contiguous mapping). The dict below lists them in display order with
+#  their true offsets, so the table reads ADP, INT, FTH while pointing at 48/44/46.
 DS2_STAT_OFF = OrderedDict([
     ("Vigor", 32), ("Endurance", 34), ("Vitality", 36), ("Attunement", 38),
-    ("Strength", 40), ("Dexterity", 42), ("Adaptability", 44),
-    ("Intelligence", 46), ("Faith", 48), ("Level", 0x38)])
+    ("Strength", 40), ("Dexterity", 42), ("Adaptability", 48),
+    ("Intelligence", 44), ("Faith", 46), ("Level", 0x38)])
 ## @brief DS2 inventory regions (start, end); 16-byte slots throughout.
 DS2_INV_RANGE, DS2_KEY_RANGE = (0x1E2C, 0x10E1C), (0x10E30, 0x11DF0)
 ## @brief DS2 categories whose slot +8 field is a real count (float durability
@@ -462,7 +470,11 @@ def ds2_inventory(buf, item_db):
     for start, end in (DS2_INV_RANGE, DS2_KEY_RANGE):
         o = start
         while o + 16 <= min(end, len(buf)):
-            iid, qty = u32(buf, o), u32(buf, o + 8)
+            # Count is the low uint16 of the +8 field, not a full uint32: special
+            # items pack extra state into the high two bytes (Estus keeps its
+            # current/max charges there, e.g. 01 00 07 07 = one flask, 7/7 charges).
+            # No stackable count exceeds 65535, so the low uint16 is the real total.
+            iid, qty = u32(buf, o), u16(buf, o + 8)
             o += 16
             if not iid:
                 continue

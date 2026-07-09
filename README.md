@@ -164,7 +164,8 @@ README.md         this file
 
 Every tier is limited only by offsets and item tables, and both are just files.
 
-- **DS2** tables: JSON of `{"Item Name": "<little-endian-hex-id>"}`, by category.
+- **DS2** tables: JSON of `{"<little-endian-hex-id>": "Item Name"}`, by category
+  (id-keyed, so one name can carry many reinforced/infused variant ids).
 - **DS1 / DS3 / ER** tables: JSON of `{"Item Name": <decimal-id>}`.
 
 Drop a game's tables into its `db_*` folder and the existing code resolves the
