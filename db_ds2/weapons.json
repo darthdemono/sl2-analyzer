@@ -321,5 +321,8 @@
     "E7 09 A5 35": "Estoc",
     "E8 09 A5 35": "Bastard Sword",
     "E9 09 A5 35": "Knight's Greatsword",
-    "EA 09 A5 35": "Inquisitor's Blade"
+    "EA 09 A5 35": "Inquisitor's Blade",
+    "C8 78 1E 00": "Greatsword of the Forlorn",
+    "40 FF 2E 00": "Scythe of the Forlorn",
+    "A0 EF 99 03": "Torch"
 }

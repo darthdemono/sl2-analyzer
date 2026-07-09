@@ -1,0 +1,23 @@
+{
+    "C0 4D C1 03": "\"Point\" Gesture",
+    "A8 51 C1 03": "\"I won't bite\" Gesture",
+    "90 55 C1 03": "\"Proper bow\" Gesture",
+    "78 59 C1 03": "\"Bow\" Gesture",
+    "60 5D C1 03": "\"Welcome\" Gesture",
+    "48 61 C1 03": "\"Duel bow\" Gesture",
+    "30 65 C1 03": "\"Wave\" Gesture",
+    "18 69 C1 03": "\"Pumped up\" Gesture",
+    "00 6D C1 03": "\"Joy\" Gesture",
+    "E8 70 C1 03": "\"Warcry\" Gesture",
+    "D0 74 C1 03": "\"Warmup\" Gesture",
+    "B8 78 C1 03": "\"Hurrah!\" Gesture",
+    "A0 7C C1 03": "\"Righty-ho!\" Gesture",
+    "88 80 C1 03": "\"No way\" Gesture",
+    "70 84 C1 03": "\"This one's me\" Gesture",
+    "58 88 C1 03": "\"Have mercy!\" Gesture",
+    "40 8C C1 03": "\"Prostration\" Gesture",
+    "28 90 C1 03": "\"Decapitate\" Gesture",
+    "10 94 C1 03": "\"Fist pump\" Gesture",
+    "F8 97 C1 03": "\"Mock\" Gesture",
+    "C8 9F C1 03": "\"Praise the Sun\" Gesture"
+}
