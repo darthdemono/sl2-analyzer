@@ -146,7 +146,13 @@ for f in *.sl2; do
 done
 ```
 
-Where do the saves live? On Windows they are under `%APPDATA%` (`C:\Users\<you>\AppData\Roaming\<game>`). On Linux through Proton they sit inside the Steam prefix, along the lines of `~/.local/share/Steam/steamapps/compatdata/<appid>/pfx/drive_c/users/steamuser/AppData/Roaming/<game>`. Copy the `.sl2` out first if you would rather not touch the live folder, though you do not have to: the tool only ever reads.
+Where do the saves live? On Windows they are under `%APPDATA%` (`C:\Users\<you>\AppData\Roaming\<game>`). On Linux the game runs inside a Wine/Proton prefix, and every launcher just mirrors that same `AppData\Roaming\<game>` tree inside its prefix. So you are always looking for the same tail, `.../pfx/drive_c/users/<user>/AppData/Roaming/<game>/*.sl2`, under whichever launcher put it there:
+
+- **Steam (Proton):** `~/.local/share/Steam/steamapps/compatdata/<appid>/pfx/drive_c/users/steamuser/AppData/Roaming/<game>`
+- **Heroic (Epic / GOG):** `~/Games/Heroic/Prefixes/default/<Game>/pfx/drive_c/users/steamuser/AppData/Roaming/<game>` (older installs use `~/.config/heroic/prefixes/...`)
+- **Lutris / plain Wine:** `~/.local/share/lutris/<game>/pfx/...` or `~/.wine/drive_c/users/<you>/AppData/Roaming/<game>`
+
+The no-argument auto-detect already searches all of these, so on most setups you can just run it with no path. Copy the `.sl2` out first if you would rather not touch the live folder, though you do not have to: the tool only ever reads.
 
 There is no test suite and no linter config. The one gate is a compile check:
 

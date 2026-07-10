@@ -17,31 +17,33 @@
 # want; the worst case is a bad Markdown file, not a bricked character.
 #
 # ### Not every game is equal, and this file says so instead of guessing
-# Seven save variants share one archive format but diverge in the details, and
+# Six save variants share one archive format but diverge in the details, and
 # not all of them are fully mapped in public tooling. Each game is handled at the
 # highest tier it can be trusted at, and the output states the tier plainly:
 #
-# | Game            | Tier      | What comes out                                  |
-# |-----------------|-----------|-------------------------------------------------|
-# | DS2: SOTFS      | full      | identity, stats, souls, inventory, progress     |
-# | Dark Souls R.   | full      | identity, stats, souls, inventory, progress     |
-# | Dark Souls PtDE | inventory | name + full inventory + progress (no stats)     |
-# | Dark Souls III  | inventory | name + full inventory + progress (no stats)     |
-# | Elden Ring      | inventory | name + level + owned items + remembrances       |
+# | Game            | Tier   | What comes out                                     |
+# |-----------------|--------|----------------------------------------------------|
+# | DS2: SOTFS      | full   | identity, stats, souls, inventory, progress        |
+# | Dark Souls R.   | full   | identity, stats, souls, inventory, progress        |
+# | Dark Souls PtDE | full   | identity, stats, souls, inventory, progress        |
+# | Dark Souls III  | full   | identity, stats, souls, inventory, progress        |
+# | Elden Ring      | full*  | identity, stats, runes, owned items, remembrances  |
 #
 # A tier is a promise: everything printed at any tier is read from the save, not
-# inferred and not guessed. PtDE/DS3 stat blocks are not printed because their
-# offsets are not calibrated in this build, and a wrong number is worse than a
-# missing one. Vanilla DS2 is detected but unsupported — its AES key is not public.
+# inferred and not guessed. Stat offsets are calibrated for every supported game;
+# DS3 and ER locate their stat block by content (the level == sum-of-attributes
+# identity) and drop stats for a slot rather than print a wrong one if it fails to
+# validate. Elden Ring's `full*` is full identity/stats but a partial item list:
+# owned items are read, quantities and reinforced-weapon variants are not. Vanilla
+# DS2 is detected but unsupported: its AES key is not public.
 #
-# ### A note on "MISRA C"
-# MISRA C is a coding standard for C, and this is Python, so it does not apply
-# literally. What carries over is the intent: validate everything at the boundary,
-# never read past the end of a buffer, give every constant a name, keep functions
-# single-purpose, and fail loudly instead of limping on with garbage. Every
-# integer read here goes through a bounds-checked helper that returns @c None
-# rather than raising or reading out of range, and the archive structure is
-# validated before any offset is trusted.
+# ### Reading defensively
+# Every integer read goes through a bounds-checked helper that returns @c None
+# rather than raising or reading past the end of a buffer, and the archive
+# structure is validated before any offset is trusted. A malformed or truncated
+# save degrades to "unknown" fields; it does not crash and it does not print
+# garbage. Constants are named, functions stay single-purpose, and the tool fails
+# loudly on anything it cannot read rather than limping on.
 #
 # @note Encryption keys and offsets come from the community: DS2 tables from
 #       alfizari/Dark-Souls-2-Save-Editor-PS4-PC; DSR decryption from
@@ -49,13 +51,14 @@
 #       alfizari/Dark-Souls-Remastered-Save-Editor; DS3/ER keys and header layout
 #       from jtesta/souls_givifier; DS2 key from mi5hmash/SL2Bonfire.
 #
-# @author Jubair Hasan (Joy / DarthDemono)
+# @author Jubair Hasan (Joy) / DarthDemono
+# @see https://github.com/darthdemono/SL2-TO-MD
 #
 import argparse
+import glob
 import hashlib
 import json
 import os
-import struct
 import sys
 from collections import defaultdict, OrderedDict
 from datetime import datetime
@@ -140,33 +143,6 @@ NAME_OK = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_
 # @return True if it is non-empty and every character is allowed.
 def is_valid_name(name):
     return bool(name) and all(c in NAME_OK for c in name)
-
-
-##
-# @brief Scan a bounded window for the first plausible UTF-16LE name.
-# @details Used where the exact name offset is not calibrated (PtDE): step
-# through the window, and the moment a run of valid name characters at least
-# @c min_len long appears, take it. Bounded so a bad slot cannot spin.
-# @param buf     The bytes to search.
-# @param limit   How far into the buffer to look.
-# @param min_len Shortest run that counts as a name.
-# @return The first valid name found, or None.
-def scan_first_name(buf, limit=1024, min_len=2):
-    i, cap = 0, min(limit, len(buf) - 1)
-    while i < cap:
-        if 32 <= buf[i] < 0x7F and buf[i + 1] == 0:
-            j, s = i, bytearray()
-            while j < len(buf) - 1 and 32 <= buf[j] < 0x7F and buf[j + 1] == 0:
-                s.append(buf[j])
-                j += 2
-            if len(s) >= min_len:
-                cand = s.decode("ascii", "ignore")
-                if is_valid_name(cand):
-                    return cand
-            i = j
-        else:
-            i += 1
-    return None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -336,9 +312,12 @@ def decrypt_none(blob):
 # ═════════════════════════════════════════════════════════════════════════════
 
 ## @brief DS2 tables: filename stem to category. Ids are unique across categories.
-DS2_DB_FILES = {"items": "goods", "rings": "rings", "weapons": "weapons",
-                "armors": "armors", "key": "keys", "bolts": "bolts",
-                "spells": "spells", "upgrade": "upgrade"}
+#  Categories are finer than the game's raw tabs so the output can mirror the
+#  in-game menu: consumables, trade goods, emotes and boss souls each stand alone.
+DS2_DB_FILES = {"weapons": "weapons", "armors": "armors", "rings": "rings",
+                "spells": "spells", "key": "keys", "bolts": "bolts",
+                "upgrade": "upgrade", "consumables": "consumables",
+                "online": "online", "emotes": "emotes", "bosssouls": "bosssouls"}
 ## @brief DS1 (DSR and PtDE) tables. Ids repeat across categories, so lookups stay
 #         category-scoped and the slot type decides which table to use.
 DS1_DB_FILES = {"MeleeWeapons": "weapons", "Armor": "armors",
@@ -452,8 +431,14 @@ DS2_STAT_OFF = OrderedDict([
 ## @brief DS2 inventory regions (start, end); 16-byte slots throughout.
 DS2_INV_RANGE, DS2_KEY_RANGE = (0x1E2C, 0x10E1C), (0x10E30, 0x11DF0)
 ## @brief DS2 categories whose slot +8 field is a real count (float durability
-#         elsewhere).
-DS2_STACKABLE = {"goods", "bolts", "spells", "upgrade", "keys"}
+#         elsewhere). Weapons/armour/rings/emotes are one instance per slot.
+DS2_STACKABLE = {"consumables", "online", "bolts", "spells", "upgrade", "keys",
+                 "bosssouls"}
+## @brief The four DS2 "Old" great souls (from the Lost Sinner, the Rotten, the
+#  Old Iron King, and the Duke's Dear Freja). The game treats these apart from the
+#  ordinary boss souls, so the output does too.
+DS2_GREAT_SOULS = {"Old Witch Soul", "Old Dead One Soul", "Old King Soul",
+                   "Old Paledrake Soul"}
 
 
 ## @brief Read a DS2 name, or None for an empty slot.
@@ -471,10 +456,12 @@ def ds2_inventory(buf, item_db):
         o = start
         while o + 16 <= min(end, len(buf)):
             # Count is the low uint16 of the +8 field, not a full uint32: special
-            # items pack extra state into the high two bytes (Estus keeps its
-            # current/max charges there, e.g. 01 00 07 07 = one flask, 7/7 charges).
-            # No stackable count exceeds 65535, so the low uint16 is the real total.
+            # items pack extra state into the high two bytes. The Estus Flask keeps
+            # its current/max charges there, e.g. 01 00 07 07 = one flask, 7/7
+            # charges. No stackable count exceeds 65535, so the low uint16 is the
+            # real total, and the high two bytes are the flask's charge pair.
             iid, qty = u32(buf, o), u16(buf, o + 8)
+            cur, mx = u8(buf, o + 10), u8(buf, o + 11)
             o += 16
             if not iid:
                 continue
@@ -483,6 +470,8 @@ def ds2_inventory(buf, item_db):
                 unknown += 1
                 continue
             name, cat = info
+            if name == "Estus Flask" and mx:
+                name = f"{name} ({cur}/{mx} charges)"
             buckets[cat].append((name, qty if cat in DS2_STACKABLE else 1))
     return buckets, unknown
 
@@ -500,8 +489,10 @@ def ds2_parse(buf, item_db):
         "souls": u32(buf, DS2_SOULS_OFF), "soul_memory": u32(buf, DS2_SOULMEM_OFF),
         "humanity": None, "stamina": None, "hp": u32(buf, DS2_HP_OFF),
         "ng_plus": max(0, (u16(buf, DS2_NG_OFF) or 1) - 1),
-        "boss_souls": find_boss_souls(inv.get("goods", [])),
-        "key_items": inv.pop("keys", []), "inv": inv, "unknown_count": unknown,
+        # DS2 boss souls are a real inventory category (bosssouls), rendered and
+        # graded there, so the top boss-souls section is left empty for DS2.
+        "boss_souls": [], "key_items": inv.pop("keys", []),
+        "inv": inv, "unknown_count": unknown,
     }
 
 
@@ -531,6 +522,36 @@ DS1_CAT = {0x00000000: "weapons", 0x10000000: "armors",
 DS1_INV_START, DS1_INV_ANCHOR = 0x988, bytes.fromhex("0000000000000000A0BB0D00")
 ## @brief End-of-inventory marker.
 DS1_INV_END = bytes.fromhex("00000000FFFFFFFFFFFFFFFF")
+## @brief DS1 weapon infusion paths, keyed by the hundreds digit of the id's
+#  upgrade suffix (id = base + path*100 + level). Path 0 is plain reinforcement.
+DS1_INFUSION = {1: "Crystal", 2: "Lightning", 3: "Raw", 4: "Magic", 5: "Enchanted",
+                6: "Divine", 7: "Occult", 8: "Fire", 9: "Chaos"}
+
+
+##
+# @brief Resolve a DS1 item id to a display name, unwrapping any upgrade baked in.
+# @details Weapons and armour store their reinforcement — and, for weapons, their
+# infusion — inside the id as @c base+path*100+level, where @c base ends in 000. A
+# direct hit is tried first; failing that, the base is looked up and a "+N" (with
+# the infusion name for weapons) suffix is appended. Rings and goods do not upgrade,
+# so they only ever match directly.
+# @return The display name, or None if even the base is unknown.
+def ds1_resolve(item_db, cat, iid):
+    table = item_db.get(cat, {})
+    if iid in table:
+        return table[iid]
+    # Rings carry no upgrade, and the table keeps them at 1/1000 of the stored id.
+    if cat == "rings":
+        return table.get(iid // 1000)
+    if cat not in ("weapons", "armors"):
+        return None
+    base, path, level = iid - iid % 1000, (iid % 1000) // 100, iid % 100
+    name = table.get(base)
+    if name is None:
+        return None
+    infusion = DS1_INFUSION.get(path) if cat == "weapons" else None
+    suffix = f" +{level}" if level else ""
+    return f"{name}{suffix} ({infusion})" if infusion else f"{name}{suffix}"
 
 
 ##
@@ -573,7 +594,7 @@ def ds1_inventory(buf, item_db):
         if not iid:
             continue
         cat = DS1_CAT.get(stype & 0xF0000000) if stype is not None else None
-        name = item_db.get(cat, {}).get(iid) if cat else None
+        name = ds1_resolve(item_db, cat, iid) if cat else None
         if name is None:
             unknown += 1
             continue
@@ -891,17 +912,15 @@ def er_gaitems(buf):
 
 
 ##
-# @brief Parse one ER slot into the unified dict (inventory tier).
-# @details Names come from the GaItem walk resolved against the id table; ids may
-# carry category bits, so a direct hit is tried first, then the masked id. Bosses
-# are inferred from Remembrances held. Stats, level, and quantities are not read:
-# ER's stat block moves between patches and the quantity list is the fragile part
-# this deliberately avoids. Returns None if nothing resolves (an empty slot).
-# @param buf   The ER slot data.
-# @param iddb  Flat @c {id: name} table.
-# @param name  The character name from the roster, or None.
-# @param level The character level from the roster, or None.
-# @return A unified character dict, or None.
+# @brief Locate the ER stat block by content, or None if none validates.
+# @details ER stat offsets move, and the block sits at a different slot offset for
+# every character, so it is found rather than read from a fixed spot: for each
+# 4-aligned position, treat the next eight uint32 as the attributes and accept only
+# where each is 1..99 and their sum minus @ref ER_LEVEL_BASE equals the stored rune
+# level. That identity is ER's own level formula, so a coincidental match is not
+# credible.
+# @param buf The ER slot data.
+# @return The Vigor-field offset (the anchor), or None.
 def er_find_stats(buf):
     dists = list(ER_STAT_D.values())
     v, end = 0, len(buf) - ER_RUNES_D - 4
@@ -1016,13 +1035,16 @@ STAT_ABBR = {"Vigor": "VGR", "Endurance": "END", "Vitality": "VIT",
              "Attunement": "ATN", "Strength": "STR", "Dexterity": "DEX",
              "Adaptability": "ADP", "Intelligence": "INT", "Faith": "FTH",
              "Resistance": "RES", "Luck": "LCK", "Mind": "MND", "Arcane": "ARC"}
-## @brief Category id to printed heading (covers both id schemes).
+## @brief Category id to printed heading (covers every id scheme / game).
 CAT_TITLE = {"weapons": "Weapons", "armors": "Armor", "rings": "Rings",
-             "spells": "Spells", "goods": "Consumables & Goods",
-             "bolts": "Ammunition", "upgrade": "Upgrade Materials",
-             "items": "Items Owned"}
-## @brief Print order for inventory categories.
-CAT_ORDER = ["weapons", "armors", "rings", "spells", "bolts", "upgrade", "goods", "items"]
+             "spells": "Spells", "bolts": "Ammunition",
+             "upgrade": "Upgrade Materials", "consumables": "Consumables",
+             "online": "Summon & Covenant Items", "goods": "Consumables & Goods",
+             "emotes": "Gestures", "bosssouls": "Boss Souls", "items": "Items Owned"}
+## @brief Print order for inventory categories, mirroring the in-game item menu.
+#  (`goods` is the lumped consumables bucket the non-DS2 games still use.)
+CAT_ORDER = ["weapons", "armors", "rings", "spells", "bolts", "upgrade",
+             "consumables", "goods", "online", "bosssouls", "emotes", "items"]
 
 
 ##
@@ -1050,11 +1072,11 @@ def fmt(value):
 
 ##
 # @brief Render one full/inventory-tier character as a Markdown section.
-# @param ch         A unified character dict.
-# @param slot_label A short label naming the slot.
+# @param ch      A unified character dict.
+# @param slot_no The 1-based save-slot number.
 # @return The Markdown for this character.
-def md_for_character(ch, slot_label):
-    L = [f"## {ch['name']}  ·  {slot_label}", ""]
+def md_for_character(ch, slot_no):
+    L = [f"## Slot {slot_no}: {ch['name']}", ""]
     if ch["level"] is not None:
         L.append(f"- **{'Level' if ch['game'] == 'er' else 'Soul Level'}:** {ch['level']}")
     if ch["klass"]:
@@ -1089,26 +1111,35 @@ def md_for_character(ch, slot_label):
               "number is worse than none. Inventory and progress below are read "
               "directly._", ""]
 
+    def bullets(items):
+        return [f"- {n}" + (f" ×{q}" if q and q > 1 else "") for n, q in items]
+
+    # Boss souls / remembrances that live in their own top section (every game but
+    # DS2, whose boss souls are a proper inventory category — see below).
     if ch["boss_souls"]:
         header = ("### Remembrances Held  _(major bosses defeated, not yet traded)_"
                   if ch["game"] == "er"
                   else "### Boss Souls Held  _(bosses defeated, soul not yet consumed)_")
-        L += [header, ""]
-        L += [f"- {n}" + (f" ×{q}" if q and q > 1 else "") for n, q in ch["boss_souls"]]
-        L.append("")
+        L += [header, ""] + bullets(ch["boss_souls"]) + [""]
     if ch["key_items"]:
         L += ["### Key Items  _(progress / areas & shortcuts unlocked)_", ""]
-        L += [f"- {n}" + (f" ×{q}" if q and q > 1 else "") for n, q in ch["key_items"]]
-        L.append("")
+        L += bullets(ch["key_items"]) + [""]
 
     L += ["### Inventory", ""]
     for cat in CAT_ORDER:
         items = ch["inv"].get(cat)
         if not items:
             continue
-        L += [f"**{CAT_TITLE[cat]}** ({len(items)})", ""]
-        L += [f"- {n}" + (f" ×{q}" if q and q > 1 else "") for n, q in items]
-        L.append("")
+        # Boss souls split into the game's own two grades: the four "Old" great
+        # souls, then the ordinary boss souls. Everything else is one heading.
+        if cat == "bosssouls":
+            great = [it for it in items if it[0] in DS2_GREAT_SOULS]
+            normal = [it for it in items if it[0] not in DS2_GREAT_SOULS]
+            for title, group in (("Great Boss Souls", great), ("Boss Souls", normal)):
+                if group:
+                    L += [f"#### {title}", ""] + bullets(group) + [""]
+        else:
+            L += [f"#### {CAT_TITLE[cat]}", ""] + bullets(items) + [""]
     if ch["unknown_count"]:
         L += [f"_{ch['unknown_count']} inventory item(s) had IDs not in the name "
               "database (upgraded / infused variants) and were omitted._", ""]
@@ -1119,32 +1150,76 @@ def md_for_character(ch, slot_label):
 #  Driver
 # ═════════════════════════════════════════════════════════════════════════════
 
-## @brief Per-game title, db config, decrypt function, parse function, and slots.
+## @brief Public source repository, printed in every generated file.
+REPO_URL = "https://github.com/darthdemono/SL2-TO-MD"
+
+## @brief Per-game config: title, tier, db, decrypt/parse, slot range, and a
+#         one-line "how it works" for the file header.
 GAMES = {
     "ds2sotfs": {"title": "Dark Souls II: Scholar of the First Sin", "tier": "full",
                  "db": ("db_ds2", True, DS2_DB_FILES), "decrypt": decrypt_ds2,
-                 "parse": ds2_parse, "slots": range(1, 11)},
+                 "parse": ds2_parse, "slots": range(1, 11),
+                 "how": "the save is scrambled with a lock (AES-128 encryption) "
+                        "whose key ships inside the game itself, so the tool applies "
+                        "that key to unlock the raw data. From there each character's "
+                        "details sit at fixed, known positions: name, level, the nine "
+                        "attributes, and souls are read straight from those spots. "
+                        "Every inventory entry stores a numeric item ID, which the "
+                        "tool looks up in a name table built from the community's "
+                        "SOTFS ID list, so you read 'Longsword' instead of a number; "
+                        "reinforced and infused gear keeps its own ID and is covered "
+                        "too"},
     "dsr": {"title": "Dark Souls Remastered", "tier": "full",
             "db": ("db_ds1", False, DS1_DB_FILES),
             "decrypt": lambda b: decrypt_iv_prefixed(b, DSR_KEY),
-            "parse": dsr_parse, "slots": range(0, 10)},
+            "parse": dsr_parse, "slots": range(0, 10),
+            "how": "the save is locked the same way (AES-128 encryption, key shipped "
+                   "inside the game), so the tool unlocks it first. The character "
+                   "block does not sit at a fixed spot — it shifts as the save grows "
+                   "— so the tool locates it by a fixed marker (a 'magic' byte "
+                   "pattern) that always sits beside it, then reads the level, stats, "
+                   "and souls at known distances from that marker. The inventory is "
+                   "found by a second, separate marker, and every item ID is matched "
+                   "to its real name"},
     "ptde": {"title": "Dark Souls: Prepare to Die Edition", "tier": "full",
              "db": ("db_ds1", False, DS1_DB_FILES), "decrypt": decrypt_none,
-             "parse": ptde_parse, "slots": range(0, 10)},
+             "parse": ptde_parse, "slots": range(0, 10),
+             "how": "this original edition does not encrypt its save at all, so "
+                    "there is nothing to unlock. It stores a character the same way "
+                    "Remastered does but without that version's marker, so the tool "
+                    "finds the character by locating the name text and reads the "
+                    "level, stats, souls, and inventory that sit at known distances "
+                    "around it"},
     "ds3": {"title": "Dark Souls III", "tier": "full",
             "db": ("db_ds3", DS3_DB_FILES),
             "decrypt": lambda b: decrypt_iv_prefixed(b, DS3_KEY),
-            "menu": 10, "slots": range(0, 10)},
+            "menu": 10, "slots": range(0, 10),
+            "how": "the save is locked with AES-128 encryption, key shipped in the "
+                   "game, so the tool unlocks it first. The stats do not sit at a "
+                   "fixed position, and that position moves between game patches, so "
+                   "instead of trusting a location the tool searches for the stat "
+                   "block by its content: it looks for the run of nine numbers that, "
+                   "added together, equal the character's stored level — a rule the "
+                   "game itself follows, which makes a wrong match almost impossible. "
+                   "Items are found by scanning the slot for known IDs and matched to "
+                   "names"},
     "er": {"title": "Elden Ring", "tier": "full", "db": "db_er",
-           "decrypt": decrypt_none, "menu": 10, "slots": range(0, 10)},
+           "decrypt": decrypt_none, "menu": 10, "slots": range(0, 10),
+           "how": "the save is not encrypted, so the tool reads it directly. Like "
+                  "Dark Souls III, the stats are found by content rather than a fixed "
+                  "spot — the tool looks for the eight numbers that add up to the "
+                  "character's level — which matters more here because that stat "
+                  "block sits in a different place for every character. Every item "
+                  "the character owns is read from the game's item array and matched "
+                  "to its real name"},
 }
-## @brief The header note that states the honest limits, printed on every file.
-DISCLAIMER = (
-    "> Automated dump of the save. Everything printed is read directly from the "
-    "save — no field is guessed. \"Bosses defeated\" and \"locations unlocked\" "
-    "are **inferred** from boss souls and key items still held; the raw event-flag "
-    "table (bonfires lit, bosses killed after their soul was spent) is not publicly "
-    "mapped and is not decoded here.")
+
+
+## @brief One-line header note for a generated file: the repo, and how this game
+#         is read. Replaces the old boilerplate; states the source, not caveats.
+def disclaimer_for(cfg):
+    return (f"> Automated dump of the save. Code Repo: {REPO_URL} . "
+            f"How it works for {cfg['title']}: {cfg['how']}.")
 
 
 ##
@@ -1157,6 +1232,7 @@ def convert(data, filename, base_dir):
     entries = parse_bnd4(data)
     game = detect_game(data, entries)
     cfg = GAMES[game]
+    disclaimer = disclaimer_for(cfg)
 
     head = [f"# {cfg['title']} — Playthrough Save Summary", "",
             f"_Source: `{filename}` · generated {datetime.now():%Y-%m-%d %H:%M} · sl2_to_md_",
@@ -1183,10 +1259,10 @@ def convert(data, filename, base_dir):
             ch = er_parse(slot, iddb, name, level)
             if ch is not None:
                 characters.append((i, ch))
-        head += [f"- **Characters found:** {len(characters)}", "", DISCLAIMER, "", "---", ""]
+        head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
         body = ["_No populated character slots found._"] if not characters else []
         for i, ch in characters:
-            body.append(md_for_character(ch, f"slot entry {i}"))
+            body.append(md_for_character(ch, i - cfg["slots"].start + 1))
             body += ["---", ""]
         body += ["_Elden Ring identity, attributes, and runes are read directly; the "
                  "**item list is partial**. Owned items come from the GaItem array "
@@ -1215,10 +1291,10 @@ def convert(data, filename, base_dir):
             ch = ds3_parse(slot, iddb, names.get(i))
             if ch is not None:
                 characters.append((i, ch))
-        head += [f"- **Characters found:** {len(characters)}", "", DISCLAIMER, "", "---", ""]
+        head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
         body = ["_No populated character slots found._"] if not characters else []
         for i, ch in characters:
-            body.append(md_for_character(ch, f"slot entry {i}"))
+            body.append(md_for_character(ch, i - cfg["slots"].start + 1))
             body += ["---", ""]
         return "\n".join(head + body)
 
@@ -1240,14 +1316,61 @@ def convert(data, filename, base_dir):
         if ch is not None:
             characters.append((i, ch))
 
-    head += [f"- **Characters found:** {len(characters)}", "", DISCLAIMER, "", "---", ""]
+    head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
     body = []
     if not characters:
         body.append("_No populated character slots found._")
     for i, ch in characters:
-        body.append(md_for_character(ch, f"slot entry {i}"))
+        body.append(md_for_character(ch, i - cfg["slots"].start + 1))
         body += ["---", ""]
     return "\n".join(head + body)
+
+
+## @brief Folders a Souls save can live in, per OS. Each game keeps its `.sl2` in
+#  a game-named subfolder, hence the trailing `*/`. Steam/Proton, Heroic, Lutris,
+#  and plain Wine all mirror the Windows `%APPDATA%` tree inside a prefix, so the
+#  tail of every glob is the same `.../AppData/Roaming/<game>/*.sl2`.
+def _save_globs():
+    globs = ["*.sl2", os.path.join("*", "*.sl2")]      # cwd and one level down
+    home = os.path.expanduser("~")
+    appdata = os.environ.get("APPDATA")
+    if appdata:                                        # native Windows
+        globs.append(os.path.join(appdata, "*", "*.sl2"))
+    roaming = "drive_c/users/steamuser/AppData/Roaming/*/*.sl2"
+    user_roaming = "drive_c/users/*/AppData/Roaming/*/*.sl2"
+    # Steam through Proton.
+    for steam in (".local/share/Steam", ".steam/steam", ".steam/root"):
+        globs.append(os.path.join(home, steam, "steamapps/compatdata/*/pfx", roaming))
+    # Heroic (Epic / GOG) Wine prefixes.
+    for heroic in ("Games/Heroic/Prefixes/default/*/pfx",
+                   ".config/heroic/prefixes/default/*/pfx", "Games/Heroic/*/pfx"):
+        globs.append(os.path.join(home, heroic, roaming))
+    # Lutris and a plain ~/.wine prefix (user-named, not always "steamuser").
+    globs.append(os.path.join(home, ".local/share/lutris/*/pfx", user_roaming))
+    globs.append(os.path.join(home, ".wine", user_roaming))
+    return globs
+
+
+##
+# @brief Find a `.sl2` when none was given on the command line.
+# @details Globs the current folder and the usual Steam/Proton and Windows save
+# locations, and returns the most recently modified match — the live character is
+# almost always the newest file. Exits with a clear message if nothing is found.
+# @return The path to the chosen save.
+def auto_find_save():
+    found = []
+    for pat in _save_globs():
+        found += glob.glob(pat)
+    found = sorted(set(found), key=lambda p: os.path.getmtime(p), reverse=True)
+    if not found:
+        sys.exit("No .sl2 found in the current folder or the usual save locations. "
+                 "Pass the path explicitly: sl2_to_md.py <save.sl2>")
+    if len(found) > 1:
+        print(f"Auto-detected {len(found)} saves; using the newest: {found[0]}")
+        print("  (pass a path to pick another)")
+    else:
+        print(f"Auto-detected save: {found[0]}")
+    return found[0]
 
 
 ##
@@ -1257,17 +1380,19 @@ def main():
     ap = argparse.ArgumentParser(
         description="FromSoftware .sl2 save -> Markdown playthrough summary "
                     "(DS PtDE/Remastered, DS2 SOTFS, DS3, Elden Ring)")
-    ap.add_argument("sl2", help="path to the .sl2 save")
+    ap.add_argument("sl2", nargs="?",
+                    help="path to the .sl2 save (auto-detected if omitted)")
     ap.add_argument("-o", "--out", default="playthrough.md", help="output .md path")
     args = ap.parse_args()
 
-    if not os.path.isfile(args.sl2):
-        sys.exit(f"No such file: {args.sl2}")
-    with open(args.sl2, "rb") as f:
+    sl2 = args.sl2 or auto_find_save()
+    if not os.path.isfile(sl2):
+        sys.exit(f"No such file: {sl2}")
+    with open(sl2, "rb") as f:
         data = f.read()
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    md = convert(data, os.path.basename(args.sl2), base_dir)
+    md = convert(data, os.path.basename(sl2), base_dir)
 
     out_dir = os.path.dirname(os.path.abspath(args.out))
     if out_dir and not os.path.isdir(out_dir):
