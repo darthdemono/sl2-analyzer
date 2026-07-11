@@ -418,6 +418,37 @@ def find_key_goods(goods):
 
 ## @brief DS2 character-slot offsets (absolute, into decrypted game data).
 DS2_NAME_OFF, DS2_SOULS_OFF, DS2_SOULMEM_OFF, DS2_HP_OFF, DS2_NG_OFF = 960, 60, 64, 72, 1028
+## @brief DS2 header (BND4 entry 0) title-list layout: each menu slot's name sits at
+#  DS2_TITLE_NAME_OFF + DS2_TITLE_STRIDE * title_index. Block entry i maps to title
+#  index (i - slots.start). Used to tell active characters from deleted ghosts.
+DS2_TITLE_NAME_OFF, DS2_TITLE_STRIDE = 1286, 496
+## @brief Starting class (byte) and current covenant (byte) offsets in the slot
+#  block. Pinned by differential saves: class read 2 (Knight) on one character and
+#  8 (Explorer) on another at +1024; covenant read 3 (Brotherhood of Blood) then 0
+#  (None) after leaving the covenant at +189, cross-checked against a third char.
+DS2_CLASS_OFF, DS2_COVENANT_OFF = 1024, 189
+## @brief DS2 starting-class and covenant id→name (from the SOTFS Cheat Engine table
+#  dropdowns). Id 0 / unknown is absent, so `.get` yields None and the field is
+#  omitted rather than shown wrong. Covenant 0 = not in a covenant (omitted).
+DS2_CLASS = {1: "Warrior", 2: "Knight", 4: "Bandit", 6: "Cleric", 7: "Sorcerer",
+             8: "Explorer", 9: "Swordsman", 10: "Deprived"}
+DS2_COVENANT = {1: "Heirs of the Sun", 2: "Blue Sentinels", 3: "Brotherhood of Blood",
+                4: "Way of Blue", 5: "Rat King", 6: "Bell Keepers",
+                7: "Dragon Remnants", 8: "Company of Champions", 9: "Pilgrims of Dark"}
+## @brief Hollowing level (u8) offset in the slot block. From the Jappi88 DS2 save
+#  editor: its player block reads Gender then HollowLv at block[0] 0x15A/0x15B, and
+#  that block starts at slot flat +32 (Level/Souls/Soul-Memory/Health line up), so
+#  HollowLv is at flat 0x15B+32 = 379. Verified: a 30h character read Hollow Lv 1.
+DS2_HOLLOW_OFF = 379
+## @brief Bonfire (rest-point) progression lives in a separate WORLD block, not the
+#  character-status block. In the SOTFS `.sl2` the world block for status entry i is
+#  entry i + DS2_WORLD_ENTRY_DELTA. Inside it (per the Jappi88 editor's MapData: ids
+#  at block 0x1598, unlock flags at 0x1798) a contiguous u16 array of bonfire ids is
+#  followed DS2_BONFIRE_FLAG_DELTA bytes later by one unlock byte each. The array's
+#  slot offset is not fixed across saves, so it is found by content (a long run of
+#  known bonfire ids). Verified: a fresh mule shows 1 bonfire (the start), a 30h save
+#  shows 49 across the whole game.
+DS2_WORLD_ENTRY_DELTA, DS2_BONFIRE_FLAG_DELTA, DS2_BONFIRE_MIN_RUN = 10, 0x200, 16
 ## @brief DS2 attribute offsets (uint16 each), in display order; Level last.
 #  Adaptability, Intelligence and Faith are NOT stored in display order: memory
 #  keeps Intelligence @44, Faith @46, Adaptability @48 (verified against a known
@@ -506,16 +537,111 @@ def ds2_parse(buf, item_db):
     buckets, unknown = ds2_inventory(buf, item_db)
     inv = {c: merge_qty(v) for c, v in buckets.items()}
     return {
-        "tier": "full", "game": "ds2sotfs", "name": ds2_name(buf), "klass": None,
+        "tier": "full", "game": "ds2sotfs", "name": ds2_name(buf),
+        "klass": DS2_CLASS.get(u8(buf, DS2_CLASS_OFF)),
+        "covenant": DS2_COVENANT.get(u8(buf, DS2_COVENANT_OFF)),
         "level": stats.pop("Level"), "stats": stats,
         "souls": u32(buf, DS2_SOULS_OFF), "soul_memory": u32(buf, DS2_SOULMEM_OFF),
         "humanity": None, "stamina": None, "hp": u32(buf, DS2_HP_OFF),
         "ng_plus": max(0, (u16(buf, DS2_NG_OFF) or 1) - 1),
+        "hollow_lvl": u8(buf, DS2_HOLLOW_OFF),
         # DS2 boss souls are a real inventory category (bosssouls), rendered and
         # graded there, so the top boss-souls section is left empty for DS2.
         "boss_souls": [], "key_items": inv.pop("keys", []),
         "inv": inv, "unknown_count": unknown,
     }
+
+
+## @brief Load the DS2 bonfire id→name table (db_ds2/bonfires.json, keyed by the
+#  low-16-bit id as 4-hex). Cached after first read. Returns {} if the file is absent.
+_DS2_BONFIRE_CACHE = {}
+def load_ds2_bonfires(base_dir):
+    if base_dir not in _DS2_BONFIRE_CACHE:
+        path = os.path.join(base_dir, "db_ds2", "bonfires.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                raw = json.load(f)
+            _DS2_BONFIRE_CACHE[base_dir] = {int(k, 16): v for k, v in raw.items()}
+        except (OSError, ValueError):
+            _DS2_BONFIRE_CACHE[base_dir] = {}
+    return _DS2_BONFIRE_CACHE[base_dir]
+
+
+##
+# @brief Names of the bonfires this character has discovered, or None.
+# @details The world block holds a contiguous u16 array of bonfire ids and, exactly
+# DS2_BONFIRE_FLAG_DELTA bytes later, one unlock byte per id (non-zero = discovered).
+# The array's offset shifts between saves, so it is located by content: the start of
+# the longest run of known bonfire ids (a false run is astronomically unlikely given
+# the ~78-id vocabulary in the u16 space). Returns the discovered names in world
+# order, or None when the array can't be found (no world block / unknown layout).
+def ds2_visited_bonfires(world, bf_db):
+    if not world or not bf_db:
+        return None
+    best_start, best_run, run, run_start, o = -1, 0, 0, 0, 0
+    while o + 2 <= len(world):
+        if u16(world, o) in bf_db:
+            run_start = o if run == 0 else run_start
+            run += 1
+            if run > best_run:
+                best_run, best_start = run, run_start
+        else:
+            run = 0
+        o += 2
+    if best_run < DS2_BONFIRE_MIN_RUN:
+        return None
+    ids = []
+    o = best_start
+    while o + 2 <= len(world) and len(ids) < DS2_BONFIRE_FLAG_DELTA // 2:
+        v = u16(world, o)
+        if v == 0:
+            break
+        ids.append(v)
+        o += 2
+    flag_base = best_start + DS2_BONFIRE_FLAG_DELTA
+    visited = []
+    for idx, bid in enumerate(ids):
+        if u8(world, flag_base + idx):
+            visited.append(bf_db.get(bid, f"(bonfire {bid:#06x})"))
+    return visited
+
+
+## @brief DS2-only augment: attach world-block progression (bonfires) to a parsed
+#  character. The world block for status entry @c i is entry @c i+DS2_WORLD_ENTRY_DELTA;
+#  a missing/undecryptable block just leaves @c bonfires as None (section omitted).
+def ds2_augment(ch, data, entries, i, base_dir):
+    w = i + DS2_WORLD_ENTRY_DELTA
+    if w >= len(entries):
+        return
+    world = decrypt_ds2(data[entries[w].offset:entries[w].offset + entries[w].size])
+    ch["bonfires"] = ds2_visited_bonfires(world, load_ds2_bonfires(base_dir))
+
+
+##
+# @brief Which DS2 block entries hold a character still listed in the menu.
+# @details Deleting a character in-game only clears its entry in the header title
+# list (BND4 entry 0) — the encrypted slot block is left untouched, so a plain scan
+# resurrects deleted "ghost" characters. The title list is the menu's source of
+# truth: block entry @c i owns title index @c i-slots.start, occupied only when that
+# title name field holds a valid name. Reads through the bounds-checked helpers, so
+# a short/garbled header yields None and the caller then skips the filter (degrade
+# to showing everything rather than wrongly hiding a real character). An empty
+# result is treated the same way: more likely a shifted offset on a future patch
+# than a save the user would bother converting with every character deleted.
+# @return The set of active entry indices, or None if the header can't be read or
+#         the list came back empty (caller then applies no filter).
+def ds2_active_slots(data, entries, slots):
+    if not entries:
+        return None
+    hdr = decrypt_ds2(data[entries[0].offset:entries[0].offset + entries[0].size])
+    if hdr is None:
+        return None
+    active = set()
+    for i in slots:
+        off = DS2_TITLE_NAME_OFF + DS2_TITLE_STRIDE * (i - slots.start)
+        if is_valid_name(read_utf16(hdr, off, 16)):
+            active.add(i)
+    return active or None
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -860,8 +986,6 @@ DS3_DB_FILES = {"weapons": "weapons", "armors": "armors", "rings": "rings",
 ER_GAITEM_START = 0x20
 ## @brief Number of GaItem entries in the array.
 ER_GAITEM_COUNT = 0x1400
-## @brief Category bits an item id may carry; a name-table id has them masked off.
-ER_ID_MASK = 0x0FFFFFFF
 ## @brief In the menu (header) entry: offset of the variable-length menu-system
 #         block's length field, the byte after which its data begins, the number
 #         of character slots, the size of one profile summary, and the profile
@@ -974,15 +1098,18 @@ def er_find_stats(buf):
 # @param level The character level from the roster, or None.
 # @return A unified character dict, or None.
 def er_parse(buf, iddb, name, level):
-    owned = {}
+    buckets, unknown = defaultdict(set), 0
     for iid in er_gaitems(buf):
-        nm = iddb.get(iid) or iddb.get(iid & ER_ID_MASK)
+        nm, cat = er_resolve(iid, iddb)
         if nm:
-            owned[nm] = None
-    if not owned:
+            buckets[cat].add(nm)
+        elif cat:
+            unknown += 1
+    if not any(buckets.values()):
         return None
-    items = sorted(owned)
-    remembrances = [(n, None) for n in items if "Remembrance" in n]
+    inv = {c: [(n, None) for n in sorted(v)] for c, v in buckets.items()}
+    remembrances = [(n, None) for c in buckets for n in sorted(buckets[c])
+                    if "Remembrance" in n]
     v = er_find_stats(buf)
     stats = OrderedDict((k, u32(buf, v + d)) for k, d in ER_STAT_D.items()) \
         if v is not None else OrderedDict()
@@ -996,23 +1123,56 @@ def er_parse(buf, iddb, name, level):
         "stamina": u32(buf, v + ER_STAM_D) if v is not None else None,
         "hp": u32(buf, v + ER_HP_D) if v is not None else None,
         "boss_souls": remembrances, "key_items": [],
-        "inv": {"items": [(n, None) for n in items]}, "unknown_count": 0,
+        "inv": inv, "unknown_count": unknown,
     }
 
 
-## @brief ER id table: one flat file of @c {name: id}.
-ER_DB_FILES = {"items": "items"}
+## @brief ER item category by id top nibble (the ItemGib type code), and the render
+#  category each maps to. Weapon (0x0), Protector/armour (0x1), Accessory/talisman
+#  (0x2), Goods (0x4), Gem/Ash of War (0x8). The nibble the GaItem walk already
+#  trusts for its tail length is the item TYPE, so it also scopes name resolution —
+#  the fix for the old flat lookup that collided base ids across types (~20% wrong).
+ER_CAT = {0x0: "weapons", 0x1: "armors", 0x2: "talismans", 0x4: "goods", 0x8: "ashes"}
+## @brief ER db category files (one per type), each @c {8-hex-id: name}.
+ER_DB_FILES = tuple(ER_CAT.values())
+## @brief Weapon ids bake affinity+reinforcement into the low digits; base ids are
+#  spaced by this, so `id - id % step` recovers the base for a fallback lookup.
+ER_WEAPON_BASE_STEP = 10000
 
 
 ##
-# @brief Load the ER id table, flattened to @c {id: name}.
-# @param db_dir Folder holding @c items.json.
-# @return The lookup, or {} if absent.
+# @brief Load the ER id tables, category-scoped: @c {category: {id: name}}.
+# @param db_dir Folder holding one JSON per category (weapons/armors/…).
+# @return The lookup, or {} if none present.
 def load_er_db(db_dir):
-    path = os.path.join(db_dir, "items.json")
-    if not os.path.exists(path):
-        return {}
-    return {int(v): k for k, v in json.load(open(path, encoding="utf-8")).items()}
+    db = {}
+    for cat in ER_DB_FILES:
+        try:
+            with open(os.path.join(db_dir, cat + ".json"), encoding="utf-8") as f:
+                db[cat] = {int(k, 16): v for k, v in json.load(f).items()}
+        except (OSError, ValueError):
+            continue
+    return db
+
+
+##
+# @brief Resolve an ER item id to (name, category), type-scoped by its nibble.
+# @details The category comes from the id's top nibble (@ref ER_CAT); the name is
+# looked up ONLY in that category's table, so an armour id can never resolve to a
+# weapon of the same base number. Reinforced/affinity weapons carry the upgrade in
+# their low digits and are not in the table, so on a weapon miss the base id is
+# tried — giving the base weapon's name (the upgrade level itself is still not read).
+# @return @c (name, category); name is None when unresolved, category None when the
+#         nibble is not a known type.
+def er_resolve(iid, db):
+    cat = ER_CAT.get((iid >> 28) & 0xF)
+    if cat is None:
+        return None, None
+    table = db.get(cat, {})
+    name = table.get(iid)
+    if name is None and cat == "weapons":
+        name = table.get(iid - iid % ER_WEAPON_BASE_STEP)
+    return name, cat
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -1059,14 +1219,15 @@ STAT_ABBR = {"Vigor": "VGR", "Endurance": "END", "Vitality": "VIT",
              "Resistance": "RES", "Luck": "LCK", "Mind": "MND", "Arcane": "ARC"}
 ## @brief Category id to printed heading (covers every id scheme / game).
 CAT_TITLE = {"weapons": "Weapons", "armors": "Armor", "rings": "Rings",
-             "spells": "Spells", "bolts": "Ammunition",
+             "talismans": "Talismans", "spells": "Spells", "bolts": "Ammunition",
              "upgrade": "Upgrade Materials", "consumables": "Consumables",
              "online": "Summon & Covenant Items", "goods": "Consumables & Goods",
-             "emotes": "Gestures", "bosssouls": "Boss Souls", "items": "Items Owned"}
+             "ashes": "Ashes of War", "emotes": "Gestures",
+             "bosssouls": "Boss Souls", "items": "Items Owned"}
 ## @brief Print order for inventory categories, mirroring the in-game item menu.
 #  (`goods` is the lumped consumables bucket the non-DS2 games still use.)
-CAT_ORDER = ["weapons", "armors", "rings", "spells", "bolts", "upgrade",
-             "consumables", "goods", "online", "bosssouls", "emotes", "items"]
+CAT_ORDER = ["weapons", "armors", "rings", "talismans", "spells", "bolts", "upgrade",
+             "consumables", "goods", "ashes", "online", "bosssouls", "emotes", "items"]
 
 
 ##
@@ -1103,6 +1264,8 @@ def md_for_character(ch, slot_no):
         L.append(f"- **{'Level' if ch['game'] == 'er' else 'Soul Level'}:** {ch['level']}")
     if ch["klass"]:
         L.append(f"- **Class:** {ch['klass']}")
+    if ch.get("covenant"):
+        L.append(f"- **Covenant:** {ch['covenant']}")
     if ch["ng_plus"] is not None:
         ng = "New Game" if ch["ng_plus"] == 0 else f"New Game +{ch['ng_plus']}"
         L.append(f"- **Playthrough:** {ng}")
@@ -1114,6 +1277,8 @@ def md_for_character(ch, slot_no):
         L.append(f"- **Humanity:** {ch['humanity']}")
     if ch["hp"] is not None:
         L.append(f"- **Max HP:** {fmt(ch['hp'])}")
+    if ch.get("hollow_lvl"):
+        L.append(f"- **Hollowing:** {ch['hollow_lvl']}  _(higher = more deaths without an effigy)_")
     if ch["stamina"] is not None:
         L.append(f"- **Stamina:** {fmt(ch['stamina'])}")
     build = guess_build(ch["stats"])
@@ -1146,6 +1311,10 @@ def md_for_character(ch, slot_no):
     if ch["key_items"]:
         L += ["### Key Items  _(progress / areas & shortcuts unlocked)_", ""]
         L += bullets(ch["key_items"]) + [""]
+    if ch.get("bonfires"):
+        L += [f"### Bonfires Discovered ({len(ch['bonfires'])})  _(areas reached — a "
+              "floor on progress)_", ""]
+        L += [f"- {b}" for b in ch["bonfires"]] + [""]
 
     L += ["### Inventory", ""]
     for cat in CAT_ORDER:
@@ -1181,6 +1350,7 @@ GAMES = {
     "ds2sotfs": {"title": "Dark Souls II: Scholar of the First Sin", "tier": "full",
                  "db": ("db_ds2", True, DS2_DB_FILES), "decrypt": decrypt_ds2,
                  "parse": ds2_parse, "slots": range(1, 11),
+                 "active": ds2_active_slots, "augment": ds2_augment,
                  "how": "the save is scrambled with a lock (AES-128 encryption) "
                         "whose key ships inside the game itself, so the tool applies "
                         "that key to unlock the raw data. From there each character's "
@@ -1288,11 +1458,13 @@ def convert(data, filename, base_dir):
             body.append(md_for_character(ch, i - cfg["slots"].start + 1))
             body += ["---", ""]
         body += ["_Elden Ring identity, attributes, and runes are read directly; the "
-                 "**item list is partial**. Owned items come from the GaItem array "
-                 "(armour, talismans, goods, base weapons); reinforced or affinity "
-                 "weapons carry the upgrade in their id and are not matched, and "
-                 "per-item quantities are not read — ER's held-inventory list shifts "
-                 "between patches. What is listed is really owned._"]
+                 "**item list is partial**. Owned items come from the GaItem array, "
+                 "which holds weapons, armour and Ashes of War — each named against "
+                 "its own type table (so no cross-type mis-naming) and reinforced/"
+                 "affinity weapons resolve to the base weapon (the upgrade level "
+                 "itself is not read). Talismans, spells and consumable goods live in "
+                 "a separate held-inventory that shifts between patches and is not "
+                 "parsed, so they are not listed. What is listed is really owned._"]
         return "\n".join(head + body)
 
     # DS3: names from the header, inventory by id-scan, stats by content-scan.
@@ -1327,9 +1499,15 @@ def convert(data, filename, base_dir):
     if not item_db:
         sys.exit(f"No item database found in {db_dir}")
 
+    # Some games keep a deleted character's block intact and only drop it from the
+    # menu; an "active" hook returns the still-listed entries so ghosts are skipped.
+    active = cfg["active"](data, entries, cfg["slots"]) if "active" in cfg else None
+
     characters = []
     for i in cfg["slots"]:
         if i >= len(entries):
+            continue
+        if active is not None and i not in active:
             continue
         blob = data[entries[i].offset:entries[i].offset + entries[i].size]
         game_data = cfg["decrypt"](blob)
@@ -1337,6 +1515,8 @@ def convert(data, filename, base_dir):
             continue
         ch = cfg["parse"](game_data, item_db)
         if ch is not None:
+            if "augment" in cfg:
+                cfg["augment"](ch, data, entries, i, base_dir)
             characters.append((i, ch))
 
     head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
