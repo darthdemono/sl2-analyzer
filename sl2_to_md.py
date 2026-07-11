@@ -434,6 +434,17 @@ DS2_INV_RANGE, DS2_KEY_RANGE = (0x1E2C, 0x10E1C), (0x10E30, 0x11DF0)
 #         elsewhere). Weapons/armour/rings/emotes are one instance per slot.
 DS2_STACKABLE = {"consumables", "online", "bolts", "spells", "upgrade", "keys",
                  "bosssouls"}
+## @brief Categories whose slot +12 field carries a reinforcement level. Only
+#  weapons and armour reinforce in DS2; other categories keep other state there.
+DS2_UPGRADEABLE = {"weapons", "armors"}
+## @brief Byte offsets inside the uint32 upgrade field of a 16-byte item record:
+#  the LOW byte (+12) is the reinforcement level (0..10); the next byte (+13) is the
+#  infusion id. Both verified on a mule save whose high bytes were 1/2/3/4/8.
+DS2_REINF_OFF, DS2_INFUSE_OFF = 12, 13
+## @brief DS2 infusion ids to names. From Atvaark's DS2 SOTFS Cheat Engine guide
+#  attachments (the "Infusion IDs" list). 0 (None) carries no prefix.
+DS2_INFUSION = {1: "Fire", 2: "Magic", 3: "Lightning", 4: "Dark", 5: "Poison",
+                6: "Bleed", 7: "Raw", 8: "Enchanted", 9: "Mundane"}
 ## @brief The four DS2 "Old" great souls (from the Lost Sinner, the Rotten, the
 #  Old Iron King, and the Duke's Dear Freja). The game treats these apart from the
 #  ordinary boss souls, so the output does too.
@@ -462,6 +473,8 @@ def ds2_inventory(buf, item_db):
             # real total, and the high two bytes are the flask's charge pair.
             iid, qty = u32(buf, o), u16(buf, o + 8)
             cur, mx = u8(buf, o + 10), u8(buf, o + 11)
+            reinf = u8(buf, o + DS2_REINF_OFF)
+            infuse = u8(buf, o + DS2_INFUSE_OFF)
             o += 16
             if not iid:
                 continue
@@ -472,6 +485,15 @@ def ds2_inventory(buf, item_db):
             name, cat = info
             if name == "Estus Flask" and mx:
                 name = f"{name} ({cur}/{mx} charges)"
+            if cat in DS2_UPGRADEABLE:
+                # Reinforcement and infusion are baked into a separate record field,
+                # not the id (unlike DS1), so a +10 weapon carries the plain base id.
+                # Prefix the infusion (weapons only — armour cannot be infused) and
+                # suffix the +N level; the id table stays base-keyed.
+                if cat == "weapons" and infuse in DS2_INFUSION:
+                    name = f"{DS2_INFUSION[infuse]} {name}"
+                if reinf:
+                    name = f"{name} +{reinf}"
             buckets[cat].append((name, qty if cat in DS2_STACKABLE else 1))
     return buckets, unknown
 
@@ -1167,8 +1189,9 @@ GAMES = {
                         "Every inventory entry stores a numeric item ID, which the "
                         "tool looks up in a name table built from the community's "
                         "SOTFS ID list, so you read 'Longsword' instead of a number; "
-                        "reinforced and infused gear keeps its own ID and is covered "
-                        "too"},
+                        "reinforcement level and infusion sit in a separate field of "
+                        "each item record and are shown as a '+N' suffix and an "
+                        "infusion prefix (e.g. 'Fire Longsword +6')"},
     "dsr": {"title": "Dark Souls Remastered", "tier": "full",
             "db": ("db_ds1", False, DS1_DB_FILES),
             "decrypt": lambda b: decrypt_iv_prefixed(b, DSR_KEY),
