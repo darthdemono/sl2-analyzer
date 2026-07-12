@@ -85,13 +85,28 @@
     color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 6px; }
   .hint { margin: -6px 0 10px; color: var(--muted); font-size: 11.5px; font-style: italic; }
 
-  .governs { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; font-size: 13px; align-items: baseline; }
-  .governs dt { white-space: nowrap; }
-  .governs dt .gname { color: var(--accent); font-weight: 700; }
-  .governs dt .gval { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums;
-    margin-left: 7px; padding: 0 6px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; }
-  .governs dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
-  .governs dd .gcap { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .scaling { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 12px; margin: 4px 0 6px; }
+  .scale-card { position: relative; overflow: hidden; padding: 13px 15px 14px; border-radius: var(--radius);
+    background: linear-gradient(180deg, var(--bg2), var(--bg));
+    border: 1px solid var(--border); border-left: 2px solid var(--accent2);
+    transition: border-color .16s, box-shadow .16s, transform .16s; }
+  .scale-card::after { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px;
+    background: linear-gradient(90deg, var(--accent2), transparent 70%); opacity: .5; }
+  .scale-card:hover { border-color: var(--border2); border-left-color: var(--accent);
+    box-shadow: var(--glow); transform: translateY(-1px); }
+  .scale-card .sc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+  .scale-card .sc-name { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .scale-card .sc-nm { color: var(--accent); font-weight: 700; font-size: 13.5px; letter-spacing: .01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .scale-card .sc-abbr { flex: none; color: var(--muted); font-size: 9.5px; letter-spacing: .1em;
+    text-transform: uppercase; border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; }
+  .scale-card .sc-val { flex: none; font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1;
+    color: var(--text); font-variant-numeric: tabular-nums; text-shadow: 0 0 14px rgba(186,201,100,.18); }
+  .scale-card .sc-gov { margin: 0; color: var(--text); font-size: 12.5px; line-height: 1.5; }
+  .scale-card .sc-cap { display: flex; gap: 8px; align-items: flex-start; margin: 9px 0 0; padding-top: 9px;
+    border-top: 1px dotted var(--border); color: var(--muted); font-size: 11px; line-height: 1.5; }
+  .scale-card .sc-cap::before { content: "CAPS"; flex: none; margin-top: 1px; color: var(--accent2);
+    font-size: 8.5px; letter-spacing: .1em; border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; }
 
   .attr-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: center; }
   @media (max-width: 680px) { .attr-grid { grid-template-columns: 1fr; } }

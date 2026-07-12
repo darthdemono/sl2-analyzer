@@ -125,10 +125,15 @@ function characterCard(slot, ch) {
     if (rows.length) {
       card.append(section("Attribute Scaling", [
         el("p", { class: "hint", text: "What each stat scales, its soft caps, and your current value — game-mechanics reference, not a value read from this save." }),
-        el("dl", { class: "governs" },
-          ...rows.flatMap((k) => [
-            el("dt", {}, el("span", { class: "gname", text: k }), el("span", { class: "gval", text: String(ch.stats[k]) })),
-            el("dd", {}, el("span", { class: "ggov", text: gov.get(k) }), ...(cap.has(k) ? [el("span", { class: "gcap", text: capFirst(cap.get(k)) })] : []))]))]));
+        el("div", { class: "scaling" },
+          ...rows.map((k) => el("div", { class: "scale-card" },
+            el("div", { class: "sc-head" },
+              el("span", { class: "sc-name" },
+                el("span", { class: "sc-nm", text: k }),
+                el("span", { class: "sc-abbr", text: STAT_ABBR[k] || k.slice(0, 3).toUpperCase() })),
+              el("span", { class: "sc-val", text: String(ch.stats[k]) })),
+            el("p", { class: "sc-gov", text: gov.get(k) }),
+            ...(cap.has(k) ? [el("p", { class: "sc-cap", text: capFirst(cap.get(k)) })] : []))))]));
     }
     if (ch.game === "ds2sotfs") {
       const d = ds2DerivedStats(ch.stats);
