@@ -52,7 +52,7 @@
 #       from jtesta/souls_givifier; DS2 key from mi5hmash/SL2Bonfire.
 #
 # @author Jubair Hasan (Joy) / DarthDemono
-# @see https://github.com/darthdemono/SL2-TO-MD
+# @see https://github.com/darthdemono/sl2-analyzer
 #
 import argparse
 import glob
@@ -1532,7 +1532,7 @@ def md_for_character(ch, slot_no):
 # ═════════════════════════════════════════════════════════════════════════════
 
 ## @brief Public source repository, printed in every generated file.
-REPO_URL = "https://github.com/darthdemono/SL2-TO-MD"
+REPO_URL = "https://github.com/darthdemono/sl2-analyzer"
 
 ## @brief Per-game config: title, tier, db, decrypt/parse, slot range, and a
 #         one-line "how it works" for the file header.

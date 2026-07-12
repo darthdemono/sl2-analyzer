@@ -1,4 +1,4 @@
-# SL2-TO-MD
+# sl2-analyzer
 
 This turns a FromSoftware `.sl2` save into one Markdown file. That is the whole job.
 
@@ -6,7 +6,7 @@ You point it at a save, it reads the bytes, and it writes a `.md` that describes
 
 It reads the save and never writes to it. Point it at your live save if you like. The worst case is a bad Markdown file, not a bricked character.
 
-The code lives at **https://github.com/darthdemono/SL2-TO-MD**, and every file it writes says so: the header of each generated `.md` carries the repo link and a one-line note on how that game was read, so a summary you pasted somewhere months ago can still point back at the tool that made it.
+The code lives at **https://github.com/darthdemono/sl2-analyzer**, and every file it writes says so: the header of each generated `.md` carries the repo link and a one-line note on how that game was read, so a summary you pasted somewhere months ago can still point back at the tool that made it.
 
 ## Supported games, and how far each one goes
 
@@ -79,7 +79,7 @@ One `.md` per save. Header, then one section per character. Roughly this:
 - **Support tier:** full
 - **Characters found:** 2
 
-> Automated dump of the save. Code Repo: https://github.com/darthdemono/SL2-TO-MD . How it works for Dark Souls II: Scholar of the First Sin: the game locks its save with a key it ships inside itself, so the tool unlocks it and reads each character from known spots. Every item is matched to its real name, and the Estus Flask even shows how many charges it is holding.
+> Automated dump of the save. Code Repo: https://github.com/darthdemono/sl2-analyzer . How it works for Dark Souls II: Scholar of the First Sin: the game locks its save with a key it ships inside itself, so the tool unlocks it and reads each character from known spots. Every item is matched to its real name, and the Estus Flask even shows how many charges it is holding.
 
 ## Slot 2: Joy
 
@@ -119,8 +119,8 @@ The inventory mirrors the in-game item menu: one heading per category, and boss 
 Clone it, and you need Python 3 and one library, `cryptography`:
 
 ```bash
-git clone https://github.com/darthdemono/SL2-TO-MD
-cd SL2-TO-MD
+git clone https://github.com/darthdemono/sl2-analyzer
+cd sl2-analyzer
 pip install -r requirements.txt
 ```
 
