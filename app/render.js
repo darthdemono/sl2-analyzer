@@ -3,6 +3,7 @@
 // are set via textContent, never innerHTML.
 
 import { STAT_ABBR, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt } from "./tables.js";
+import { buildMarkdown } from "./markdown.js";
 
 const SVGNS = "http://www.w3.org/2000/svg";
 
@@ -56,32 +57,37 @@ function statBars(stats) {
   return el("div", { class: "bars" }, ...rows);
 }
 
-// ── Build radar: single-series polygon over the attributes (full tier only). ─
+// ── Build radar: single-series polygon over the attributes (full tier only). The
+//    radius scales to the character's OWN peak stat, so the shape fills the wheel
+//    instead of hugging the centre (the bars carry the absolute 0–99 reading). ────
 function statRadar(stats) {
   const keys = Object.keys(stats);
   const n = keys.length;
   if (n < 3) return null;
-  const SIZE = 240, C = SIZE / 2, R = C - 34, MAX = 99;
+  const SIZE = 260, C = SIZE / 2, R = C - 40;
+  const vals = keys.map((k) => stats[k] || 0);
+  const MAX = Math.max(...vals, 1);
   const ang = (i) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
   const at = (i, r) => [C + Math.cos(ang(i)) * r, C + Math.sin(ang(i)) * r];
+  const poly = (r) => keys.map((_, i) => at(i, r).map((x) => x.toFixed(1)).join(",")).join(" ");
   const kids = [];
-  for (const f of [0.33, 0.66, 1]) {
-    kids.push(svg("polygon", { points: keys.map((_, i) => at(i, R * f).map((x) => x.toFixed(1)).join(",")).join(" "), class: "radar-grid" }));
-  }
+  // four concentric rings + spokes
+  for (const f of [0.25, 0.5, 0.75, 1]) kids.push(svg("polygon", { points: poly(R * f), class: "radar-grid" }));
   keys.forEach((k, i) => {
     const [x, y] = at(i, R);
     kids.push(svg("line", { x1: C, y1: C, x2: x.toFixed(1), y2: y.toFixed(1), class: "radar-grid" }));
-    const [lx, ly] = at(i, R + 15);
+    const [lx, ly] = at(i, R + 16);
     kids.push(svg("text", { x: lx.toFixed(1), y: ly.toFixed(1), class: "radar-axis",
-      "text-anchor": Math.abs(lx - C) < 4 ? "middle" : lx > C ? "start" : "end", "dominant-baseline": "middle" },
+      "text-anchor": Math.abs(lx - C) < 6 ? "middle" : lx > C ? "start" : "end", "dominant-baseline": "middle" },
       STAT_ABBR[k] || k.slice(0, 3).toUpperCase()));
   });
+  // the character's shape, plus a dot at each vertex
   kids.push(svg("polygon", { points: keys.map((k, i) => at(i, R * ((stats[k] || 0) / MAX)).map((x) => x.toFixed(1)).join(",")).join(" "), class: "radar-shape" }));
   keys.forEach((k, i) => {
     const [x, y] = at(i, R * ((stats[k] || 0) / MAX));
-    kids.push(svg("circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: 2.5, class: "radar-dot" }));
+    kids.push(svg("circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: 3, class: "radar-dot" }));
   });
-  return el("div", { class: "radar-wrap" }, svg("svg", { viewBox: `0 0 ${SIZE} ${SIZE}`, class: "radar", role: "img", "aria-label": "attribute radar" }, ...kids));
+  return el("div", { class: "radar-wrap" }, svg("svg", { viewBox: `0 0 ${SIZE} ${SIZE}`, class: "radar", role: "img", "aria-label": "attribute shape (scaled to the character's highest stat)" }, ...kids));
 }
 
 function facts(ch) {
@@ -153,13 +159,31 @@ function characterCard(slot, ch) {
   return card;
 }
 
+function copyButton(result, filename) {
+  const btn = el("button", { class: "btn btn-ghost copy", type: "button", text: "Copy Markdown" });
+  btn.addEventListener("click", async () => {
+    const md = buildMarkdown(result, filename);
+    let ok = true;
+    try { await navigator.clipboard.writeText(md); }
+    catch {
+      const ta = el("textarea"); ta.value = md; document.body.append(ta); ta.select();
+      try { document.execCommand("copy"); } catch { ok = false; }
+      ta.remove();
+    }
+    btn.textContent = ok ? "Copied" : "Copy failed";
+    setTimeout(() => { btn.textContent = "Copy Markdown"; }, 1600);
+  });
+  return btn;
+}
+
 /** Build the DOM for a parsed save result. */
 export function renderSave(result, filename) {
   const root = el("div", { class: "result" });
   root.append(el("div", { class: "gamebar" },
     el("div", { class: "gb-left" }, el("h2", { text: result.title }), el("p", { class: "src", text: filename || "" })),
     el("div", { class: "gb-right" },
-      el("span", { class: "count", text: `${result.characters.length} character${result.characters.length === 1 ? "" : "s"}` }))));
+      el("span", { class: "count", text: `${result.characters.length} character${result.characters.length === 1 ? "" : "s"}` }),
+      copyButton(result, filename))));
   if (!result.characters.length) root.append(el("p", { class: "note", text: "No populated character slots found." }));
   for (const { slot, ch } of result.characters) root.append(characterCard(slot, ch));
   root.append(el("p", { class: "foot", text: "All of it read from the save, in your browser. The progress sections are a floor: a spent soul or an unmapped flag can hide a kill. It never invents one." }));

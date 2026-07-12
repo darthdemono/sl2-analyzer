@@ -97,10 +97,11 @@
 
   .radar-wrap { display: flex; justify-content: center; }
   .radar { width: 100%; max-width: 260px; height: auto; overflow: visible; }
-  .radar-grid { fill: none; stroke: var(--border2); stroke-width: 1; }
-  .radar-shape { fill: rgba(186,201,100,.18); stroke: var(--accent); stroke-width: 1.6; }
+  .radar-grid { fill: none; stroke: rgba(186,201,100,.2); stroke-width: 1; }
+  .radar-shape { fill: rgba(186,201,100,.25); stroke: var(--accent); stroke-width: 2;
+    filter: drop-shadow(0 0 5px rgba(186,201,100,.55)); }
   .radar-dot { fill: var(--accent); }
-  .radar-axis { fill: var(--muted); font-family: var(--mono); font-size: 9.5px; }
+  .radar-axis { fill: var(--muted); font-family: var(--mono); font-size: 10px; }
 
   ul.items { list-style: none; margin: 0; padding: 0; }
   ul.items li { padding: 3px 0 3px 16px; position: relative; font-size: 13.5px; }
