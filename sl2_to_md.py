@@ -402,9 +402,92 @@ def find_boss_souls(goods):
         if n in GENERIC_SOULS:
             continue
         if ("Soul of " in n or "Lord Soul" in n
-                or n in ("Core of an Iron Golem", "Guardian Soul")):
+                or n in ("Core of an Iron Golem", "Guardian Soul",
+                         "Soul (Nito)", "Soul (Bed of Chaos)")):
             out.append((n, q))
     return out
+
+
+## @brief Per-game folder holding a boss-soul → boss-name table (boss_souls.json).
+#  DS2 runs its own richer multi-source inference; these cover the games whose only
+#  proof-of-kill floor is the boss souls / remembrances the character still holds.
+BOSS_SOUL_DB_DIR = {"dsr": "db_ds1", "ptde": "db_ds1", "ds3": "db_ds3", "er": "db_er"}
+
+## @brief Load a game's boss-soul → boss-name table. Cached per (base_dir, subdir).
+_BOSS_SOUL_CACHE = {}
+def load_boss_soul_map(base_dir, subdir):
+    key = (base_dir, subdir)
+    if key not in _BOSS_SOUL_CACHE:
+        path = os.path.join(base_dir, subdir, "boss_souls.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _BOSS_SOUL_CACHE[key] = json.load(f)
+        except (OSError, ValueError):
+            _BOSS_SOUL_CACHE[key] = {}
+    return _BOSS_SOUL_CACHE[key]
+
+
+## @brief Endgame-only progression prereqs: a proven-dead boss (key) implies its
+#  mandatory predecessors (values) are dead too, tagged `gate`. Each key lists ALL
+#  its predecessors (already flattened), so one closure pass suffices. DELIBERATELY
+#  ENDGAME-ONLY, mirroring DS2's `DS2_BOSS_PREREQ` rule: only strictly-linear,
+#  cannot-skip mandatory chains qualify — a mid-game gate would risk a false kill
+#  (the core rule). Sourced from each game's fixed endgame route.
+#
+#  DS3: the four Lords of Cinder plus Iudex Gundyr are all mandatory to fight Soul
+#  of Cinder, and Vordt/Dancer gate the only path forward (High Wall → … → Lothric
+#  Castle). Aldrich sits past Pontiff Sulyvahn in Irithyll.
+#  ER: Morgott (Leyndell) → Fire Giant (Forge) → Maliketh (Farum Azula) → Godfrey/
+#  Hoarah Loux (Ashen Leyndell) is the fixed mandatory endgame chain; each requires
+#  every earlier one. Morgott's own prereqs are player-choice great runes, so it
+#  gates nothing specific.
+BOSS_PREREQ = {
+    "ds3": {
+        "Soul of Cinder": ["Iudex Gundyr", "Vordt of the Boreal Valley",
+                           "Dancer of the Boreal Valley", "Abyss Watchers",
+                           "Aldrich, Devourer of Gods", "Yhorm the Giant",
+                           "Lothric, Younger Prince"],
+        "Lothric, Younger Prince": ["Dancer of the Boreal Valley",
+                                    "Vordt of the Boreal Valley", "Iudex Gundyr"],
+        "Aldrich, Devourer of Gods": ["Pontiff Sulyvahn",
+                                      "Vordt of the Boreal Valley", "Iudex Gundyr"],
+        "Dancer of the Boreal Valley": ["Vordt of the Boreal Valley", "Iudex Gundyr"],
+        "Pontiff Sulyvahn": ["Vordt of the Boreal Valley", "Iudex Gundyr"],
+        "Vordt of the Boreal Valley": ["Iudex Gundyr"],
+    },
+    "er": {
+        "Godfrey, First Elden Lord (Hoarah Loux)": ["Maliketh, the Black Blade",
+                                                    "Fire Giant",
+                                                    "Morgott, the Omen King"],
+        "Maliketh, the Black Blade": ["Fire Giant", "Morgott, the Omen King"],
+        "Fire Giant": ["Morgott, the Omen King"],
+    },
+}
+
+## @brief Attach a `bosses` defeat floor to a non-DS2 character from the boss souls
+#  / remembrances it still holds, plus endgame progression. A held boss soul is a
+#  boss killed — you cannot own the soul otherwise — so each maps to its boss with
+#  `soul` evidence, and its mandatory endgame predecessors get `gate` (see
+#  BOSS_PREREQ), the same certain-when-true signals DS2 uses. A boss whose soul was
+#  already consumed and isn't gated is invisible here (the render note says so). DS2
+#  sets its own richer `bosses` via augment and is not in BOSS_SOUL_DB_DIR, skipped.
+def attach_defeated_bosses(ch, base_dir):
+    game = ch.get("game")
+    subdir = BOSS_SOUL_DB_DIR.get(game)
+    if not subdir or ch.get("bosses"):
+        return
+    soul_db = load_boss_soul_map(base_dir, subdir)
+    bosses = {}
+    for name, _q in ch.get("boss_souls") or []:
+        boss = soul_db.get(name)
+        if boss:
+            bosses.setdefault(boss, set()).add("soul")
+    prereq = BOSS_PREREQ.get(game, {})
+    for boss in list(bosses):
+        for pre in prereq.get(boss, ()):
+            bosses.setdefault(pre, set()).add("gate")
+    if bosses:
+        ch["bosses"] = bosses
 
 
 ## @brief Pull key / progression items out of a goods list (DS1 keeps keys here).
@@ -1558,6 +1641,7 @@ def convert(data, filename, base_dir):
                 continue
             ch = er_parse(slot, iddb, name, level)
             if ch is not None:
+                attach_defeated_bosses(ch, base_dir)
                 characters.append((i, ch))
         head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
         body = ["_No populated character slots found._"] if not characters else []
@@ -1592,6 +1676,7 @@ def convert(data, filename, base_dir):
                 continue
             ch = ds3_parse(slot, iddb, names.get(i))
             if ch is not None:
+                attach_defeated_bosses(ch, base_dir)
                 characters.append((i, ch))
         head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
         body = ["_No populated character slots found._"] if not characters else []
@@ -1624,6 +1709,7 @@ def convert(data, filename, base_dir):
         if ch is not None:
             if "augment" in cfg:
                 cfg["augment"](ch, data, entries, i, base_dir)
+            attach_defeated_bosses(ch, base_dir)
             characters.append((i, ch))
 
     head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
