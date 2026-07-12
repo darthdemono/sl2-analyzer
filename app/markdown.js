@@ -3,7 +3,7 @@
 // md_for_character + convert's header; verified against the Python .md output by
 // scratch/md_harness.mjs (timestamp line excluded).
 
-import { STAT_ABBR, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt } from "./tables.js";
+import { STAT_ABBR, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt, fmtPlaytime } from "./tables.js";
 
 const REPO_URL = "https://github.com/darthdemono/sl2-analyzer";
 
@@ -27,8 +27,10 @@ function mdCharacter(ch, slot) {
   if (ch.level != null) L.push(`- **${ch.game === "er" ? "Level" : "Soul Level"}:** ${ch.level}`);
   if (ch.klass) L.push(`- **Class:** ${ch.klass}`);
   if (ch.covenant) L.push(`- **Covenant:** ${ch.covenant}`);
+  if (ch.gender) L.push(`- **Gender:** ${ch.gender}`);
   if (ch.ng_plus != null) L.push(`- **Playthrough:** ${ch.ng_plus === 0 ? "New Game" : `New Game +${ch.ng_plus}`}`);
   if (ch.soul_memory != null) L.push(`- **Soul Memory:** ${fmt(ch.soul_memory)}  _(total souls earned — main progress metric)_`);
+  if (ch.play_time) L.push(`- **Play Time:** ${fmtPlaytime(ch.play_time)}`);
   if (ch.souls != null) L.push(`- **${ch.game === "er" ? "Runes" : "Souls"} held:** ${fmt(ch.souls)}`);
   if (ch.humanity != null) L.push(`- **Humanity:** ${ch.humanity}`);
   if (ch.hp != null) L.push(`- **Max HP:** ${fmt(ch.hp)}`);

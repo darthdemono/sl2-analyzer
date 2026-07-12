@@ -169,13 +169,15 @@ function mergeQty(items) {
 
 // ── DS2 ───────────────────────────────────────────────────────────────────
 const DS2_NAME_OFF = 960, DS2_SOULS_OFF = 60, DS2_SOULMEM_OFF = 64, DS2_HP_OFF = 72, DS2_NG_OFF = 1028;
-const DS2_TITLE_NAME_OFF = 1286, DS2_TITLE_STRIDE = 496;
-const DS2_CLASS_OFF = 1024, DS2_COVENANT_OFF = 189, DS2_HOLLOW_OFF = 379;
+const DS2_TITLE_NAME_OFF = 1286, DS2_TITLE_STRIDE = 496, DS2_TITLE_PLAYTIME_OFF = 66;
+const DS2_CLASS_OFF = 1024, DS2_COVENANT_OFF = 189, DS2_GENDER_OFF = 378, DS2_HOLLOW_OFF = 379;
 const DS2_WORLD_ENTRY_DELTA = 10, DS2_BONFIRE_FLAG_DELTA = 0x200, DS2_BONFIRE_MIN_RUN = 16;
 const DS2_REINF_OFF = 12, DS2_INFUSE_OFF = 13;
 const DS2_CLASS = { 1: "Warrior", 2: "Knight", 4: "Bandit", 6: "Cleric", 7: "Sorcerer", 8: "Explorer", 9: "Swordsman", 10: "Deprived" };
 const DS2_COVENANT = { 1: "Heirs of the Sun", 2: "Blue Sentinels", 3: "Brotherhood of Blood", 4: "Way of Blue", 5: "Rat King", 6: "Bell Keepers", 7: "Dragon Remnants", 8: "Company of Champions", 9: "Pilgrims of Dark" };
 const DS2_INFUSION = { 1: "Fire", 2: "Magic", 3: "Lightning", 4: "Dark", 5: "Poison", 6: "Bleed", 7: "Raw", 8: "Enchanted", 9: "Mundane" };
+// Gender at +378: Female = 1, Male = 0 (verified by a real F→M differential save pair).
+const DS2_GENDER = { 0: "Male", 1: "Female" };
 const DS2_STAT_OFF = [["Vigor", 32], ["Endurance", 34], ["Vitality", 36], ["Attunement", 38],
   ["Strength", 40], ["Dexterity", 42], ["Adaptability", 48], ["Intelligence", 44], ["Faith", 46], ["Level", 0x38]];
 const DS2_INV_RANGE = [0x1E2C, 0x10E1C], DS2_KEY_RANGE = [0x10E30, 0x11DF0];
@@ -224,6 +226,7 @@ function ds2Parse(buf, itemDb) {
     tier: "full", game: "ds2sotfs", name: ds2Name(buf),
     klass: DS2_CLASS[u8(buf, DS2_CLASS_OFF)] ?? null,
     covenant: DS2_COVENANT[u8(buf, DS2_COVENANT_OFF)] ?? null,
+    gender: DS2_GENDER[u8(buf, DS2_GENDER_OFF)] ?? null,
     level, stats, souls: u32(buf, DS2_SOULS_OFF), soul_memory: u32(buf, DS2_SOULMEM_OFF),
     humanity: null, stamina: null, hp: u32(buf, DS2_HP_OFF),
     ng_plus: Math.max(0, (u16(buf, DS2_NG_OFF) || 1) - 1),
@@ -285,6 +288,15 @@ function ds2VisitedBonfires(world, bfDb) {
   return visited;
 }
 function ds2Augment(ch, data, entries, i, dbs) {
+  // Play time lives in the header title record (one per slot), not the character
+  // block. Title index for block entry i is i - slots.start, and DS2 starts at 1.
+  if (entries.length) {
+    const hdr = decryptDs2(blobOf(data, entries[0]));
+    if (hdr !== null) {
+      const base = DS2_TITLE_NAME_OFF + DS2_TITLE_STRIDE * (i - 1);
+      ch.play_time = u32(hdr, base + DS2_TITLE_PLAYTIME_OFF);
+    }
+  }
   const w = i + DS2_WORLD_ENTRY_DELTA;
   if (w >= entries.length) return;
   const world = decryptDs2(blobOf(data, entries[w]));

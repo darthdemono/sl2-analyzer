@@ -507,6 +507,12 @@ DS2_NAME_OFF, DS2_SOULS_OFF, DS2_SOULMEM_OFF, DS2_HP_OFF, DS2_NG_OFF = 960, 60, 
 #  DS2_TITLE_NAME_OFF + DS2_TITLE_STRIDE * title_index. Block entry i maps to title
 #  index (i - slots.start). Used to tell active characters from deleted ghosts.
 DS2_TITLE_NAME_OFF, DS2_TITLE_STRIDE = 1286, 496
+## @brief Play time (u32 seconds) inside a header title record: name is at record
+#  base +0, the play-time counter at +66. Pinned by a real ~1-minute differential
+#  pair (40:10:25 → 40:11:27, the u32 rose by exactly 62). Per-character, since each
+#  title record is one slot. This is DS2's play time, which no editor exposed and an
+#  earlier differential missed; it lives in the header, not the character block.
+DS2_TITLE_PLAYTIME_OFF = 66
 ## @brief Starting class (byte) and current covenant (byte) offsets in the slot
 #  block. Pinned by differential saves: class read 2 (Knight) on one character and
 #  8 (Explorer) on another at +1024; covenant read 3 (Brotherhood of Blood) then 0
@@ -520,11 +526,16 @@ DS2_CLASS = {1: "Warrior", 2: "Knight", 4: "Bandit", 6: "Cleric", 7: "Sorcerer",
 DS2_COVENANT = {1: "Heirs of the Sun", 2: "Blue Sentinels", 3: "Brotherhood of Blood",
                 4: "Way of Blue", 5: "Rat King", 6: "Bell Keepers",
                 7: "Dragon Remnants", 8: "Company of Champions", 9: "Pilgrims of Dark"}
-## @brief Hollowing level (u8) offset in the slot block. From the Jappi88 DS2 save
-#  editor: its player block reads Gender then HollowLv at block[0] 0x15A/0x15B, and
-#  that block starts at slot flat +32 (Level/Souls/Soul-Memory/Health line up), so
-#  HollowLv is at flat 0x15B+32 = 379. Verified: a 30h character read Hollow Lv 1.
-DS2_HOLLOW_OFF = 379
+## @brief Gender (u8) and hollowing level (u8) offsets in the slot block. From the
+#  Jappi88 DS2 save editor: its player block reads Gender then HollowLv at block[0]
+#  0x15A/0x15B, and that block starts at slot flat +32 (Level/Souls/Soul-Memory/Health
+#  line up), so Gender is 0x15A+32 = 378 and HollowLv 0x15B+32 = 379. HollowLv verified
+#  on a 30h character (Hollow Lv 1). Gender polarity verified by a real F→M differential
+#  save pair (the byte flipped 1→0), so 1 = Female, 0 = Male.
+DS2_GENDER_OFF, DS2_HOLLOW_OFF = 378, 379
+## @brief DS2 gender enum. Female = 1, Male = 0 (see DS2_GENDER_OFF). Any other value
+#  yields None via `.get` and the field is omitted rather than shown wrong.
+DS2_GENDER = {0: "Male", 1: "Female"}
 ## @brief Bonfire (rest-point) progression lives in a separate WORLD block, not the
 #  character-status block. In the SOTFS `.sl2` the world block for status entry i is
 #  entry i + DS2_WORLD_ENTRY_DELTA. Inside it (per the Jappi88 editor's MapData: ids
@@ -625,6 +636,7 @@ def ds2_parse(buf, item_db):
         "tier": "full", "game": "ds2sotfs", "name": ds2_name(buf),
         "klass": DS2_CLASS.get(u8(buf, DS2_CLASS_OFF)),
         "covenant": DS2_COVENANT.get(u8(buf, DS2_COVENANT_OFF)),
+        "gender": DS2_GENDER.get(u8(buf, DS2_GENDER_OFF)),
         "level": stats.pop("Level"), "stats": stats,
         "souls": u32(buf, DS2_SOULS_OFF), "soul_memory": u32(buf, DS2_SOULMEM_OFF),
         "humanity": None, "stamina": None, "hp": u32(buf, DS2_HP_OFF),
@@ -793,6 +805,13 @@ def ds2_visited_bonfires(world, bf_db):
 #  @c i+DS2_WORLD_ENTRY_DELTA; a missing/undecryptable block leaves both fields None
 #  (sections omitted). Decrypts the world block once for both reads.
 def ds2_augment(ch, data, entries, i, base_dir):
+    # Play time lives in the header title record (one per slot), not the character
+    # block. Title index for block entry i is i - slots.start, and DS2 starts at 1.
+    if entries:
+        hdr = decrypt_ds2(data[entries[0].offset:entries[0].offset + entries[0].size])
+        if hdr is not None:
+            base = DS2_TITLE_NAME_OFF + DS2_TITLE_STRIDE * (i - 1)
+            ch["play_time"] = u32(hdr, base + DS2_TITLE_PLAYTIME_OFF)
     w = i + DS2_WORLD_ENTRY_DELTA
     if w >= len(entries):
         return
@@ -1437,6 +1456,13 @@ def fmt(value):
     return "—" if value is None else f"{value:,}" if isinstance(value, int) else str(value)
 
 
+## @brief Format a play-time count of seconds as H:MM:SS (hours can exceed 24).
+def fmt_playtime(seconds):
+    h, rem = divmod(seconds, 3600)
+    mn, s = divmod(rem, 60)
+    return f"{h}:{mn:02d}:{s:02d}"
+
+
 ##
 # @brief Render one full/inventory-tier character as a Markdown section.
 # @param ch      A unified character dict.
@@ -1450,11 +1476,15 @@ def md_for_character(ch, slot_no):
         L.append(f"- **Class:** {ch['klass']}")
     if ch.get("covenant"):
         L.append(f"- **Covenant:** {ch['covenant']}")
+    if ch.get("gender"):
+        L.append(f"- **Gender:** {ch['gender']}")
     if ch["ng_plus"] is not None:
         ng = "New Game" if ch["ng_plus"] == 0 else f"New Game +{ch['ng_plus']}"
         L.append(f"- **Playthrough:** {ng}")
     if ch["soul_memory"] is not None:
         L.append(f"- **Soul Memory:** {fmt(ch['soul_memory'])}  _(total souls earned — main progress metric)_")
+    if ch.get("play_time"):
+        L.append(f"- **Play Time:** {fmt_playtime(ch['play_time'])}")
     if ch["souls"] is not None:
         L.append(f"- **{'Runes' if ch['game'] == 'er' else 'Souls'} held:** {fmt(ch['souls'])}")
     if ch["humanity"] is not None:

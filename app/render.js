@@ -2,7 +2,7 @@
 // KPI stat tiles, attribute magnitude bars, and an SVG build radar. Item/boss names
 // are set via textContent, never innerHTML.
 
-import { STAT_ABBR, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt } from "./tables.js";
+import { STAT_ABBR, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt, fmtPlaytime } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
 
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -96,7 +96,9 @@ function facts(ch) {
   if (ch.level != null) add(ch.game === "er" ? "Level" : "Soul Level", fmt(ch.level));
   if (ch.klass) add("Class", ch.klass);
   if (ch.covenant) add("Covenant", ch.covenant);
+  if (ch.gender) add("Gender", ch.gender);
   if (ch.ng_plus != null) add("Playthrough", ch.ng_plus === 0 ? "New Game" : `New Game +${ch.ng_plus}`);
+  if (ch.play_time) add("Play Time", fmtPlaytime(ch.play_time));
   if (ch.humanity != null) add("Humanity", fmt(ch.humanity));
   if (ch.hollow_lvl) add("Hollowing", fmt(ch.hollow_lvl));
   const build = guessBuild(ch.stats);

@@ -32,3 +32,7 @@ export function guessBuild(stats) {
 
 /** Format a value, or "—" when null. Integers get thousands separators (Python fmt). */
 export const fmt = (v) => (v == null ? "—" : typeof v === "number" ? v.toLocaleString("en-US") : String(v));
+
+/** Format a play-time count of seconds as H:MM:SS (hours can exceed 24). */
+export const fmtPlaytime = (s) =>
+  `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
