@@ -562,6 +562,35 @@ DS2_STAT_OFF = OrderedDict([
     ("Vigor", 32), ("Endurance", 34), ("Vitality", 36), ("Attunement", 38),
     ("Strength", 40), ("Dexterity", 42), ("Adaptability", 48),
     ("Intelligence", 44), ("Faith", 46), ("Level", 0x38)])
+## @brief DS2 derived-stat bases (values BEFORE rings/equipment). Each derived stat is
+#  a pure function of one/two attributes, verified byte-exact against a real save's
+#  in-game Level-Up screen (Lv155 char: END 31 -> 131 stamina, VIT 30 -> 83.0 equip
+#  load, ADP 20 / ATN 4 -> 96 agility / 11 roll i-frames). Unlike HP — which carries a
+#  class/base offset the flat table misses (so HP is read from the save, not computed;
+#  see STAT_CAPS note) — these three start from a universal base with no class variance,
+#  so the formula reproduces the game exactly. Sources: fextralife Endurance /
+#  Equipment Load / Agility pages.
+DS2_STAMINA_BASE, DS2_EQUIP_BASE, DS2_AGL_BASE = 80, 38.5, 80
+## @brief Roll i-frames by Agility value (fextralife/community breakpoints). Look up the
+#  highest key <= AGL; below 85 the count is undocumented, so i-frames are omitted there.
+DS2_IFRAMES = OrderedDict([(85, 5), (86, 8), (88, 9), (92, 10), (96, 11),
+                           (99, 12), (105, 13), (111, 14), (114, 15), (116, 16)])
+## @brief Attunement values at which a spell slot is unlocked (fextralife Attunement).
+#  Slot count = how many of these are <= ATN. ATN 4 -> 0 slots (first slot at 10).
+DS2_SLOT_BREAKS = (10, 13, 16, 20, 25, 30, 40, 50, 60, 75, 94)
+## @brief Physical attack bonus (ATK: Str / ATK: Dex) by stat value — decade
+#  breakpoints of the weapon-independent curve (the weapon then applies its own scaling
+#  on top). Base 50 at 0, soft caps 40/50/80. From the DS2 wikidot/fextralife scaling
+#  table; verified STR 50 -> 155 and DEX 16 -> 70 (interpolated) against a real save.
+#  ATK: Str and ATK: Dex share this identical curve.
+DS2_PHYS_ATK_BP = OrderedDict([(0, 50), (10, 57), (20, 80), (30, 102), (40, 140),
+                               (50, 155), (60, 162), (70, 170), (80, 185),
+                               (90, 192), (99, 200)])
+## @brief Shared elemental-defence curve breakpoint rates (per stat point): +6 (1-10),
+#  +8 (11-20), +1 (21-60), +0.5 (61-99); base 0. Magic DEF uses INT, Lightning DEF FTH,
+#  Dark DEF min(INT,FTH), Fire DEF the floor-average of INT & FTH ("scales with both").
+#  Verified: INT 3 -> Magic DEF 18, FTH 10 -> Lightning DEF 60, min 3 -> Dark DEF 18,
+#  avg 6 -> Fire DEF 36. (fextralife Magic/defence pages.)
 ## @brief DS2 inventory regions (start, end); 16-byte slots throughout.
 DS2_INV_RANGE, DS2_KEY_RANGE = (0x1E2C, 0x10E1C), (0x10E30, 0x11DF0)
 ## @brief DS2 categories whose slot +8 field is a real count (float durability
@@ -630,6 +659,79 @@ def ds2_inventory(buf, item_db):
                     name = f"{name} +{reinf}"
             buckets[cat].append((name, qty if cat in DS2_STACKABLE else 1))
     return buckets, unknown
+
+
+## @brief Physical attack bonus (ATK: Str/Dex) at a stat value: linear-interpolate the
+#  decade breakpoints of @ref DS2_PHYS_ATK_BP, floored to the game's integer display.
+def ds2_phys_atk(stat):
+    stat = max(0, min(stat, 99))
+    lo = min((stat // 10) * 10, 90)
+    hi = 99 if lo == 90 else lo + 10
+    vlo, vhi = DS2_PHYS_ATK_BP[lo], DS2_PHYS_ATK_BP[hi]
+    return vlo if hi == lo else int(vlo + (vhi - vlo) * (stat - lo) / (hi - lo))
+
+
+## @brief Shared DS2 elemental-defence curve: +6/pt to 10, +8/pt to 20, +1/pt to 60,
+#  +0.5/pt (one every other) to 99. Base 0. See @ref DS2_PHYS_ATK_BP note for the map.
+def ds2_elem_def(stat):
+    stat = max(0, min(stat, 99))
+    d = 6 * min(stat, 10)
+    if stat > 10:
+        d += 8 * (min(stat, 20) - 10)
+    if stat > 20:
+        d += 1 * (min(stat, 60) - 20)
+    if stat > 60:
+        d += (min(stat, 99) - 60) // 2  # +0.5/pt = one point every other level
+    return d
+
+
+##
+# @brief Compute DS2 base derived stats from the attribute block.
+# @details Base = before rings/equipment; the in-game screen adds ring/gear bonuses on
+#  top (e.g. a +HP ring, a load ring). Stamina, equip load and agility are pure
+#  attribute functions verified against a real save; i-frames come from the agility
+#  breakpoint table (@ref DS2_IFRAMES), omitted below AGL 85 (undocumented).
+# @return dict: stamina (int), equip_load (float), agility (int), iframes (int|None).
+def ds2_derived_stats(stats):
+    end = stats.get("Endurance", 0) or 0
+    vit = stats.get("Vitality", 0) or 0
+    adp = stats.get("Adaptability", 0) or 0
+    atn = stats.get("Attunement", 0) or 0
+    stg = stats.get("Strength", 0) or 0
+    dex = stats.get("Dexterity", 0) or 0
+    intel = stats.get("Intelligence", 0) or 0
+    fth = stats.get("Faith", 0) or 0
+    stamina = DS2_STAMINA_BASE + 2 * min(end, 20) + max(0, min(end, 99) - 20)
+    if end >= 99:
+        stamina += 1  # the 98->99 step is +2, not +1
+    load = DS2_EQUIP_BASE + 1.5 * min(vit, 29)
+    if vit > 29:
+        load += 1.0 * (min(vit, 49) - 29)
+    if vit > 49:
+        load += 0.5 * (min(vit, 70) - 49)
+    if vit > 70:
+        load += 0.5 * ((min(vit, 99) - 70) // 2)  # +0.5 per two points past 70
+    agl = DS2_AGL_BASE + int(0.75 * adp + 0.25 * atn + 1e-9)
+    iframes = None
+    for k, v in DS2_IFRAMES.items():
+        if agl >= k:
+            iframes = v
+    slots = sum(1 for b in DS2_SLOT_BREAKS if atn >= b)
+    # Base poise: scales on the LOWER of Endurance/Adaptability. 0.3/pt to 30, 0.2 to
+    # 50, 0.1 to 98, +0.2 at 99. Verified: min(END31,ADP20)=20 -> 0.3*20 = 6.0.
+    n = min(end, adp)
+    poise = 0.3 * min(n, 30)
+    if n > 30:
+        poise += 0.2 * (min(n, 50) - 30)
+    if n > 50:
+        poise += 0.1 * (min(n, 98) - 50)
+    if n >= 99:
+        poise += 0.2
+    return {"stamina": stamina, "equip_load": load, "agility": agl,
+            "iframes": iframes, "slots": slots, "poise": poise,
+            "atk_str": ds2_phys_atk(stg), "atk_dex": ds2_phys_atk(dex),
+            "magic_def": ds2_elem_def(intel), "fire_def": ds2_elem_def((intel + fth) // 2),
+            "lightning_def": ds2_elem_def(fth), "dark_def": ds2_elem_def(min(intel, fth))}
 
 
 ## @brief Parse one DS2 slot into the unified character dict, or None if empty.
@@ -1626,6 +1728,24 @@ def md_for_character(ch, slot_no):
                 caps = f" {cap[k][:1].upper() + cap[k][1:]}." if cap.get(k) else ""
                 L.append(f"- **{k}** ({ch['stats'][k]}) — {gov[k]}.{caps}")
             L.append("")
+        if ch["game"] == "ds2sotfs":
+            d = ds2_derived_stats(ch["stats"])
+            agl = f"{d['agility']}" + (f"  _({d['iframes']} roll i-frames)_"
+                                       if d["iframes"] else "")
+            L += ["### Derived Stats  _(computed from attributes — base values before "
+                  "rings & equipment; the in-game screen adds ring/gear bonuses on top)_",
+                  "",
+                  f"- **Stamina:** {d['stamina']}",
+                  f"- **Equip Load:** {d['equip_load']:.1f}",
+                  f"- **Attunement Slots:** {d['slots']}",
+                  f"- **Agility (AGL):** {agl}",
+                  f"- **Poise (base):** {d['poise']:.1f}",
+                  f"- **ATK: Str:** {d['atk_str']}",
+                  f"- **ATK: Dex:** {d['atk_dex']}",
+                  f"- **Magic DEF:** {d['magic_def']}",
+                  f"- **Fire DEF:** {d['fire_def']}",
+                  f"- **Lightning DEF:** {d['lightning_def']}",
+                  f"- **Dark DEF:** {d['dark_def']}", ""]
     elif ch["tier"] == "inventory":
         L += ["_Attributes are not printed for this slot: its stat block did not "
               "validate (an unrecognised patch or an edited save), and a wrong "

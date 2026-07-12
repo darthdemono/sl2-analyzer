@@ -3,7 +3,7 @@
 // md_for_character + convert's header; verified against the Python .md output by
 // scratch/md_harness.mjs (timestamp line excluded).
 
-import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt, fmtPlaytime } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, ds2DerivedStats, fmt, fmtPlaytime } from "./tables.js";
 
 const REPO_URL = "https://github.com/darthdemono/sl2-analyzer";
 
@@ -52,6 +52,22 @@ function mdCharacter(ch, slot) {
     if (rows.length) {
       L.push("### Attribute Scaling  _(what each stat scales, its soft caps, and your current value — game-mechanics reference, not a value read from this save)_", "");
       L.push(...rows.map((k) => `- **${k}** (${ch.stats[k]}) — ${gov.get(k)}.${cap.has(k) ? ` ${capFirst(cap.get(k))}.` : ""}`), "");
+    }
+    if (ch.game === "ds2sotfs") {
+      const d = ds2DerivedStats(ch.stats);
+      const agl = `${d.agility}` + (d.iframes ? `  _(${d.iframes} roll i-frames)_` : "");
+      L.push("### Derived Stats  _(computed from attributes — base values before rings & equipment; the in-game screen adds ring/gear bonuses on top)_", "",
+        `- **Stamina:** ${d.stamina}`,
+        `- **Equip Load:** ${d.equip_load.toFixed(1)}`,
+        `- **Attunement Slots:** ${d.slots}`,
+        `- **Agility (AGL):** ${agl}`,
+        `- **Poise (base):** ${d.poise.toFixed(1)}`,
+        `- **ATK: Str:** ${d.atk_str}`,
+        `- **ATK: Dex:** ${d.atk_dex}`,
+        `- **Magic DEF:** ${d.magic_def}`,
+        `- **Fire DEF:** ${d.fire_def}`,
+        `- **Lightning DEF:** ${d.lightning_def}`,
+        `- **Dark DEF:** ${d.dark_def}`, "");
     }
   } else if (ch.tier === "inventory") {
     L.push("_Attributes are not printed for this slot: its stat block did not validate (an unrecognised patch or an edited save), and a wrong number is worse than none. Inventory and progress below are read directly._", "");

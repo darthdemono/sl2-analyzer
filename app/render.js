@@ -2,7 +2,7 @@
 // KPI stat tiles, attribute magnitude bars, and an SVG build radar. Item/boss names
 // are set via textContent, never innerHTML.
 
-import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt, fmtPlaytime } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, ds2DerivedStats, fmt, fmtPlaytime } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
 
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -129,6 +129,24 @@ function characterCard(slot, ch) {
           ...rows.flatMap((k) => [
             el("dt", {}, el("span", { class: "gname", text: k }), el("span", { class: "gval", text: String(ch.stats[k]) })),
             el("dd", {}, el("span", { class: "ggov", text: gov.get(k) }), ...(cap.has(k) ? [el("span", { class: "gcap", text: capFirst(cap.get(k)) })] : []))]))]));
+    }
+    if (ch.game === "ds2sotfs") {
+      const d = ds2DerivedStats(ch.stats);
+      const agl = `${d.agility}` + (d.iframes ? ` (${d.iframes} roll i-frames)` : "");
+      card.append(section("Derived Stats", [
+        el("p", { class: "hint", text: "Computed from attributes — base values before rings & equipment. The in-game screen adds ring/gear bonuses on top." }),
+        el("dl", { class: "facts" },
+          el("dt", { text: "Stamina" }), el("dd", { text: String(d.stamina) }),
+          el("dt", { text: "Equip Load" }), el("dd", { text: d.equip_load.toFixed(1) }),
+          el("dt", { text: "Attunement Slots" }), el("dd", { text: String(d.slots) }),
+          el("dt", { text: "Agility (AGL)" }), el("dd", { text: agl }),
+          el("dt", { text: "Poise (base)" }), el("dd", { text: d.poise.toFixed(1) }),
+          el("dt", { text: "ATK: Str" }), el("dd", { text: String(d.atk_str) }),
+          el("dt", { text: "ATK: Dex" }), el("dd", { text: String(d.atk_dex) }),
+          el("dt", { text: "Magic DEF" }), el("dd", { text: String(d.magic_def) }),
+          el("dt", { text: "Fire DEF" }), el("dd", { text: String(d.fire_def) }),
+          el("dt", { text: "Lightning DEF" }), el("dd", { text: String(d.lightning_def) }),
+          el("dt", { text: "Dark DEF" }), el("dd", { text: String(d.dark_def) }))]));
     }
   } else if (ch.tier === "inventory") {
     card.append(el("p", { class: "note", text: "No attributes for this slot. Its stat block did not check out — an unrecognised patch, or an edited save — and a wrong number is worse than none. Everything below is still read straight from the file." }));

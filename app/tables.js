@@ -143,6 +143,66 @@ export function guessBuild(stats) {
   return "quality / balanced melee";
 }
 
+/** Roll i-frames by Agility value (fextralife/community breakpoints); highest key <= AGL. */
+const DS2_IFRAMES = [[85, 5], [86, 8], [88, 9], [92, 10], [96, 11], [99, 12], [105, 13], [111, 14], [114, 15], [116, 16]];
+/** Attunement values that unlock a spell slot; slot count = how many are <= ATN. */
+const DS2_SLOT_BREAKS = [10, 13, 16, 20, 25, 30, 40, 50, 60, 75, 94];
+/** Physical attack bonus (ATK: Str/Dex) decade breakpoints; weapon-independent curve. */
+const DS2_PHYS_ATK_BP = [[0, 50], [10, 57], [20, 80], [30, 102], [40, 140], [50, 155], [60, 162], [70, 170], [80, 185], [90, 192], [99, 200]];
+
+/** ATK: Str/Dex at a stat value: linear-interpolate the decade breakpoints, floored. */
+function ds2PhysAtk(stat) {
+  stat = Math.max(0, Math.min(stat, 99));
+  const lo = Math.min(Math.floor(stat / 10) * 10, 90);
+  const hi = lo === 90 ? 99 : lo + 10;
+  const vlo = DS2_PHYS_ATK_BP.find(([k]) => k === lo)[1];
+  const vhi = DS2_PHYS_ATK_BP.find(([k]) => k === hi)[1];
+  return hi === lo ? vlo : Math.floor(vlo + ((vhi - vlo) * (stat - lo)) / (hi - lo));
+}
+
+/** Shared DS2 elemental-defence curve: +6/pt to 10, +8/pt to 20, +1/pt to 60, +0.5/pt to 99. */
+function ds2ElemDef(stat) {
+  stat = Math.max(0, Math.min(stat, 99));
+  let d = 6 * Math.min(stat, 10);
+  if (stat > 10) d += 8 * (Math.min(stat, 20) - 10);
+  if (stat > 20) d += 1 * (Math.min(stat, 60) - 20);
+  if (stat > 60) d += Math.floor((Math.min(stat, 99) - 60) / 2);
+  return d;
+}
+
+/**
+ * DS2 base derived stats (before rings/equipment) from the attribute block. Pure
+ * attribute functions verified byte-exact against a real save's Level-Up screen.
+ * Mirrors Python ds2_derived_stats. @returns {{stamina, equip_load, agility, iframes}}
+ */
+export function ds2DerivedStats(stats) {
+  const end = stats.Endurance || 0, vit = stats.Vitality || 0;
+  const adp = stats.Adaptability || 0, atn = stats.Attunement || 0;
+  const stg = stats.Strength || 0, dex = stats.Dexterity || 0;
+  const intel = stats.Intelligence || 0, fth = stats.Faith || 0;
+  let stamina = 80 + 2 * Math.min(end, 20) + Math.max(0, Math.min(end, 99) - 20);
+  if (end >= 99) stamina += 1;
+  let load = 38.5 + 1.5 * Math.min(vit, 29);
+  if (vit > 29) load += 1.0 * (Math.min(vit, 49) - 29);
+  if (vit > 49) load += 0.5 * (Math.min(vit, 70) - 49);
+  if (vit > 70) load += 0.5 * Math.floor((Math.min(vit, 99) - 70) / 2);
+  const agility = 80 + Math.floor(0.75 * adp + 0.25 * atn + 1e-9);
+  let iframes = null;
+  for (const [k, v] of DS2_IFRAMES) if (agility >= k) iframes = v;
+  const slots = DS2_SLOT_BREAKS.filter((b) => atn >= b).length;
+  const nn = Math.min(end, adp);
+  let poise = 0.3 * Math.min(nn, 30);
+  if (nn > 30) poise += 0.2 * (Math.min(nn, 50) - 30);
+  if (nn > 50) poise += 0.1 * (Math.min(nn, 98) - 50);
+  if (nn >= 99) poise += 0.2;
+  return {
+    stamina, equip_load: load, agility, iframes, slots, poise,
+    atk_str: ds2PhysAtk(stg), atk_dex: ds2PhysAtk(dex),
+    magic_def: ds2ElemDef(intel), fire_def: ds2ElemDef(Math.floor((intel + fth) / 2)),
+    lightning_def: ds2ElemDef(fth), dark_def: ds2ElemDef(Math.min(intel, fth)),
+  };
+}
+
 /** Format a value, or "—" when null. Integers get thousands separators (Python fmt). */
 export const fmt = (v) => (v == null ? "—" : typeof v === "number" ? v.toLocaleString("en-US") : String(v));
 
