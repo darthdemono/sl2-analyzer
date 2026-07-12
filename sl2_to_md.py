@@ -487,7 +487,9 @@ def attach_defeated_bosses(ch, base_dir):
         for pre in prereq.get(boss, ()):
             bosses.setdefault(pre, set()).add("gate")
     if bosses:
-        ch["bosses"] = bosses
+        # Sort each evidence set for a stable render order (matches ds2_infer_bosses,
+        # which already sorts); boss keys keep insertion order.
+        ch["bosses"] = {b: sorted(bosses[b]) for b in bosses}
 
 
 ## @brief Pull key / progression items out of a goods list (DS1 keeps keys here).

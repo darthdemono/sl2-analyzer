@@ -1,31 +1,12 @@
-// Render a parsed save into DOM cards — the visual equivalent of md_for_character.
-// Same data, same guards (a field the tool can't read is simply absent). Item and
-// boss names are set via textContent, never innerHTML.
+// Render a parsed save into DOM cards — the visual view (the Markdown view lives in
+// markdown.js and the Copy button here reuses it). Website-only extras the Markdown
+// can't show: KPI stat tiles, attribute magnitude bars, and an SVG build radar.
+// Item/boss names are set via textContent, never innerHTML.
 
-const STAT_ABBR = { Vigor: "VGR", Endurance: "END", Vitality: "VIT", Attunement: "ATN",
-  Strength: "STR", Dexterity: "DEX", Adaptability: "ADP", Intelligence: "INT", Faith: "FTH",
-  Resistance: "RES", Luck: "LCK", Mind: "MND", Arcane: "ARC" };
-const CAT_TITLE = { weapons: "Weapons", armors: "Armor", rings: "Rings", talismans: "Talismans",
-  spells: "Spells", bolts: "Ammunition", upgrade: "Upgrade Materials", consumables: "Consumables",
-  online: "Summon & Covenant Items", goods: "Consumables & Goods", ashes: "Ashes of War",
-  emotes: "Gestures", bosssouls: "Boss Souls", items: "Items Owned" };
-const CAT_ORDER = ["weapons", "armors", "rings", "talismans", "spells", "bolts", "upgrade",
-  "consumables", "goods", "ashes", "online", "bosssouls", "emotes", "items"];
-const DS2_GREAT_SOULS = new Set(["Old Witch Soul", "Old Dead One Soul", "Old King Soul", "Old Paledrake Soul"]);
-const SRC = { flag: "confirmed", soul: "soul held", gate: "progression" };
+import { STAT_ABBR, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt } from "./tables.js";
+import { buildMarkdown } from "./markdown.js";
 
-function guessBuild(stats) {
-  const keys = Object.keys(stats);
-  if (!keys.length) return null;
-  const g = (k) => stats[k] || 0;
-  const phys = g("Strength") + g("Dexterity");
-  const cast = g("Intelligence") + g("Faith") + g("Attunement");
-  if (cast > phys) return "caster / hybrid (high INT/FTH/ATN)";
-  if (g("Strength") >= g("Dexterity") + 6) return "strength-focused melee";
-  if (g("Dexterity") >= g("Strength") + 6) return "dexterity-focused melee";
-  return "quality / balanced melee";
-}
-const fmt = (v) => (v == null ? "—" : typeof v === "number" ? v.toLocaleString("en-US") : String(v));
+const SVGNS = "http://www.w3.org/2000/svg";
 
 function el(tag, props, ...kids) {
   const n = document.createElement(tag);
@@ -37,21 +18,72 @@ function el(tag, props, ...kids) {
   for (const c of kids.flat()) if (c != null) n.append(c.nodeType ? c : document.createTextNode(String(c)));
   return n;
 }
-
-function section(title, kids) {
-  return el("section", { class: "sec" }, el("h4", { text: title }), ...kids);
+function svg(tag, props, ...kids) {
+  const n = document.createElementNS(SVGNS, tag);
+  if (props) for (const k in props) n.setAttribute(k, props[k]);
+  for (const c of kids.flat()) if (c != null) n.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return n;
 }
 
-function itemList(items) {
-  return el("ul", { class: "items" },
-    ...items.map(([n, q]) => el("li", null, n + (q && q > 1 ? ` ×${q}` : ""))));
+const section = (title, kids) => el("section", { class: "sec" }, el("h4", { text: title }), ...kids);
+const itemList = (items) => el("ul", { class: "items" },
+  ...items.map(([n, q]) => el("li", null, n + (q && q > 1 ? ` ×${q}` : ""))));
+
+// ── KPI tiles: the headline numbers as hero stats (no plot). ─────────────────
+function kpiRow(ch) {
+  const tiles = [];
+  const tile = (label, val, accent) => tiles.push(el("div", { class: "kpi" + (accent ? " accent" : "") },
+    el("div", { class: "kv", text: fmt(val) }), el("div", { class: "kl", text: label })));
+  if (ch.soul_memory != null) tile("Soul Memory", ch.soul_memory, true);
+  if (ch.souls != null) tile(ch.game === "er" ? "Runes Held" : "Souls Held", ch.souls);
+  if (ch.hp != null) tile("Max HP", ch.hp);
+  if (ch.stamina != null) tile("Stamina", ch.stamina);
+  if (ch.bosses) tile("Bosses Defeated", Object.keys(ch.bosses).length, true);
+  if (ch.bonfires) tile("Bonfires", ch.bonfires.length);
+  return tiles.length ? el("div", { class: "kpis" }, ...tiles) : null;
 }
 
-function statTable(stats) {
+// ── Attribute magnitude bars (single hue, value labels, baseline-anchored). ──
+function statBars(stats) {
   const keys = Object.keys(stats);
-  const head = el("tr", null, ...keys.map((k) => el("th", { text: STAT_ABBR[k] || k.slice(0, 3).toUpperCase() })));
-  const row = el("tr", null, ...keys.map((k) => el("td", { text: fmt(stats[k]) })));
-  return el("div", { class: "table-wrap" }, el("table", { class: "stats" }, el("thead", null, head), el("tbody", null, row)));
+  const MAX = 99;
+  const rows = keys.map((k) => {
+    const v = stats[k] || 0;
+    const pct = Math.max(2, Math.min(100, (v / MAX) * 100));
+    return el("div", { class: "bar-row" },
+      el("span", { class: "bar-label", title: k, text: STAT_ABBR[k] || k.slice(0, 3).toUpperCase() }),
+      el("div", { class: "bar-track" }, el("div", { class: "bar-fill", style: `width:${pct}%` })),
+      el("span", { class: "bar-val", text: fmt(v) }));
+  });
+  return el("div", { class: "bars" }, ...rows);
+}
+
+// ── Build radar: single-series polygon over the attributes (full tier only). ─
+function statRadar(stats) {
+  const keys = Object.keys(stats);
+  const n = keys.length;
+  if (n < 3) return null;
+  const SIZE = 240, C = SIZE / 2, R = C - 34, MAX = 99;
+  const ang = (i) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
+  const at = (i, r) => [C + Math.cos(ang(i)) * r, C + Math.sin(ang(i)) * r];
+  const kids = [];
+  for (const f of [0.33, 0.66, 1]) {
+    kids.push(svg("polygon", { points: keys.map((_, i) => at(i, R * f).map((x) => x.toFixed(1)).join(",")).join(" "), class: "radar-grid" }));
+  }
+  keys.forEach((k, i) => {
+    const [x, y] = at(i, R);
+    kids.push(svg("line", { x1: C, y1: C, x2: x.toFixed(1), y2: y.toFixed(1), class: "radar-grid" }));
+    const [lx, ly] = at(i, R + 15);
+    kids.push(svg("text", { x: lx.toFixed(1), y: ly.toFixed(1), class: "radar-axis",
+      "text-anchor": Math.abs(lx - C) < 4 ? "middle" : lx > C ? "start" : "end", "dominant-baseline": "middle" },
+      STAT_ABBR[k] || k.slice(0, 3).toUpperCase()));
+  });
+  kids.push(svg("polygon", { points: keys.map((k, i) => at(i, R * ((stats[k] || 0) / MAX)).map((x) => x.toFixed(1)).join(",")).join(" "), class: "radar-shape" }));
+  keys.forEach((k, i) => {
+    const [x, y] = at(i, R * ((stats[k] || 0) / MAX));
+    kids.push(svg("circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: 2.5, class: "radar-dot" }));
+  });
+  return el("div", { class: "radar-wrap" }, svg("svg", { viewBox: `0 0 ${SIZE} ${SIZE}`, class: "radar", role: "img", "aria-label": "attribute radar" }, ...kids));
 }
 
 function facts(ch) {
@@ -61,15 +93,11 @@ function facts(ch) {
   if (ch.klass) add("Class", ch.klass);
   if (ch.covenant) add("Covenant", ch.covenant);
   if (ch.ng_plus != null) add("Playthrough", ch.ng_plus === 0 ? "New Game" : `New Game +${ch.ng_plus}`);
-  if (ch.soul_memory != null) add("Soul Memory", fmt(ch.soul_memory));
-  if (ch.souls != null) add(ch.game === "er" ? "Runes Held" : "Souls Held", fmt(ch.souls));
   if (ch.humanity != null) add("Humanity", fmt(ch.humanity));
-  if (ch.hp != null) add("Max HP", fmt(ch.hp));
   if (ch.hollow_lvl) add("Hollowing", fmt(ch.hollow_lvl));
-  if (ch.stamina != null) add("Stamina", fmt(ch.stamina));
   const build = guessBuild(ch.stats);
   if (build) add("Build", build);
-  return el("div", { class: "facts" }, ...rows);
+  return rows.length ? el("div", { class: "facts" }, ...rows) : null;
 }
 
 function characterCard(slot, ch) {
@@ -78,10 +106,16 @@ function characterCard(slot, ch) {
     el("h3", null, el("span", { class: "slot", text: `Slot ${slot}` }), el("span", { class: "cname", text: ch.name })),
     el("span", { class: `badge ${ch.tier}`, text: ch.tier === "full" ? "full data" : "inventory only" })));
 
-  card.append(facts(ch));
+  const kpis = kpiRow(ch);
+  if (kpis) card.append(kpis);
+  const f = facts(ch);
+  if (f) card.append(f);
 
-  if (Object.keys(ch.stats).length) card.append(section("Attributes", [statTable(ch.stats)]));
-  else if (ch.tier === "inventory") card.append(el("p", { class: "note", text: "Attributes not shown for this slot — its stat block did not validate (unrecognised patch or edited save). A wrong number is worse than none; inventory and progress below are read directly." }));
+  if (Object.keys(ch.stats).length) {
+    card.append(section("Attributes", [el("div", { class: "attr-grid" }, statBars(ch.stats), statRadar(ch.stats))]));
+  } else if (ch.tier === "inventory") {
+    card.append(el("p", { class: "note", text: "Attributes not shown for this slot — its stat block did not validate (unrecognised patch or edited save). A wrong number is worse than none; inventory and progress below are read directly." }));
+  }
 
   if (ch.boss_souls && ch.boss_souls.length) {
     card.append(section(ch.game === "er" ? "Remembrances Held" : "Boss Souls Held", [
@@ -121,12 +155,29 @@ function characterCard(slot, ch) {
   return card;
 }
 
+function copyButton(result, filename) {
+  const btn = el("button", { class: "btn btn-ghost copy", type: "button", text: "⧉ Copy Markdown" });
+  btn.addEventListener("click", async () => {
+    const md = buildMarkdown(result, filename);
+    try { await navigator.clipboard.writeText(md); btn.textContent = "✓ Copied"; }
+    catch {
+      const ta = el("textarea"); ta.value = md; document.body.append(ta); ta.select();
+      try { document.execCommand("copy"); btn.textContent = "✓ Copied"; } catch { btn.textContent = "Copy failed"; }
+      ta.remove();
+    }
+    setTimeout(() => { btn.textContent = "⧉ Copy Markdown"; }, 1600);
+  });
+  return btn;
+}
+
 /** Build the DOM for a parsed save result. */
 export function renderSave(result, filename) {
   const root = el("div", { class: "result" });
   root.append(el("div", { class: "gamebar" },
-    el("div", null, el("h2", { text: result.title }), el("p", { class: "src", text: filename || "" })),
-    el("span", { class: "count", text: `${result.characters.length} character${result.characters.length === 1 ? "" : "s"}` })));
+    el("div", { class: "gb-left" }, el("h2", { text: result.title }), el("p", { class: "src", text: filename || "" })),
+    el("div", { class: "gb-right" },
+      el("span", { class: "count", text: `${result.characters.length} character${result.characters.length === 1 ? "" : "s"}` }),
+      copyButton(result, filename))));
   if (!result.characters.length) root.append(el("p", { class: "note", text: "No populated character slots found." }));
   for (const { slot, ch } of result.characters) root.append(characterCard(slot, ch));
   root.append(el("p", { class: "foot", text: "Everything above is read directly from the save in your browser. Progress sections are a floor — consumed boss souls and untracked flags can hide kills, never invent them." }));
