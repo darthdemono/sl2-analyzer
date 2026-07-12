@@ -59,6 +59,64 @@ export function statGovernsFor(game) {
   return new Map(m);
 }
 
+// Soft-cap / per-level breakpoint reference per attribute, per game. Documented
+// scaling RATES and soft-cap levels — a game-mechanics fact, NOT a per-character
+// computed value (computing the absolute would be wrong: DS2 Vigor 36 reads HP 1351
+// in-save vs 1420 from the flat table). Mirrors Python STAT_CAPS.
+export const STAT_CAPS = {
+  ds1: [
+    ["Vitality", "soft caps 30 (~1,100 HP) & 50 (~1,500 HP), rising to ~1,900 at 99"],
+    ["Attunement", "1 slot at 10, then 12/14/16/19/23/28/34/41/50 — 10 slots max at 50"],
+    ["Endurance", "stamina maxes at 40 (160); equip load keeps rising (~+1/lvl) to 99"],
+    ["Strength", "scaling soft cap 40"],
+    ["Dexterity", "scaling soft cap 40; cast speed improves to 45"],
+    ["Resistance", "minor per-level gains — commonly a dump stat"],
+    ["Intelligence", "scaling soft cap 40"],
+    ["Faith", "scaling soft cap 40"],
+  ],
+  ds2sotfs: [
+    ["Vigor", "soft caps 20 & 50; +30 HP/lvl to 20, +20 to 50, +5 after"],
+    ["Endurance", "soft cap 20; +2 stamina/lvl to 20, +1 after"],
+    ["Vitality", "soft caps 29/49/70; +1.5 load/lvl to 29, +1 to 49, +0.5 to 69, +0.25 after"],
+    ["Attunement", "slots at 10/13/16/20/25/30/40/50/60/75/94; cast-speed breakpoints 30/45/60/80"],
+    ["Strength", "scaling soft caps 40 & 50"],
+    ["Dexterity", "scaling soft caps 40 & 50"],
+    ["Adaptability", "raises Agility (with Attunement); gains taper past ~40"],
+    ["Intelligence", "scaling soft caps 40 & 50"],
+    ["Faith", "scaling soft caps 40 & 50"],
+  ],
+  ds3: [
+    ["Vigor", "soft caps ~27 & 50; ~1,300 HP at 50, only ~100 more to 99"],
+    ["Attunement", "FP soft cap 35 (450 max at 99); slots at 10/14/18/24/30/40/50/60/80/99"],
+    ["Endurance", "stamina soft cap 40"],
+    ["Vitality", "roughly linear to 99"],
+    ["Strength", "scaling soft caps 40 & 60"],
+    ["Dexterity", "scaling soft caps 40 & 60"],
+    ["Intelligence", "scaling soft caps 40 & 60"],
+    ["Faith", "scaling soft caps 40 & 60"],
+    ["Luck", "+1 item discovery/pt (base 100); bleed/poison speed soft cap 50"],
+  ],
+  er: [
+    ["Vigor", "soft caps 40 & 60"],
+    ["Mind", "soft caps 50 & 60"],
+    ["Endurance", "stamina soft caps 15/30/50; equip load 25/60"],
+    ["Strength", "scaling soft caps 20/50/80"],
+    ["Dexterity", "scaling soft caps 20/50/80"],
+    ["Intelligence", "scaling soft caps 20/50/80"],
+    ["Faith", "scaling soft caps 20/50/80"],
+    ["Arcane", "scaling soft caps 20/50/80; also raises item discovery"],
+  ],
+};
+
+/** Soft-cap reference map for a per-slot game id (DSR and PtDE share DS1). */
+export function statCapsFor(game) {
+  const m = STAT_CAPS[game === "dsr" || game === "ptde" ? "ds1" : game] || [];
+  return new Map(m);
+}
+
+/** Capitalize the first character only (keeps "HP"/"FP" intact, unlike toUpperCase). */
+export const capFirst = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
 export const CAT_TITLE = { weapons: "Weapons", armors: "Armor", rings: "Rings", talismans: "Talismans",
   spells: "Spells", bolts: "Ammunition", upgrade: "Upgrade Materials", consumables: "Consumables",
   online: "Summon & Covenant Items", goods: "Consumables & Goods", ashes: "Ashes of War",

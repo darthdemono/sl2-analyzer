@@ -2,7 +2,7 @@
 // KPI stat tiles, attribute magnitude bars, and an SVG build radar. Item/boss names
 // are set via textContent, never innerHTML.
 
-import { STAT_ABBR, statGovernsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt, fmtPlaytime } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt, fmtPlaytime } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
 
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -120,13 +120,15 @@ function characterCard(slot, ch) {
 
   if (Object.keys(ch.stats).length) {
     card.append(section("Attributes", [el("div", { class: "attr-grid" }, statBars(ch.stats), statRadar(ch.stats))]));
-    const gov = statGovernsFor(ch.game);
+    const gov = statGovernsFor(ch.game), cap = statCapsFor(ch.game);
     const rows = Object.keys(ch.stats).filter((k) => gov.has(k));
     if (rows.length) {
-      card.append(section("What Attributes Govern", [
-        el("p", { class: "hint", text: "What each stat scales — game mechanics, not read from this save." }),
+      card.append(section("Attribute Scaling", [
+        el("p", { class: "hint", text: "What each stat scales, its soft caps, and your current value — game-mechanics reference, not a value read from this save." }),
         el("dl", { class: "governs" },
-          ...rows.flatMap((k) => [el("dt", { text: k }), el("dd", { text: gov.get(k) })]))]));
+          ...rows.flatMap((k) => [
+            el("dt", {}, el("span", { class: "gname", text: k }), el("span", { class: "gval", text: String(ch.stats[k]) })),
+            el("dd", {}, el("span", { class: "ggov", text: gov.get(k) }), ...(cap.has(k) ? [el("span", { class: "gcap", text: capFirst(cap.get(k)) })] : []))]))]));
     }
   } else if (ch.tier === "inventory") {
     card.append(el("p", { class: "note", text: "No attributes for this slot. Its stat block did not check out — an unrecognised patch, or an edited save — and a wrong number is worse than none. Everything below is still read straight from the file." }));
