@@ -567,6 +567,103 @@ def load_ds2_bonfires(base_dir):
     return _DS2_BONFIRE_CACHE[base_dir]
 
 
+## @brief Load the DS2 boss-defeat flag table (db_ds2/boss_flags.json, world-block
+#  byte offset as hex → boss name). Cached. Returns {} if the file is absent.
+_DS2_BOSS_CACHE = {}
+def load_ds2_bosses(base_dir):
+    if base_dir not in _DS2_BOSS_CACHE:
+        path = os.path.join(base_dir, "db_ds2", "boss_flags.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                raw = json.load(f)
+            _DS2_BOSS_CACHE[base_dir] = {int(k, 16): v for k, v in raw.items()}
+        except (OSError, ValueError):
+            _DS2_BOSS_CACHE[base_dir] = {}
+    return _DS2_BOSS_CACHE[base_dir]
+
+
+## @brief Load the DS2 boss-soul → boss-name table (db_ds2/boss_souls.json). Cached.
+_DS2_BOSS_SOUL_CACHE = {}
+def load_ds2_boss_souls(base_dir):
+    if base_dir not in _DS2_BOSS_SOUL_CACHE:
+        path = os.path.join(base_dir, "db_ds2", "boss_souls.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS2_BOSS_SOUL_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS2_BOSS_SOUL_CACHE[base_dir] = {}
+    return _DS2_BOSS_SOUL_CACHE[base_dir]
+
+
+## @brief Progression gates: a boss proven dead by something the character has. Only
+#  DS2's STRICTLY-LINEAR endgame qualifies — the mid-game is four parallel, largely
+#  skippable paths, so a mid-game gate would risk a false kill (the core rule). The
+#  endgame is unskippable: Drangleic Castle → Looking Glass Knight → Shrine of Amana →
+#  Demon of Song → Undead Crypt → Velstadt → (King's Ring, behind him) → King's Gate →
+#  Throne → Throne Watcher & Defender → Nashandra. Sources: fextralife Game Progress
+#  Route + King's Ring page.
+## @brief Bonfire present ⇒ these bosses dead (the bonfire is only reachable past them).
+DS2_BOSS_GATE = {
+    "Undead Crypt Entrance": ("Looking Glass Knight", "Demon of Song"),
+    "Throne Floor": ("Looking Glass Knight", "Demon of Song", "Velstadt, the Royal Aegis"),
+}
+## @brief Inventory item held ⇒ boss dead (item only obtainable past it). The King's
+#  Ring sits in the room behind Velstadt and cannot be had otherwise.
+DS2_ITEM_GATE = {"King's Ring": ("Velstadt, the Royal Aegis",)}
+## @brief Boss defeated ⇒ its mandatory predecessors also defeated (each list is the
+#  full transitive set, so a single pass closes it). Endgame only, where the order is
+#  forced.
+DS2_BOSS_PREREQ = {
+    "Nashandra": ("Throne Watcher", "Throne Defender", "Velstadt, the Royal Aegis",
+                  "Demon of Song", "Looking Glass Knight"),
+    "Throne Watcher": ("Velstadt, the Royal Aegis", "Demon of Song", "Looking Glass Knight"),
+    "Throne Defender": ("Velstadt, the Royal Aegis", "Demon of Song", "Looking Glass Knight"),
+    "Velstadt, the Royal Aegis": ("Demon of Song", "Looking Glass Knight"),
+    "Demon of Song": ("Looking Glass Knight",),
+}
+
+
+##
+# @brief Bosses this character has defeated, as @c {boss: [evidence]}, or None.
+# @details A FLOOR from three independent, positive-only signals — each is certain
+# when it fires, none is exhaustive:
+#   - @b flag: a mapped defeat event flag is set (world block; see boss_flags.json).
+#     Verified by the 41-boss differential matrix. Only a handful are mapped.
+#   - @b soul: the boss's soul is still in inventory. Cannot be obtained without the
+#     kill, but a consumed/traded soul goes invisible.
+#   - @b progression: a bonfire the character has can only be reached past this boss
+#     (@ref DS2_BOSS_GATE).
+# A boss absent here may still be defeated (its soul consumed and not gated). Sources
+# are merged per boss so overlap reads as corroboration.
+def ds2_infer_bosses(world, ch, base_dir):
+    out = defaultdict(set)
+    for off, name in load_ds2_bosses(base_dir).items():
+        if world and u8(world, off):
+            out[name].add("flag")
+    soul_db = load_ds2_boss_souls(base_dir)
+    for name, _qty in ch["inv"].get("bosssouls", []):
+        boss = soul_db.get(name)
+        if boss:
+            out[boss].add("soul")
+    for bonfire in (ch.get("bonfires") or []):
+        for boss in DS2_BOSS_GATE.get(bonfire, ()):
+            out[boss].add("gate")
+    held = {n for items in ch["inv"].values() for n, _ in items}
+    held.update(n for n, _ in ch.get("key_items", []))
+    for item, bosses in DS2_ITEM_GATE.items():
+        if item in held:
+            for boss in bosses:
+                out[boss].add("gate")
+    # Close over mandatory predecessors: any boss reached above implies the bosses
+    # the game forces you through before it. One pass suffices (lists are transitive).
+    for boss in list(out):
+        for pre in DS2_BOSS_PREREQ.get(boss, ()):
+            out[pre].add("gate")
+    if not out:
+        return None
+    return {b: sorted(out[b]) for b in sorted(out)}
+
+
 ##
 # @brief Names of the bonfires this character has discovered, or None.
 # @details The world block holds a contiguous u16 array of bonfire ids and, exactly
@@ -606,15 +703,17 @@ def ds2_visited_bonfires(world, bf_db):
     return visited
 
 
-## @brief DS2-only augment: attach world-block progression (bonfires) to a parsed
-#  character. The world block for status entry @c i is entry @c i+DS2_WORLD_ENTRY_DELTA;
-#  a missing/undecryptable block just leaves @c bonfires as None (section omitted).
+## @brief DS2-only augment: attach world-block progression (bonfires, bosses) to a
+#  parsed character. The world block for status entry @c i is entry
+#  @c i+DS2_WORLD_ENTRY_DELTA; a missing/undecryptable block leaves both fields None
+#  (sections omitted). Decrypts the world block once for both reads.
 def ds2_augment(ch, data, entries, i, base_dir):
     w = i + DS2_WORLD_ENTRY_DELTA
     if w >= len(entries):
         return
     world = decrypt_ds2(data[entries[w].offset:entries[w].offset + entries[w].size])
     ch["bonfires"] = ds2_visited_bonfires(world, load_ds2_bonfires(base_dir))
+    ch["bosses"] = ds2_infer_bosses(world, ch, base_dir)
 
 
 ##
@@ -1315,6 +1414,14 @@ def md_for_character(ch, slot_no):
         L += [f"### Bonfires Discovered ({len(ch['bonfires'])})  _(areas reached — a "
               "floor on progress)_", ""]
         L += [f"- {b}" for b in ch["bonfires"]] + [""]
+    if ch.get("bosses"):
+        SRC = {"flag": "confirmed", "soul": "soul held", "gate": "progression"}
+        L += [f"### Bosses Defeated ({len(ch['bosses'])})  _(a floor — from defeat "
+              "flags, held boss souls, and progression; a boss whose soul was consumed "
+              "and isn't gated may still be missing)_", ""]
+        for boss, srcs in ch["bosses"].items():
+            L.append(f"- {boss}  _({', '.join(SRC[s] for s in srcs)})_")
+        L.append("")
 
     L += ["### Inventory", ""]
     for cat in CAT_ORDER:
