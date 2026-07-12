@@ -3,7 +3,7 @@
 // md_for_character + convert's header; verified against the Python .md output by
 // scratch/md_harness.mjs (timestamp line excluded).
 
-import { STAT_ABBR, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt, fmtPlaytime } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt, fmtPlaytime } from "./tables.js";
 
 const REPO_URL = "https://github.com/darthdemono/sl2-analyzer";
 
@@ -35,6 +35,7 @@ function mdCharacter(ch, slot) {
   if (ch.humanity != null) L.push(`- **Humanity:** ${ch.humanity}`);
   if (ch.hp != null) L.push(`- **Max HP:** ${fmt(ch.hp)}`);
   if (ch.hollow_lvl) L.push(`- **Hollowing:** ${ch.hollow_lvl}  _(higher = more deaths without an effigy)_`);
+  if (ch.deaths != null) L.push(`- **Deaths:** ${fmt(ch.deaths)}`);
   if (ch.stamina != null) L.push(`- **Stamina:** ${fmt(ch.stamina)}`);
   const build = guessBuild(ch.stats);
   if (build) L.push(`- **Build:** ${build}`);
@@ -46,6 +47,12 @@ function mdCharacter(ch, slot) {
       "| " + keys.map((k) => STAT_ABBR[k] || k.slice(0, 3).toUpperCase()).join(" | ") + " |",
       "|" + "----|".repeat(keys.length),
       "| " + keys.map((k) => String(ch.stats[k])).join(" | ") + " |", "");
+    const gov = statGovernsFor(ch.game);
+    const rows = keys.filter((k) => gov.has(k));
+    if (rows.length) {
+      L.push("### What Attributes Govern  _(what each stat scales — game mechanics, not read from this save)_", "");
+      L.push(...rows.map((k) => `- **${k}** — ${gov.get(k)}`), "");
+    }
   } else if (ch.tier === "inventory") {
     L.push("_Attributes are not printed for this slot: its stat block did not validate (an unrecognised patch or an edited save), and a wrong number is worse than none. Inventory and progress below are read directly._", "");
   }

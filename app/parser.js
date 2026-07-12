@@ -170,7 +170,7 @@ function mergeQty(items) {
 // ── DS2 ───────────────────────────────────────────────────────────────────
 const DS2_NAME_OFF = 960, DS2_SOULS_OFF = 60, DS2_SOULMEM_OFF = 64, DS2_HP_OFF = 72, DS2_NG_OFF = 1028;
 const DS2_TITLE_NAME_OFF = 1286, DS2_TITLE_STRIDE = 496, DS2_TITLE_PLAYTIME_OFF = 66;
-const DS2_CLASS_OFF = 1024, DS2_COVENANT_OFF = 189, DS2_GENDER_OFF = 378, DS2_HOLLOW_OFF = 379;
+const DS2_CLASS_OFF = 1024, DS2_COVENANT_OFF = 189, DS2_GENDER_OFF = 378, DS2_HOLLOW_OFF = 379, DS2_DEATHS_OFF = 104;
 const DS2_WORLD_ENTRY_DELTA = 10, DS2_BONFIRE_FLAG_DELTA = 0x200, DS2_BONFIRE_MIN_RUN = 16;
 const DS2_REINF_OFF = 12, DS2_INFUSE_OFF = 13;
 const DS2_CLASS = { 1: "Warrior", 2: "Knight", 4: "Bandit", 6: "Cleric", 7: "Sorcerer", 8: "Explorer", 9: "Swordsman", 10: "Deprived" };
@@ -231,6 +231,7 @@ function ds2Parse(buf, itemDb) {
     humanity: null, stamina: null, hp: u32(buf, DS2_HP_OFF),
     ng_plus: Math.max(0, (u16(buf, DS2_NG_OFF) || 1) - 1),
     hollow_lvl: u8(buf, DS2_HOLLOW_OFF),
+    deaths: u32(buf, DS2_DEATHS_OFF),
     boss_souls: [], key_items: keyItems, inv, unknown_count: unknown,
   };
 }

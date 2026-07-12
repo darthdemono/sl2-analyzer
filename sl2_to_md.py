@@ -533,6 +533,13 @@ DS2_COVENANT = {1: "Heirs of the Sun", 2: "Blue Sentinels", 3: "Brotherhood of B
 #  on a 30h character (Hollow Lv 1). Gender polarity verified by a real F→M differential
 #  save pair (the byte flipped 1→0), so 1 = Female, 0 = Male.
 DS2_GENDER_OFF, DS2_HOLLOW_OFF = 378, 379
+## @brief Total deaths (u32) in the slot block. Pinned by a real 201→202 death
+#  differential: the u32 rose by exactly 1, and it climbs monotonically with play time
+#  across the whole backup set (181 at 37h → 202 at 40.4h), reaching the labelled death
+#  counts. DS2 mirrors it at three offsets (+104, +184, +7272) that always agree; +104
+#  is used. This is the deaths counter no editor exposed and an earlier differential
+#  could not find in the player region.
+DS2_DEATHS_OFF = 104
 ## @brief DS2 gender enum. Female = 1, Male = 0 (see DS2_GENDER_OFF). Any other value
 #  yields None via `.get` and the field is omitted rather than shown wrong.
 DS2_GENDER = {0: "Male", 1: "Female"}
@@ -642,6 +649,7 @@ def ds2_parse(buf, item_db):
         "humanity": None, "stamina": None, "hp": u32(buf, DS2_HP_OFF),
         "ng_plus": max(0, (u16(buf, DS2_NG_OFF) or 1) - 1),
         "hollow_lvl": u8(buf, DS2_HOLLOW_OFF),
+        "deaths": u32(buf, DS2_DEATHS_OFF),
         # DS2 boss souls are a real inventory category (bosssouls), rendered and
         # graded there, so the top boss-souls section is left empty for DS2.
         "boss_souls": [], "key_items": inv.pop("keys", []),
@@ -1420,6 +1428,55 @@ STAT_ABBR = {"Vigor": "VGR", "Endurance": "END", "Vitality": "VIT",
              "Attunement": "ATN", "Strength": "STR", "Dexterity": "DEX",
              "Adaptability": "ADP", "Intelligence": "INT", "Faith": "FTH",
              "Resistance": "RES", "Luck": "LCK", "Mind": "MND", "Arcane": "ARC"}
+## @brief What each attribute governs, per game. Static game-design fact — NOT read
+#  from the save and never a copied stat value, so it is true for any build and can
+#  never be the "wrong field" the core rule forbids. Keyed by game family because the
+#  same attribute name means different things across games (DS1 Vitality is HP;
+#  DS2/DS3 Vitality is equip load) — exactly the nuance the rule cares about. From the
+#  games' own status screens / community wikis.
+STAT_GOVERNS = {
+    "ds1": OrderedDict([
+        ("Vitality", "Max HP"),
+        ("Attunement", "Attunement (spell) slots"),
+        ("Endurance", "Stamina, equip load, physical defense"),
+        ("Strength", "Physical attack, strength-weapon scaling"),
+        ("Dexterity", "Physical attack, dex-weapon scaling, faster casting"),
+        ("Resistance", "Poison/bleed resistance, fire defense"),
+        ("Intelligence", "Magic attack, sorcery scaling"),
+        ("Faith", "Miracle scaling, lightning & magic defense")]),
+    "ds2sotfs": OrderedDict([
+        ("Vigor", "Max HP"),
+        ("Endurance", "Stamina"),
+        ("Vitality", "Equip load, physical defense, petrify resistance"),
+        ("Attunement", "Attunement (spell) slots, casting speed"),
+        ("Strength", "Physical attack, strength-weapon scaling"),
+        ("Dexterity", "Physical attack, dex-weapon scaling, casting speed"),
+        ("Adaptability", "Agility (i-frames), poison/bleed/petrify resistance"),
+        ("Intelligence", "Magic & dark attack, sorcery/hex scaling"),
+        ("Faith", "Lightning & dark attack, miracle/hex scaling")]),
+    "ds3": OrderedDict([
+        ("Vigor", "Max HP"),
+        ("Attunement", "FP, attunement (spell) slots"),
+        ("Endurance", "Stamina"),
+        ("Vitality", "Equip load, physical defense"),
+        ("Strength", "Physical attack, strength-weapon scaling"),
+        ("Dexterity", "Physical attack, dex-weapon scaling, faster casting"),
+        ("Intelligence", "Magic attack, sorcery & pyromancy scaling"),
+        ("Faith", "Lightning & dark attack, miracle & pyromancy scaling"),
+        ("Luck", "Item discovery, bleed/poison buildup, hollow-weapon scaling")]),
+    "er": OrderedDict([
+        ("Vigor", "Max HP, fire defense & immunity"),
+        ("Mind", "FP (skill/spell points), focus resistance"),
+        ("Endurance", "Stamina, equip load, robustness"),
+        ("Strength", "Physical attack, strength-weapon scaling"),
+        ("Dexterity", "Dex-weapon scaling, faster casting, less fall damage"),
+        ("Intelligence", "Sorcery scaling, magic defense"),
+        ("Faith", "Incantation scaling"),
+        ("Arcane", "Item discovery, arcane-weapon scaling, death/holy resistance")]),
+}
+## @brief Map a per-slot game id to its STAT_GOVERNS family (DSR and PtDE share DS1).
+def stat_governs_for(game):
+    return STAT_GOVERNS.get("ds1" if game in ("dsr", "ptde") else game, {})
 ## @brief Category id to printed heading (covers every id scheme / game).
 CAT_TITLE = {"weapons": "Weapons", "armors": "Armor", "rings": "Rings",
              "talismans": "Talismans", "spells": "Spells", "bolts": "Ammunition",
@@ -1493,6 +1550,8 @@ def md_for_character(ch, slot_no):
         L.append(f"- **Max HP:** {fmt(ch['hp'])}")
     if ch.get("hollow_lvl"):
         L.append(f"- **Hollowing:** {ch['hollow_lvl']}  _(higher = more deaths without an effigy)_")
+    if ch.get("deaths") is not None:
+        L.append(f"- **Deaths:** {fmt(ch['deaths'])}")
     if ch["stamina"] is not None:
         L.append(f"- **Stamina:** {fmt(ch['stamina'])}")
     build = guess_build(ch["stats"])
@@ -1506,6 +1565,12 @@ def md_for_character(ch, slot_no):
               "| " + " | ".join(STAT_ABBR.get(k, k[:3].upper()) for k in keys) + " |",
               "|" + "----|" * len(keys),
               "| " + " | ".join(str(ch["stats"][k]) for k in keys) + " |", ""]
+        gov = stat_governs_for(ch["game"])
+        rows = [(k, gov[k]) for k in keys if k in gov]
+        if rows:
+            L += ["### What Attributes Govern  _(what each stat scales — game "
+                  "mechanics, not read from this save)_", ""]
+            L += [f"- **{k}** — {v}" for k, v in rows] + [""]
     elif ch["tier"] == "inventory":
         L += ["_Attributes are not printed for this slot: its stat block did not "
               "validate (an unrecognised patch or an edited save), and a wrong "
