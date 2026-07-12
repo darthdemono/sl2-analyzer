@@ -1,10 +1,8 @@
-// Render a parsed save into DOM cards — the visual view (the Markdown view lives in
-// markdown.js and the Copy button here reuses it). Website-only extras the Markdown
-// can't show: KPI stat tiles, attribute magnitude bars, and an SVG build radar.
-// Item/boss names are set via textContent, never innerHTML.
+// Render a parsed save into DOM cards. Website-only extras beyond the plain data:
+// KPI stat tiles, attribute magnitude bars, and an SVG build radar. Item/boss names
+// are set via textContent, never innerHTML.
 
 import { STAT_ABBR, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, fmt } from "./tables.js";
-import { buildMarkdown } from "./markdown.js";
 
 const SVGNS = "http://www.w3.org/2000/svg";
 
@@ -114,19 +112,19 @@ function characterCard(slot, ch) {
   if (Object.keys(ch.stats).length) {
     card.append(section("Attributes", [el("div", { class: "attr-grid" }, statBars(ch.stats), statRadar(ch.stats))]));
   } else if (ch.tier === "inventory") {
-    card.append(el("p", { class: "note", text: "Attributes not shown for this slot — its stat block did not validate (unrecognised patch or edited save). A wrong number is worse than none; inventory and progress below are read directly." }));
+    card.append(el("p", { class: "note", text: "No attributes for this slot. Its stat block did not check out — an unrecognised patch, or an edited save — and a wrong number is worse than none. Everything below is still read straight from the file." }));
   }
 
   if (ch.boss_souls && ch.boss_souls.length) {
     card.append(section(ch.game === "er" ? "Remembrances Held" : "Boss Souls Held", [
-      el("p", { class: "hint", text: ch.game === "er" ? "major bosses defeated, not yet traded" : "bosses defeated, soul not yet consumed" }),
+      el("p", { class: "hint", text: ch.game === "er" ? "Major bosses dead. The remembrance is still unspent." : "Bosses dead. The soul is still in your pack, so the kill is certain." }),
       itemList(ch.boss_souls)]));
   }
-  if (ch.key_items && ch.key_items.length) card.append(section("Key Items", [el("p", { class: "hint", text: "progress / areas & shortcuts unlocked" }), itemList(ch.key_items)]));
+  if (ch.key_items && ch.key_items.length) card.append(section("Key Items", [el("p", { class: "hint", text: "Progress. The keys and items that open up the world." }), itemList(ch.key_items)]));
 
   if (ch.bonfires && ch.bonfires.length) {
     card.append(section(`Bonfires Discovered (${ch.bonfires.length})`, [
-      el("p", { class: "hint", text: "areas reached — a floor on progress" }),
+      el("p", { class: "hint", text: "Every bonfire you have lit. A floor on how far you got." }),
       el("ul", { class: "items cols" }, ...ch.bonfires.map((b) => el("li", { text: b })))]));
   }
   if (ch.bosses && Object.keys(ch.bosses).length) {
@@ -135,7 +133,7 @@ function characterCard(slot, ch) {
       list.append(el("li", null, boss, " ", ...srcs.map((s) => el("span", { class: `tag ${s}`, text: SRC[s] }))));
     }
     card.append(section(`Bosses Defeated (${Object.keys(ch.bosses).length})`, [
-      el("p", { class: "hint", text: "a floor — from defeat flags, held boss souls & progression; a consumed, ungated soul may still be missing" }), list]));
+      el("p", { class: "hint", text: "A floor. Read from held souls, defeat flags, and points you could not have passed otherwise. A soul you already spent, with no flag, can still be missing." }), list]));
   }
 
   const invCard = el("div", { class: "inv" });
@@ -151,23 +149,8 @@ function characterCard(slot, ch) {
     } else { invCard.append(el("h5", { text: CAT_TITLE[cat] || cat }), itemList(items)); any = true; }
   }
   if (any) card.append(section("Inventory", [invCard]));
-  if (ch.unknown_count) card.append(el("p", { class: "note", text: `${ch.unknown_count} inventory item(s) had IDs not in the name database (upgraded / infused variants) and were omitted.` }));
+  if (ch.unknown_count) card.append(el("p", { class: "note", text: `${ch.unknown_count} item(s) carried IDs the name table does not have — upgraded or infused variants — and were left out.` }));
   return card;
-}
-
-function copyButton(result, filename) {
-  const btn = el("button", { class: "btn btn-ghost copy", type: "button", text: "⧉ Copy Markdown" });
-  btn.addEventListener("click", async () => {
-    const md = buildMarkdown(result, filename);
-    try { await navigator.clipboard.writeText(md); btn.textContent = "✓ Copied"; }
-    catch {
-      const ta = el("textarea"); ta.value = md; document.body.append(ta); ta.select();
-      try { document.execCommand("copy"); btn.textContent = "✓ Copied"; } catch { btn.textContent = "Copy failed"; }
-      ta.remove();
-    }
-    setTimeout(() => { btn.textContent = "⧉ Copy Markdown"; }, 1600);
-  });
-  return btn;
 }
 
 /** Build the DOM for a parsed save result. */
@@ -176,10 +159,9 @@ export function renderSave(result, filename) {
   root.append(el("div", { class: "gamebar" },
     el("div", { class: "gb-left" }, el("h2", { text: result.title }), el("p", { class: "src", text: filename || "" })),
     el("div", { class: "gb-right" },
-      el("span", { class: "count", text: `${result.characters.length} character${result.characters.length === 1 ? "" : "s"}` }),
-      copyButton(result, filename))));
+      el("span", { class: "count", text: `${result.characters.length} character${result.characters.length === 1 ? "" : "s"}` }))));
   if (!result.characters.length) root.append(el("p", { class: "note", text: "No populated character slots found." }));
   for (const { slot, ch } of result.characters) root.append(characterCard(slot, ch));
-  root.append(el("p", { class: "foot", text: "Everything above is read directly from the save in your browser. Progress sections are a floor — consumed boss souls and untracked flags can hide kills, never invent them." }));
+  root.append(el("p", { class: "foot", text: "All of it read from the save, in your browser. The progress sections are a floor: a spent soul or an unmapped flag can hide a kill. It never invents one." }));
   return root;
 }

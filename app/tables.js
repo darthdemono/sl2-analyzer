@@ -1,6 +1,4 @@
-// Shared lookup tables and formatters used by both the DOM renderer (render.js)
-// and the Markdown builder (markdown.js). Kept in one place so the two views never
-// drift.
+// Shared lookup tables and formatters used by the DOM renderer (render.js).
 
 export const STAT_ABBR = { Vigor: "VGR", Endurance: "END", Vitality: "VIT", Attunement: "ATN",
   Strength: "STR", Dexterity: "DEX", Adaptability: "ADP", Intelligence: "INT", Faith: "FTH",

@@ -101,7 +101,7 @@
 
   ul.items { list-style: none; margin: 0; padding: 0; }
   ul.items li { padding: 3px 0 3px 16px; position: relative; font-size: 13.5px; }
-  ul.items li::before { content: "\25B8"; color: var(--accent2); position: absolute; left: 0; }
+  ul.items li::before { content: ""; position: absolute; left: 2px; top: 0.72em; width: 4px; height: 4px; background: var(--accent2); }
   ul.items.cols { columns: 2; } @media (max-width: 560px) { ul.items.cols { columns: 1; } }
   .tag { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
     padding: 1px 7px; border-radius: 10px; margin-left: 5px; vertical-align: middle; }
@@ -115,18 +115,45 @@
     border-left: 2px solid var(--border2); padding: 9px 12px; border-radius: var(--radius); margin: 12px 0; }
   .foot { color: var(--muted); font-size: 11.5px; text-align: center; margin: 34px 0 0; }
   footer { text-align: center; color: var(--muted); font-size: 11.5px; padding: 0 20px 46px; letter-spacing: .03em; }
+
+  .how { margin: 6px 0 0; }
+  .how > summary { cursor: pointer; font-family: var(--display); text-transform: uppercase; letter-spacing: .14em;
+    font-size: 12px; color: var(--accent); padding: 11px 0; list-style: none; border-bottom: 1px solid var(--border); }
+  .how > summary::-webkit-details-marker { display: none; }
+  .how > summary::before { content: "+ "; }
+  .how[open] > summary::before { content: "\2212 "; }
+  .how-body { padding: 14px 0 2px; color: var(--muted); font-size: 13px; line-height: 1.75; }
+  .how-body p { margin: 0 0 12px; } .how-body p:last-child { margin-bottom: 0; }
+  .how-body ul { margin: 0 0 12px; padding-left: 18px; list-style: none; }
+  .how-body li { margin: 6px 0; position: relative; }
+  .how-body li::before { content: ""; position: absolute; left: -14px; top: 0.7em; width: 4px; height: 4px; background: var(--accent2); }
+  .how-body b { color: var(--text); font-weight: 700; }
 </style>
 </head>
 <body>
 <header>
   <h1>SL2<span class="dot"> // </span>Analyzer</h1>
-  <p class="tag-line">Drop a FromSoftware <code>.sl2</code> save — Dark Souls (PtDE / Remastered), Dark Souls II SOTFS, Dark Souls III, or Elden Ring — and read the playthrough: identity, stats, souls, inventory, and inferred progress.</p>
-  <span class="privacy">🔒 100% in your browser — your save never uploads</span>
+  <p class="tag-line">Drop a FromSoftware <code>.sl2</code> save and read the whole playthrough: who the character is, their stats and souls, every item they carry, and the bosses and bonfires the save still proves they cleared. It reads the file. It does not guess.</p>
+  <span class="privacy">Nothing uploads. The save is read in your browser and never leaves this machine.</span>
 </header>
 <main>
+  <details class="how">
+    <summary>How it works</summary>
+    <div class="how-body">
+      <p>A <code>.sl2</code> is a FromSoftware save: one packed archive of blocks, most of them encrypted, one per character plus a few for the world. This tool unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off known positions. No upload and no server. The file is parsed in your browser and forgotten the moment you close the tab.</p>
+      <p>Every game hides its data differently, so each is read differently.</p>
+      <ul>
+        <li><b>Dark Souls II (SOTFS):</b> unlocked with its AES key, then read at fixed offsets. Bonfires lit and bosses killed come from a second world block the game keeps apart from the character.</li>
+        <li><b>Dark Souls Remastered / Prepare to Die:</b> the character block moves as the save grows, so it is found by a marker that always sits beside it (Remastered) or by the name text itself (PtDE).</li>
+        <li><b>Dark Souls III:</b> the stats shift between patches, so the block is not read from a fixed spot. It is found by content: the nine numbers that add up to your level. The game follows that rule, so a wrong match is close to impossible.</li>
+        <li><b>Elden Ring:</b> the same trick with eight numbers, and every owned item read straight from the game's item array.</li>
+      </ul>
+      <p>Two rules it never breaks. First, it never prints a number it cannot verify. If a stat block does not check out, the slot drops to "inventory only" and the attributes are simply gone. A missing field beats a wrong one. Second, the progress it shows is a floor, not a ceiling. It counts a boss dead only when the save still proves it: the soul in your pack, a defeat flag, or a point past it you could not have reached otherwise. A boss whose soul you already spent, with no flag and no gate, stays off the list. It under-claims on purpose.</p>
+    </div>
+  </details>
   <div id="drop">
-    <div class="big">Drop a .sl2 file here, or click to choose</div>
-    <div class="small">Nothing is uploaded. Parsing runs locally with JavaScript.</div>
+    <div class="big">Drop a .sl2 save here, or click to choose</div>
+    <div class="small">Read locally. Nothing is sent anywhere.</div>
     <input id="file" type="file" accept=".sl2" hidden>
   </div>
   <div id="status"></div>
