@@ -125,11 +125,9 @@
   footer { text-align: center; color: var(--muted); font-size: 11.5px; padding: 0 20px 46px; letter-spacing: .03em; }
 
   .how { margin: 6px 0 0; }
-  .how > summary { cursor: pointer; font-family: var(--display); text-transform: uppercase; letter-spacing: .14em;
+  .how > summary { cursor: default; pointer-events: none; font-family: var(--display); text-transform: uppercase; letter-spacing: .14em;
     font-size: 12px; color: var(--accent); padding: 11px 0; list-style: none; border-bottom: 1px solid var(--border); }
   .how > summary::-webkit-details-marker { display: none; }
-  .how > summary::before { content: "+ "; }
-  .how[open] > summary::before { content: "\2212 "; }
   .how-body { padding: 14px 0 2px; color: var(--muted); font-size: 13px; line-height: 1.75; }
   .how-body p { margin: 0 0 12px; } .how-body p:last-child { margin-bottom: 0; }
   .how-body ul { margin: 0 0 12px; padding-left: 18px; list-style: none; }
@@ -145,7 +143,22 @@
   <span class="privacy">Nothing uploads. The save is read in your browser and never leaves this machine.</span>
 </header>
 <main>
-  <details class="how">
+  <details class="how" open>
+    <summary>What it supports</summary>
+    <div class="how-body">
+      <p>Drop a save from any of these. The game is detected from the file — no need to say which.</p>
+      <ul>
+        <li><b>Dark Souls Remastered</b> — full: identity, class, all attributes, souls, humanity, inventory, held boss souls.</li>
+        <li><b>Dark Souls: Prepare to Die</b> — full, same as Remastered.</li>
+        <li><b>Dark Souls II: Scholar of the First Sin</b> — the deepest read: attributes, class, covenant, gender, hollowing, deaths, play time, full inventory with infusions and reinforcement, plus bonfires discovered and bosses defeated from the world block.</li>
+        <li><b>Dark Souls III</b> — full: attributes, souls, inventory, held boss souls, bosses defeated.</li>
+        <li><b>Elden Ring</b> — identity, attributes and runes in full; owned weapons, armour and ashes named; held remembrances and the bosses they prove. The rest of the held inventory (talismans, spells, goods) is not read yet, so the item list is partial.</li>
+      </ul>
+      <p>Every game also shows what each attribute governs, and degrades a slot to "inventory only" rather than print a stat it cannot verify.</p>
+      <p><b>Not supported:</b> vanilla Dark Souls II (pre-SOTFS) — its encryption key is not public.</p>
+    </div>
+  </details>
+  <details class="how" open>
     <summary>How it works</summary>
     <div class="how-body">
       <p>A <code>.sl2</code> is a FromSoftware save: one packed archive of blocks, most of them encrypted, one per character plus a few for the world. This tool unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off known positions. No upload and no server. The file is parsed in your browser and forgotten the moment you close the tab.</p>

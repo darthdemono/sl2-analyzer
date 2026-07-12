@@ -102,7 +102,6 @@ function facts(ch) {
   if (ch.play_time) add("Play Time", fmtPlaytime(ch.play_time));
   if (ch.humanity != null) add("Humanity", fmt(ch.humanity));
   if (ch.hollow_lvl) add("Hollowing", fmt(ch.hollow_lvl));
-  if (ch.deaths != null) add("Deaths", fmt(ch.deaths));
   const build = guessBuild(ch.stats);
   if (build) add("Build", build, true);
   return rows.length ? el("div", { class: "facts" }, ...rows) : null;
