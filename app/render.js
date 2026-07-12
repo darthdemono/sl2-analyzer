@@ -122,8 +122,9 @@ function characterCard(slot, ch) {
     card.append(section("Attributes", [el("div", { class: "attr-grid" }, statBars(ch.stats), statRadar(ch.stats))]));
     const gov = statGovernsFor(ch.game), cap = statCapsFor(ch.game);
     const rows = Object.keys(ch.stats).filter((k) => gov.has(k));
+    const kids = [];
     if (rows.length) {
-      card.append(section("Attribute Scaling", [
+      kids.push(
         el("p", { class: "hint", text: "What each stat scales, its soft caps, and your current value — game-mechanics reference, not a value read from this save." }),
         el("div", { class: "scaling" },
           ...rows.map((k) => el("div", { class: "scale-card" },
@@ -133,26 +134,30 @@ function characterCard(slot, ch) {
                 el("span", { class: "sc-abbr", text: STAT_ABBR[k] || k.slice(0, 3).toUpperCase() })),
               el("span", { class: "sc-val", text: String(ch.stats[k]) })),
             el("p", { class: "sc-gov", text: gov.get(k) }),
-            ...(cap.has(k) ? [el("p", { class: "sc-cap", text: capFirst(cap.get(k)) })] : []))))]));
+            ...(cap.has(k) ? [el("p", { class: "sc-cap", text: capFirst(cap.get(k)) })] : [])))));
     }
     if (ch.game === "ds2sotfs") {
       const d = ds2DerivedStats(ch.stats);
-      const agl = `${d.agility}` + (d.iframes ? ` (${d.iframes} roll i-frames)` : "");
-      card.append(section("Derived Stats", [
+      // Beautified derived-stat tiles, grouped so the elemental defences read as one row.
+      const tile = (label, val, cls) => el("div", { class: "dstat" + (cls ? " " + cls : "") },
+        el("div", { class: "dv", text: val }), el("div", { class: "dl", text: label }));
+      kids.push(
+        el("p", { class: "sub", text: "Derived Stats" }),
         el("p", { class: "hint", text: "Computed from attributes — base values before rings & equipment. The in-game screen adds ring/gear bonuses on top." }),
-        el("dl", { class: "facts" },
-          el("dt", { text: "Stamina" }), el("dd", { text: String(d.stamina) }),
-          el("dt", { text: "Equip Load" }), el("dd", { text: d.equip_load.toFixed(1) }),
-          el("dt", { text: "Attunement Slots" }), el("dd", { text: String(d.slots) }),
-          el("dt", { text: "Agility (AGL)" }), el("dd", { text: agl }),
-          el("dt", { text: "Poise (base)" }), el("dd", { text: d.poise.toFixed(1) }),
-          el("dt", { text: "ATK: Str" }), el("dd", { text: String(d.atk_str) }),
-          el("dt", { text: "ATK: Dex" }), el("dd", { text: String(d.atk_dex) }),
-          el("dt", { text: "Magic DEF" }), el("dd", { text: String(d.magic_def) }),
-          el("dt", { text: "Fire DEF" }), el("dd", { text: String(d.fire_def) }),
-          el("dt", { text: "Lightning DEF" }), el("dd", { text: String(d.lightning_def) }),
-          el("dt", { text: "Dark DEF" }), el("dd", { text: String(d.dark_def) }))]));
+        el("div", { class: "derived" },
+          tile("Stamina", String(d.stamina)),
+          tile("Equip Load", d.equip_load.toFixed(1)),
+          tile("Attunement Slots", String(d.slots)),
+          tile(d.iframes ? `Agility · ${d.iframes} i-frames` : "Agility", String(d.agility)),
+          tile("Poise (base)", d.poise.toFixed(1)),
+          tile("ATK: Str", String(d.atk_str)),
+          tile("ATK: Dex", String(d.atk_dex)),
+          tile("Magic DEF", String(d.magic_def), "def mag"),
+          tile("Fire DEF", String(d.fire_def), "def fire"),
+          tile("Lightning DEF", String(d.lightning_def), "def lit"),
+          tile("Dark DEF", String(d.dark_def), "def dark")));
     }
+    if (kids.length) card.append(section(ch.game === "ds2sotfs" ? "Attribute Scaling & Derived Stats" : "Attribute Scaling", kids));
   } else if (ch.tier === "inventory") {
     card.append(el("p", { class: "note", text: "No attributes for this slot. Its stat block did not check out — an unrecognised patch, or an edited save — and a wrong number is worse than none. Everything below is still read straight from the file." }));
   }
