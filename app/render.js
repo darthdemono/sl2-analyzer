@@ -86,7 +86,7 @@ function statRadar(stats) {
 
 function facts(ch) {
   const rows = [];
-  const add = (label, val) => rows.push(el("div", { class: "fact" }, el("span", { class: "fk", text: label }), el("span", { class: "fv", text: val })));
+  const add = (label, val, wide) => rows.push(el("div", { class: "fact" + (wide ? " wide" : "") }, el("span", { class: "fk", text: label }), el("span", { class: "fv", text: val })));
   if (ch.level != null) add(ch.game === "er" ? "Level" : "Soul Level", fmt(ch.level));
   if (ch.klass) add("Class", ch.klass);
   if (ch.covenant) add("Covenant", ch.covenant);
@@ -94,14 +94,14 @@ function facts(ch) {
   if (ch.humanity != null) add("Humanity", fmt(ch.humanity));
   if (ch.hollow_lvl) add("Hollowing", fmt(ch.hollow_lvl));
   const build = guessBuild(ch.stats);
-  if (build) add("Build", build);
+  if (build) add("Build", build, true);
   return rows.length ? el("div", { class: "facts" }, ...rows) : null;
 }
 
 function characterCard(slot, ch) {
   const card = el("article", { class: "char" });
   card.append(el("div", { class: "char-head" },
-    el("h3", null, el("span", { class: "slot", text: `Slot ${slot}` }), el("span", { class: "cname", text: ch.name })),
+    el("h3", null, el("span", { class: "slot", text: `Slot ${slot}: ` }), el("span", { class: "cname", text: ch.name })),
     el("span", { class: `badge ${ch.tier}`, text: ch.tier === "full" ? "full data" : "inventory only" })));
 
   const kpis = kpiRow(ch);

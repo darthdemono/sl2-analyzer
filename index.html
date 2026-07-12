@@ -6,7 +6,7 @@
 <title>SL2 Analyzer · FromSoftware save viewer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0e0e0e; --bg2: #141414; --bg3: #1a1a1a; --surface: #1e1e1e;
@@ -15,7 +15,8 @@
     --text: rgba(255, 255, 255, 0.82); --muted: rgba(255, 255, 255, 0.4);
     --danger: #e05a5a; --ok: #7fae57; --soul: #6c9fd6; --gate: #d0b45a;
     --mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-    --display: 'Syne', var(--mono); --radius: 4px; --glow: 0 0 20px rgba(186, 201, 100, 0.25);
+    --display: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --radius: 4px; --glow: 0 0 20px rgba(186, 201, 100, 0.25);
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--mono);
@@ -50,7 +51,7 @@
 
   .gamebar { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
     border-bottom: 1px solid var(--accent2); padding: 20px 2px 12px; margin: 30px 0 6px; flex-wrap: wrap; }
-  .gamebar h2 { margin: 0; font-size: 22px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+  .gamebar h2 { margin: 0; font-size: 20px; letter-spacing: .01em; color: var(--accent); }
   .gamebar .src { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
   .gb-right { display: flex; align-items: center; gap: 14px; }
   .gamebar .count { color: var(--muted); font-size: 12px; white-space: nowrap; }
@@ -59,9 +60,9 @@
     padding: 22px 24px; margin: 18px 0; }
   .char-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
     border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-  .char-head h3 { margin: 0; font-size: 19px; letter-spacing: .04em; }
-  .char-head .slot { color: var(--muted); font-family: var(--mono); font-weight: 400; font-size: 11px;
-    text-transform: uppercase; letter-spacing: .14em; margin-right: 12px; }
+  .char-head h3 { margin: 0; font-size: 18px; letter-spacing: .01em; font-weight: 700; }
+  .char-head .slot { color: var(--muted); font-weight: 400; }
+  .char-head .cname { color: var(--text); }
   .badge { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em;
     padding: 3px 10px; border-radius: var(--radius); border: 1px solid var(--border); color: var(--muted); }
   .badge.full { color: var(--accent); border-color: var(--border2); box-shadow: var(--glow); }
@@ -73,12 +74,14 @@
   .kpi.accent .kv { color: var(--accent); }
   .kpi .kl { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
 
-  .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 20px; margin: 16px 0 6px; }
-  .fact { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dotted var(--border); padding: 4px 0; font-size: 13.5px; }
-  .fact .fk { color: var(--muted); } .fact .fv { color: var(--text); font-weight: 700; text-align: right; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 2px 22px; margin: 16px 0 6px; }
+  .fact { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dotted var(--border); padding: 5px 0; font-size: 13.5px; }
+  .fact.wide { grid-column: 1 / -1; }
+  .fact .fk { color: var(--muted); white-space: nowrap; }
+  .fact .fv { color: var(--text); font-weight: 700; text-align: right; overflow-wrap: anywhere; }
 
   .sec { margin: 20px 0 4px; }
-  .sec h4 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .16em;
+  .sec h4 { margin: 0 0 10px; font-size: 14px; letter-spacing: .01em;
     color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 6px; }
   .hint { margin: -6px 0 10px; color: var(--muted); font-size: 11.5px; font-style: italic; }
 
