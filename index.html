@@ -110,62 +110,81 @@
   .gamebar .count { color: var(--ink-dim); font-size: 12px; letter-spacing: .1em;
     text-transform: uppercase; white-space: nowrap; }
 
-  /* ── The character status screen — the level-up panel, one per slot. ── */
-  .status { position: relative; background: var(--panel); border: 1px solid var(--rule);
-    border-radius: var(--radius); padding: 26px 30px; margin: 22px 0; }
-  .status::before, .status::after { content: ''; position: absolute; width: 14px; height: 14px;
-    border: 1px solid var(--accent); opacity: .65; pointer-events: none; }
-  .status::before { top: 8px; left: 8px; border-right: 0; border-bottom: 0; }
-  .status::after { bottom: 8px; right: 8px; border-left: 0; border-top: 0; }
-  .t-ds3 .status::before, .t-ds3 .status::after { display: none; }
-  .t-ds2 .status { border-left: 2px solid var(--accent-2); }
-  .t-er .status { box-shadow: inset 0 0 0 4px rgba(217,192,122,.05); }
+  /* ── The in-game Level-Up screen: stone frame, title bar, boxed panels. ── */
+  .status { margin: 24px 0; }
+  .lvlup { position: relative; padding: 13px; border-radius: 7px;
+    background: linear-gradient(180deg, #14130f, #0a0908);
+    border: 1px solid rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 0 1px var(--rule), inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+      inset 0 0 46px rgba(0, 0, 0, 0.6), 0 20px 52px rgba(0, 0, 0, 0.55); }
+  .t-ds2 .lvlup { background: linear-gradient(180deg, #0e1419, #07090d); }
+  .t-ds3 .lvlup { background: linear-gradient(180deg, #111110, #090909); }
+  .t-er .lvlup { background: linear-gradient(180deg, #16110a, #0a0806); }
+  /* ornate corner ticks (DS3 keeps them faint & grey — its screen is plainer) */
+  .lvlup::before, .lvlup::after { content: ''; position: absolute; width: 18px; height: 18px;
+    border: 2px solid var(--accent); opacity: .45; pointer-events: none; }
+  .lvlup::before { top: 5px; left: 5px; border-right: 0; border-bottom: 0; }
+  .lvlup::after { bottom: 5px; right: 5px; border-left: 0; border-top: 0; }
+  .t-ds3 .lvlup::before, .t-ds3 .lvlup::after { opacity: .22; border-color: var(--ink-dim); }
 
-  .status-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
-    border-bottom: 1px solid var(--rule); padding-bottom: 16px; flex-wrap: wrap; }
-  .eyebrow { font-family: var(--font-title); font-size: 10.5px; letter-spacing: .22em;
-    text-transform: uppercase; color: var(--ink-dim); margin-bottom: 6px; }
-  .cname { margin: 0; font-size: 27px; letter-spacing: .05em; color: var(--val); line-height: 1.1; }
-  .t-er .cname { text-shadow: 0 0 20px rgba(217,192,122,.28); }
-  .subid { margin-top: 8px; color: var(--ink); font-size: 15px; font-style: italic; }
-  .levelbadge { text-align: center; flex: none; padding: 4px 6px 2px; min-width: 92px; }
-  .levelbadge .lv { font-family: var(--font-title); font-size: 46px; font-weight: 700; line-height: .95;
-    color: var(--accent); font-variant-numeric: tabular-nums; text-shadow: var(--glow); }
-  .levelbadge.dim .lv { color: var(--ink-dim); text-shadow: none; }
-  .levelbadge .lvl { font-family: var(--font-title); font-size: 10px; letter-spacing: .2em;
-    text-transform: uppercase; color: var(--ink-dim); margin-top: 4px; }
+  /* the "Level up" title bar — metallic sheen, character name + slot + tier */
+  .lvlup-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 10px 16px; margin: 2px 2px 12px; border-radius: 3px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0.32));
+    border: 1px solid var(--rule); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+  .t-ds2 .lvlup-bar { background: linear-gradient(180deg, rgba(127, 168, 201, 0.24), rgba(8, 18, 28, 0.4)); }
+  .t-er .lvlup-bar { background: linear-gradient(180deg, rgba(217, 192, 122, 0.22), rgba(28, 20, 8, 0.42)); }
+  .lvlup-bar .lu-t { font-family: var(--font-title); font-size: 18px; letter-spacing: .1em;
+    color: var(--val); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .t-er .lvlup-bar .lu-t { text-shadow: 0 0 18px rgba(217, 192, 122, 0.3); }
+  .lvlup-bar .lu-r { display: flex; align-items: center; gap: 12px; flex: none; }
+  .lvlup-bar .lu-s { font-family: var(--font-title); font-size: 11px; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--ink-dim); }
 
-  .badge { display: inline-block; margin-top: 14px; font-family: var(--font-title); font-size: 10px;
-    text-transform: uppercase; letter-spacing: .16em; padding: 4px 12px; border-radius: var(--radius);
+  .lvlup-body { display: grid; grid-template-columns: minmax(216px, 0.85fr) 1.15fr; gap: 12px; align-items: start; }
+  .lvlup-body.solo { grid-template-columns: 1fr; }
+  @media (max-width: 720px) { .lvlup-body { grid-template-columns: 1fr; } }
+  .lp-stack { display: flex; flex-direction: column; gap: 12px; }
+
+  /* a carved sub-panel with a header label on its top rule */
+  .lp { position: relative; padding: 13px 15px 11px; border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3); border: 1px solid var(--rule-soft);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02); }
+  .lp-h { font-family: var(--font-title); font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--accent); padding-bottom: 8px; margin-bottom: 5px; border-bottom: 1px solid var(--rule); }
+  .lp-div { height: 1px; background: var(--rule); margin: 8px 2px; }
+  .lp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+  @media (max-width: 520px) { .lp-cols { grid-template-columns: 1fr; } }
+
+  .lp-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px;
+    padding: 6px 2px; border-bottom: 1px dotted var(--rule-soft); }
+  .t-ds3 .lp-row { border-bottom: 0; padding: 7px 2px; }
+  .lp-row .ic { width: 11px; height: 11px; border-radius: 2px; background: var(--ink-dim); opacity: .35; }
+  .lp-row .arw { font-size: 8px; letter-spacing: -2px; color: var(--ink-dim); opacity: .4;
+    width: 11px; text-align: center; }
+  .lp-row .nm { color: var(--ink); font-size: 14.5px; letter-spacing: .02em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-ds3 .lp-row.attr .nm { letter-spacing: .1em; }
+  .lp-row .vl { font-weight: 600; font-size: 16px; color: var(--val);
+    font-variant-numeric: tabular-nums; text-align: right; }
+  .lp-row.big .nm { font-family: var(--font-title); letter-spacing: .08em; text-transform: uppercase; font-size: 12px; }
+  .lp-row.big .vl { font-size: 22px; color: var(--accent); }
+  .t-er .lp-row.attr .vl, .t-ds2 .lp-row.attr .vl { color: var(--accent); }
+
+  /* the level-up screen's stat icons: HP red, stamina green, loads/defences colour-coded */
+  .ic.souls { background: var(--accent); opacity: .8; } .ic.mem { background: var(--ink-dim); opacity: .6; }
+  .ic.hp { background: #b5473a; opacity: .85; } .ic.stam { background: #5f8f43; opacity: .85; }
+  .ic.load { background: #4f7bb5; opacity: .8; } .ic.atk { background: #9a8a6a; opacity: .8; }
+  .ic.mag { background: #5f7bd6; opacity: .85; } .ic.fire { background: #c9733a; opacity: .85; }
+  .ic.lit { background: #d6b93a; opacity: .85; } .ic.dark { background: #8f5fc0; opacity: .85; }
+  .ic.agl { background: #7fa15a; opacity: .8; } .ic.poise { background: #8a8f6a; opacity: .8; }
+
+  .lp-note { margin: 11px 0 0; color: var(--ink-dim); font-size: 11.5px; font-style: italic; line-height: 1.55; }
+
+  .badge { display: inline-block; font-family: var(--font-title); font-size: 9.5px;
+    text-transform: uppercase; letter-spacing: .14em; padding: 4px 11px; border-radius: var(--radius);
     border: 1px solid var(--rule); color: var(--ink-dim); }
   .badge.full { color: var(--accent); border-color: var(--rule); box-shadow: var(--glow); }
-
-  /* Attribute list — laid out like the game's own level-up column. */
-  .attrs { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; margin: 18px 0 4px; }
-  @media (max-width: 560px) { .attrs { grid-template-columns: 1fr; } }
-  .arow { display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
-    padding: 9px 2px; border-bottom: 1px dotted var(--rule-soft); }
-  .arow .an { color: var(--ink); font-size: 17px; letter-spacing: .01em; }
-  .arow .av { font-family: var(--font-body); font-weight: 600; font-size: 20px; color: var(--val);
-    font-variant-numeric: tabular-nums; }
-  /* DS2 — denser steel grid, thin solid rules. */
-  .t-ds2 .arow { padding: 7px 2px; border-bottom: 1px solid var(--rule-soft); }
-  /* DS3 — airy, no leaders, wide-tracked small-caps names. */
-  .t-ds3 .attrs { gap: 0 52px; }
-  .t-ds3 .arow { border-bottom: 0; padding: 11px 2px; }
-  .t-ds3 .arow .an { text-transform: uppercase; letter-spacing: .14em; font-size: 13px; color: var(--ink-dim); }
-  .t-ds3 .arow .av { font-size: 21px; }
-  /* ER — engraved gold rows with a faint gilt underline. */
-  .t-er .arow { border-bottom: 1px solid var(--rule-soft); }
-  .t-er .arow .av { color: var(--accent); }
-
-  /* Counters (souls/runes, memory, time, deaths) — the status-screen tallies. */
-  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 4px 40px;
-    margin: 20px 0 4px; padding-top: 14px; border-top: 1px solid var(--rule); }
-  .mrow { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding: 5px 2px; }
-  .mrow .ml { color: var(--ink-dim); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
-  .mrow .mv { font-weight: 600; font-size: 17px; color: var(--val); font-variant-numeric: tabular-nums; }
-  .mrow.accent .mv { color: var(--accent); }
 
   /* ── Sub-sections (souls held, bonfires, bosses, inventory). ── */
   .sec { margin: 26px 0 4px; }
