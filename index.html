@@ -6,186 +6,217 @@
 <title>SL2 Analyzer · FromSoftware save viewer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
 <style>
+  /* ── Base tokens = the Dark Souls level-up screen: parchment-gold on black,
+        engraved caps, hairline gold rule. Each game theme overrides these. ── */
   :root {
-    --bg: #0e0e0e; --bg2: #141414; --bg3: #1a1a1a; --surface: #1e1e1e;
-    --border: rgba(186, 201, 100, 0.15); --border2: rgba(186, 201, 100, 0.28);
-    --accent: #bac964; --accent2: #8a9640;
-    --text: rgba(255, 255, 255, 0.82); --muted: rgba(255, 255, 255, 0.4);
-    --danger: #e05a5a; --ok: #7fae57; --soul: #6c9fd6; --gate: #d0b45a;
-    --mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-    --display: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-    --radius: 4px; --glow: 0 0 20px rgba(186, 201, 100, 0.25);
+    --bg: #08080a; --bg2: #0d0c0a; --panel: rgba(9, 8, 6, 0.62);
+    --ink: #cbb98d; --ink-dim: #7c7156;
+    --accent: #c7a85c; --accent-2: #9c8442; --val: #efe7d0;
+    --rule: rgba(199, 168, 92, 0.30); --rule-soft: rgba(199, 168, 92, 0.13);
+    --danger: #c8564b; --ok: #8aa15a; --soul: #7fa8c9; --gate: #c9a94b;
+    --font-body: 'EB Garamond', Georgia, 'Times New Roman', serif;
+    --font-title: 'Cinzel', 'EB Garamond', serif;
+    --glow: 0 0 26px rgba(199, 168, 92, 0.14);
+    --wash: radial-gradient(120% 90% at 50% -10%, rgba(199,168,92,.07), transparent 60%);
+    --radius: 2px;
   }
+  /* Dark Souls II — cold steel blue, cleaner rule. */
+  .t-ds2 {
+    --panel: rgba(6, 9, 13, 0.64); --ink: #a7bccc; --ink-dim: #5e7385;
+    --accent: #7fa8c9; --accent-2: #536e84; --val: #e9f1f7;
+    --rule: rgba(127, 168, 201, 0.26); --rule-soft: rgba(127, 168, 201, 0.11);
+    --font-title: 'EB Garamond', serif; --glow: 0 0 26px rgba(127, 168, 201, 0.13);
+    --wash: radial-gradient(120% 90% at 50% -10%, rgba(127,168,201,.08), transparent 60%);
+  }
+  /* Dark Souls III — ashen charcoal, a single ember-amber accent, no ornament. */
+  .t-ds3 {
+    --panel: rgba(11, 11, 12, 0.60); --ink: #b8b4a9; --ink-dim: #6f6c63;
+    --accent: #c07c3d; --accent-2: #7c5227; --val: #eae8e0;
+    --rule: rgba(184, 180, 169, 0.16); --rule-soft: rgba(184, 180, 169, 0.08);
+    --font-title: 'EB Garamond', serif; --glow: 0 0 22px rgba(192, 124, 61, 0.11);
+    --wash: radial-gradient(120% 90% at 50% -10%, rgba(192,124,61,.05), transparent 55%);
+  }
+  /* Elden Ring — ornate warm gold, heavier engraved title, double rule. */
+  .t-er {
+    --panel: rgba(10, 8, 6, 0.68); --ink: #c9b072; --ink-dim: #7d6e44;
+    --accent: #d9c07a; --accent-2: #a08542; --val: #f0e6c4;
+    --rule: rgba(217, 192, 122, 0.32); --rule-soft: rgba(217, 192, 122, 0.14);
+    --font-title: 'Cinzel', serif; --glow: 0 0 34px rgba(217, 192, 122, 0.17);
+    --wash: radial-gradient(120% 100% at 50% -5%, rgba(217,192,122,.10), transparent 62%);
+  }
+
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--mono);
-    font-size: 15px; line-height: 1.7; overflow-x: hidden; }
-  body::before { content: ''; position: fixed; inset: 0; z-index: 9999; pointer-events: none;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px); }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body);
+    font-size: 17px; line-height: 1.6; overflow-x: hidden;
+    background-image: var(--wash); background-attachment: fixed; }
+  /* faint vignette so the screen darkens at the edges like the in-game menu */
+  body::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(130% 100% at 50% 40%, transparent 55%, rgba(0,0,0,.65)); }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-shadow: var(--glow); }
-  code { font-family: var(--mono); color: var(--accent); }
-  h1, h2, h3, h4, h5 { font-family: var(--display); font-weight: 700; }
-  header { max-width: 1000px; margin: 0 auto; padding: 54px 20px 6px; text-align: center; }
-  h1 { font-size: 34px; letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 10px; }
-  h1 .dot { color: var(--accent); }
-  .tag-line { color: var(--muted); margin: 0 auto; max-width: 640px; font-size: 13.5px; }
-  .privacy { display: inline-block; margin-top: 16px; font-size: 11.5px; letter-spacing: .08em;
-    text-transform: uppercase; color: var(--accent); border: 1px solid var(--border2);
-    border-radius: var(--radius); padding: 5px 14px; }
-  main { max-width: 1000px; margin: 0 auto; padding: 14px 20px 90px; }
-  #drop { margin: 26px 0; padding: 46px 20px; border: 1px dashed var(--border2); border-radius: var(--radius);
-    background: var(--bg2); text-align: center; cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s; }
-  #drop:hover, #drop.over { border-color: var(--accent); background: var(--bg3); box-shadow: var(--glow); }
-  #drop .big { font-family: var(--display); font-size: 16px; letter-spacing: .06em; text-transform: uppercase; }
-  #drop .small { color: var(--muted); font-size: 12px; margin-top: 6px; }
-  #status { text-align: center; color: var(--muted); min-height: 20px; font-size: 12px; letter-spacing: .04em; }
-  .error { background: color-mix(in srgb, var(--danger) 14%, var(--surface)); border: 1px solid var(--danger);
-    color: var(--text); border-radius: var(--radius); padding: 16px; margin: 16px 0; }
+  code { font-family: var(--font-body); font-style: italic; color: var(--accent); }
+  h1, h2, h3, h4 { font-family: var(--font-title); font-weight: 600; }
 
-  .btn { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; padding: .5rem 1rem;
-    border-radius: var(--radius); cursor: pointer; transition: .18s; border: 1px solid var(--border2); }
-  .btn-ghost { background: transparent; color: var(--accent); }
+  header { max-width: 940px; margin: 0 auto; padding: 64px 20px 4px; text-align: center; }
+  h1 { font-family: var(--font-title); font-size: 40px; font-weight: 700; letter-spacing: 0.18em;
+    text-transform: uppercase; margin: 0 0 14px; color: var(--val);
+    text-shadow: 0 0 30px rgba(199,168,92,.25); }
+  h1 .dot { color: var(--accent); font-weight: 400; }
+  .tag-line { color: var(--ink-dim); margin: 0 auto; max-width: 620px; font-size: 16px; font-style: italic; }
+  .privacy { display: inline-block; margin-top: 18px; font-size: 12px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--accent); font-family: var(--font-title); }
+  .privacy::before, .privacy::after { content: '—'; color: var(--rule); margin: 0 10px; }
+  main { max-width: 940px; margin: 0 auto; padding: 20px 20px 96px; }
+
+  /* Framed menu panel — the recurring FromSoft status box (hairline + corner ticks). */
+  .frame { position: relative; background: var(--panel); border: 1px solid var(--rule);
+    border-radius: var(--radius); }
+  .frame::before, .frame::after { content: ''; position: absolute; width: 12px; height: 12px;
+    border: 1px solid var(--accent); opacity: .7; pointer-events: none; }
+  .frame::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .frame::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  .t-ds3 .frame::before, .t-ds3 .frame::after { display: none; } /* DS3 is unadorned */
+  .t-er .frame { border-width: 1px; box-shadow: inset 0 0 0 3px rgba(217,192,122,.06); }
+
+  #drop { margin: 30px 0 6px; padding: 52px 24px; text-align: center; cursor: pointer;
+    border-style: dashed; transition: border-color .15s, box-shadow .15s, background .15s; }
+  #drop:hover, #drop.over { border-color: var(--accent); box-shadow: var(--glow);
+    background: color-mix(in srgb, var(--accent) 5%, var(--panel)); }
+  #drop .big { font-family: var(--font-title); font-size: 19px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--val); }
+  #drop .small { color: var(--ink-dim); font-size: 14px; font-style: italic; margin-top: 8px; }
+  #status { text-align: center; color: var(--ink-dim); min-height: 22px; font-size: 13px;
+    letter-spacing: .08em; text-transform: uppercase; margin-top: 14px; }
+  .error { background: color-mix(in srgb, var(--danger) 12%, var(--panel)); border: 1px solid var(--danger);
+    color: var(--val); border-radius: var(--radius); padding: 16px; margin: 16px 0; }
+
+  .btn { font-family: var(--font-title); font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    padding: .55rem 1.1rem; border-radius: var(--radius); cursor: pointer; transition: .18s;
+    border: 1px solid var(--rule); background: transparent; color: var(--accent); }
   .btn-ghost:hover { border-color: var(--accent); box-shadow: var(--glow); }
 
-  .gamebar { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
-    border-bottom: 1px solid var(--accent2); padding: 20px 2px 12px; margin: 30px 0 6px; flex-wrap: wrap; }
-  .gamebar h2 { margin: 0; font-size: 20px; letter-spacing: .01em; color: var(--accent); }
-  .gamebar .src { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
-  .gb-right { display: flex; align-items: center; gap: 14px; }
-  .gamebar .count { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  /* ── Result header: the "now viewing" banner, themed to the detected game. ── */
+  .gamebar { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px;
+    border-bottom: 1px solid var(--accent-2); padding: 26px 2px 14px; margin: 38px 0 8px; flex-wrap: wrap; }
+  .gb-eyebrow { font-family: var(--font-title); font-size: 11px; letter-spacing: .24em;
+    text-transform: uppercase; color: var(--ink-dim); margin-bottom: 6px; }
+  .gamebar h2 { margin: 0; font-size: 24px; letter-spacing: .08em; color: var(--val);
+    text-transform: uppercase; font-weight: 600; }
+  .t-er .gamebar h2 { letter-spacing: .12em; text-shadow: 0 0 24px rgba(217,192,122,.3); }
+  .gamebar .src { margin: 5px 0 0; color: var(--ink-dim); font-size: 13px; font-style: italic; }
+  .gb-right { display: flex; align-items: center; gap: 16px; }
+  .gamebar .count { color: var(--ink-dim); font-size: 12px; letter-spacing: .1em;
+    text-transform: uppercase; white-space: nowrap; }
 
-  .char { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 22px 24px; margin: 18px 0; }
-  .char-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-    border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-  .char-head h3 { margin: 0; font-size: 18px; letter-spacing: .01em; font-weight: 700; }
-  .char-head .slot { color: var(--muted); font-weight: 400; }
-  .char-head .cname { color: var(--text); }
-  .badge { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em;
-    padding: 3px 10px; border-radius: var(--radius); border: 1px solid var(--border); color: var(--muted); }
-  .badge.full { color: var(--accent); border-color: var(--border2); box-shadow: var(--glow); }
+  /* ── The character status screen — the level-up panel, one per slot. ── */
+  .status { position: relative; background: var(--panel); border: 1px solid var(--rule);
+    border-radius: var(--radius); padding: 26px 30px; margin: 22px 0; }
+  .status::before, .status::after { content: ''; position: absolute; width: 14px; height: 14px;
+    border: 1px solid var(--accent); opacity: .65; pointer-events: none; }
+  .status::before { top: 8px; left: 8px; border-right: 0; border-bottom: 0; }
+  .status::after { bottom: 8px; right: 8px; border-left: 0; border-top: 0; }
+  .t-ds3 .status::before, .t-ds3 .status::after { display: none; }
+  .t-ds2 .status { border-left: 2px solid var(--accent-2); }
+  .t-er .status { box-shadow: inset 0 0 0 4px rgba(217,192,122,.05); }
 
-  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 18px 0; }
-  .kpi { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
-  .kpi.accent { border-color: var(--border2); }
-  .kpi .kv { font-family: var(--display); font-size: 21px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
-  .kpi.accent .kv { color: var(--accent); }
-  .kpi .kl { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+  .status-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
+    border-bottom: 1px solid var(--rule); padding-bottom: 16px; flex-wrap: wrap; }
+  .eyebrow { font-family: var(--font-title); font-size: 10.5px; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--ink-dim); margin-bottom: 6px; }
+  .cname { margin: 0; font-size: 27px; letter-spacing: .05em; color: var(--val); line-height: 1.1; }
+  .t-er .cname { text-shadow: 0 0 20px rgba(217,192,122,.28); }
+  .subid { margin-top: 8px; color: var(--ink); font-size: 15px; font-style: italic; }
+  .levelbadge { text-align: center; flex: none; padding: 4px 6px 2px; min-width: 92px; }
+  .levelbadge .lv { font-family: var(--font-title); font-size: 46px; font-weight: 700; line-height: .95;
+    color: var(--accent); font-variant-numeric: tabular-nums; text-shadow: var(--glow); }
+  .levelbadge.dim .lv { color: var(--ink-dim); text-shadow: none; }
+  .levelbadge .lvl { font-family: var(--font-title); font-size: 10px; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--ink-dim); margin-top: 4px; }
 
-  .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 2px 22px; margin: 16px 0 6px; }
-  .fact { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dotted var(--border); padding: 5px 0; font-size: 13.5px; }
-  .fact.wide { grid-column: 1 / -1; }
-  .fact .fk { color: var(--muted); white-space: nowrap; }
-  .fact .fv { color: var(--text); font-weight: 700; text-align: right; overflow-wrap: anywhere; }
+  .badge { display: inline-block; margin-top: 14px; font-family: var(--font-title); font-size: 10px;
+    text-transform: uppercase; letter-spacing: .16em; padding: 4px 12px; border-radius: var(--radius);
+    border: 1px solid var(--rule); color: var(--ink-dim); }
+  .badge.full { color: var(--accent); border-color: var(--rule); box-shadow: var(--glow); }
 
-  .sec { margin: 20px 0 4px; }
-  .sec h4 { margin: 0 0 10px; font-size: 14px; letter-spacing: .01em;
-    color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 6px; }
-  .hint { margin: -6px 0 10px; color: var(--muted); font-size: 11.5px; font-style: italic; }
+  /* Attribute list — laid out like the game's own level-up column. */
+  .attrs { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; margin: 18px 0 4px; }
+  @media (max-width: 560px) { .attrs { grid-template-columns: 1fr; } }
+  .arow { display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+    padding: 9px 2px; border-bottom: 1px dotted var(--rule-soft); }
+  .arow .an { color: var(--ink); font-size: 17px; letter-spacing: .01em; }
+  .arow .av { font-family: var(--font-body); font-weight: 600; font-size: 20px; color: var(--val);
+    font-variant-numeric: tabular-nums; }
+  /* DS2 — denser steel grid, thin solid rules. */
+  .t-ds2 .arow { padding: 7px 2px; border-bottom: 1px solid var(--rule-soft); }
+  /* DS3 — airy, no leaders, wide-tracked small-caps names. */
+  .t-ds3 .attrs { gap: 0 52px; }
+  .t-ds3 .arow { border-bottom: 0; padding: 11px 2px; }
+  .t-ds3 .arow .an { text-transform: uppercase; letter-spacing: .14em; font-size: 13px; color: var(--ink-dim); }
+  .t-ds3 .arow .av { font-size: 21px; }
+  /* ER — engraved gold rows with a faint gilt underline. */
+  .t-er .arow { border-bottom: 1px solid var(--rule-soft); }
+  .t-er .arow .av { color: var(--accent); }
 
-  .scaling { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 12px; margin: 4px 0 6px; }
-  .scale-card { position: relative; overflow: hidden; padding: 13px 15px 14px; border-radius: var(--radius);
-    background: linear-gradient(180deg, var(--bg2), var(--bg));
-    border: 1px solid var(--border); border-left: 2px solid var(--accent2);
-    transition: border-color .16s, box-shadow .16s, transform .16s; }
-  .scale-card::after { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px;
-    background: linear-gradient(90deg, var(--accent2), transparent 70%); opacity: .5; }
-  .scale-card:hover { border-color: var(--border2); border-left-color: var(--accent);
-    box-shadow: var(--glow); transform: translateY(-1px); }
-  .scale-card .sc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
-  .scale-card .sc-name { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-  .scale-card .sc-nm { color: var(--accent); font-weight: 700; font-size: 13.5px; letter-spacing: .01em;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .scale-card .sc-abbr { flex: none; color: var(--muted); font-size: 9.5px; letter-spacing: .1em;
-    text-transform: uppercase; border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; }
-  .scale-card .sc-val { flex: none; font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1;
-    color: var(--text); font-variant-numeric: tabular-nums; text-shadow: 0 0 14px rgba(186,201,100,.18); }
-  .scale-card .sc-gov { margin: 0; color: var(--text); font-size: 12.5px; line-height: 1.5; }
-  .scale-card .sc-cap { display: flex; gap: 8px; align-items: flex-start; margin: 9px 0 0; padding-top: 9px;
-    border-top: 1px dotted var(--border); color: var(--muted); font-size: 11px; line-height: 1.5; }
-  .scale-card .sc-cap::before { content: "CAPS"; flex: none; margin-top: 1px; color: var(--accent2);
-    font-size: 8.5px; letter-spacing: .1em; border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; }
+  /* Counters (souls/runes, memory, time, deaths) — the status-screen tallies. */
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 4px 40px;
+    margin: 20px 0 4px; padding-top: 14px; border-top: 1px solid var(--rule); }
+  .mrow { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding: 5px 2px; }
+  .mrow .ml { color: var(--ink-dim); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+  .mrow .mv { font-weight: 600; font-size: 17px; color: var(--val); font-variant-numeric: tabular-nums; }
+  .mrow.accent .mv { color: var(--accent); }
 
-  .sub { margin: 20px 0 8px; color: var(--accent2); font-size: 10.5px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .14em; }
-  .sub::before { content: "// "; opacity: .6; }
-  .derived { display: grid; grid-template-columns: repeat(auto-fill, minmax(126px, 1fr)); gap: 10px; margin: 4px 0 6px; }
-  .dstat { position: relative; overflow: hidden; padding: 11px 13px 10px; border-radius: var(--radius);
-    background: linear-gradient(180deg, var(--bg2), var(--bg));
-    border: 1px solid var(--border); border-left: 2px solid var(--accent2);
-    transition: border-color .16s, box-shadow .16s, transform .16s; }
-  .dstat:hover { border-color: var(--border2); border-left-color: var(--accent);
-    box-shadow: var(--glow); transform: translateY(-1px); }
-  .dstat .dv { font-family: var(--display); font-weight: 800; font-size: 21px; line-height: 1;
-    color: var(--text); font-variant-numeric: tabular-nums; text-shadow: 0 0 14px rgba(186,201,100,.18); }
-  .dstat .dl { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .07em; margin-top: 5px; }
-  .dstat.def { padding-left: 15px; }
-  .dstat.def::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
-  .dstat.def.mag::before { background: #7aa2ff; }
-  .dstat.def.fire::before { background: #ff8a5c; }
-  .dstat.def.lit::before { background: #f2d65c; }
-  .dstat.def.dark::before { background: #b07adf; }
-
-  .attr-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: center; }
-  @media (max-width: 680px) { .attr-grid { grid-template-columns: 1fr; } }
-  .bars { display: flex; flex-direction: column; gap: 7px; }
-  .bar-row { display: grid; grid-template-columns: 34px 1fr 34px; align-items: center; gap: 10px; }
-  .bar-label { color: var(--muted); font-size: 11px; letter-spacing: .06em; }
-  .bar-track { height: 9px; background: var(--bg3); border-radius: 5px; overflow: hidden; }
-  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent));
-    border-radius: 0 4px 4px 0; box-shadow: 0 0 8px rgba(186,201,100,.35); }
-  .bar-val { font-size: 12.5px; font-weight: 700; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
-
-  .radar-wrap { display: flex; justify-content: center; }
-  .radar { width: 100%; max-width: 360px; height: auto; overflow: visible; }
-  .radar-grid { fill: none; stroke: rgba(186,201,100,.2); stroke-width: 1; }
-  .radar-shape { fill: rgba(186,201,100,.25); stroke: var(--accent); stroke-width: 2;
-    filter: drop-shadow(0 0 5px rgba(186,201,100,.55)); }
-  .radar-dot { fill: var(--accent); }
-  .radar-axis { fill: var(--muted); font-family: var(--mono); font-size: 10px; }
+  /* ── Sub-sections (souls held, bonfires, bosses, inventory). ── */
+  .sec { margin: 26px 0 4px; }
+  .sec h4 { margin: 0 0 12px; font-size: 15px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent); border-bottom: 1px solid var(--rule); padding-bottom: 8px; font-weight: 600; }
+  .hint { margin: -6px 0 12px; color: var(--ink-dim); font-size: 14px; font-style: italic; }
 
   ul.items { list-style: none; margin: 0; padding: 0; }
-  ul.items li { padding: 3px 0 3px 16px; position: relative; font-size: 13.5px; }
-  ul.items li::before { content: ""; position: absolute; left: 2px; top: 0.72em; width: 4px; height: 4px; background: var(--accent2); }
+  ul.items li { padding: 4px 0 4px 18px; position: relative; font-size: 16px; color: var(--ink); }
+  ul.items li::before { content: "◆"; position: absolute; left: 0; top: 0; color: var(--accent-2); font-size: 9px; line-height: 2.1; }
   ul.items.cols { columns: 2; } @media (max-width: 560px) { ul.items.cols { columns: 1; } }
-  .tag { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
-    padding: 1px 7px; border-radius: 10px; margin-left: 5px; vertical-align: middle; }
+  .tag { font-family: var(--font-title); font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em;
+    padding: 2px 8px; border-radius: 2px; margin-left: 6px; vertical-align: middle; }
   .tag.flag { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); }
   .tag.soul { background: color-mix(in srgb, var(--soul) 20%, transparent); color: var(--soul); }
   .tag.gate { background: color-mix(in srgb, var(--gate) 22%, transparent); color: var(--gate); }
 
-  .inv h5 { margin: 14px 0 4px; font-size: 13px; letter-spacing: .04em; color: var(--text); }
+  .inv h5 { font-family: var(--font-title); margin: 18px 0 6px; font-size: 12px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink); font-weight: 500; }
   .inv h5:first-child { margin-top: 0; }
-  .note { color: var(--muted); font-size: 12px; font-style: italic; background: var(--bg2);
-    border-left: 2px solid var(--border2); padding: 9px 12px; border-radius: var(--radius); margin: 12px 0; }
-  .foot { color: var(--muted); font-size: 11.5px; text-align: center; margin: 34px 0 0; }
-  footer { text-align: center; color: var(--muted); font-size: 11.5px; padding: 0 20px 46px; letter-spacing: .03em; }
+  .note { color: var(--ink-dim); font-size: 14px; font-style: italic; background: color-mix(in srgb, var(--accent) 4%, var(--panel));
+    border-left: 2px solid var(--rule); padding: 10px 14px; border-radius: var(--radius); margin: 14px 0; }
+  .foot { color: var(--ink-dim); font-size: 13px; font-style: italic; text-align: center; margin: 40px 0 0; }
+  footer { text-align: center; color: var(--ink-dim); font-size: 13px; padding: 0 20px 52px;
+    letter-spacing: .02em; font-style: italic; max-width: 720px; margin: 0 auto; }
 
-  .how { margin: 6px 0 0; }
-  .how > summary { cursor: default; pointer-events: none; font-family: var(--display); text-transform: uppercase; letter-spacing: .14em;
-    font-size: 12px; color: var(--accent); padding: 11px 0; list-style: none; border-bottom: 1px solid var(--border); }
+  /* "How it works" panels, styled as menu scrolls. */
+  .how { margin: 18px 0 0; padding: 22px 26px; }
+  .how > summary { font-family: var(--font-title); text-transform: uppercase; letter-spacing: .18em;
+    font-size: 13px; color: var(--accent); list-style: none; cursor: default; pointer-events: none;
+    padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
   .how > summary::-webkit-details-marker { display: none; }
-  .how-body { padding: 14px 0 2px; color: var(--muted); font-size: 13px; line-height: 1.75; }
-  .how-body p { margin: 0 0 12px; } .how-body p:last-child { margin-bottom: 0; }
-  .how-body ul { margin: 0 0 12px; padding-left: 18px; list-style: none; }
-  .how-body li { margin: 6px 0; position: relative; }
-  .how-body li::before { content: ""; position: absolute; left: -14px; top: 0.7em; width: 4px; height: 4px; background: var(--accent2); }
-  .how-body b { color: var(--text); font-weight: 700; }
+  .how-body { padding: 16px 0 2px; color: var(--ink-dim); font-size: 15.5px; line-height: 1.7; }
+  .how-body p { margin: 0 0 13px; } .how-body p:last-child { margin-bottom: 0; }
+  .how-body ul { margin: 0 0 13px; padding-left: 20px; list-style: none; }
+  .how-body li { margin: 7px 0; position: relative; }
+  .how-body li::before { content: "◆"; position: absolute; left: -16px; top: 0; color: var(--accent-2); font-size: 8px; line-height: 2.4; }
+  .how-body b { color: var(--ink); font-weight: 600; }
 </style>
 </head>
 <body>
 <header>
-  <h1>SL2<span class="dot"> // </span>Analyzer</h1>
-  <p class="tag-line">Drop a FromSoftware <code>.sl2</code> save and read the whole playthrough: who the character is, their stats and souls, every item they carry, and the bosses and bonfires the save still proves they cleared. It reads the file. It does not guess.</p>
-  <span class="privacy">Nothing uploads. The save is read in your browser and never leaves this machine.</span>
+  <h1>SL2<span class="dot"> · </span>Analyzer</h1>
+  <p class="tag-line">Drop a FromSoftware <code>.sl2</code> save and read the whole playthrough as the game itself shows it: who the character is, their level and attributes, their souls, every item they carry, and the bosses and bonfires the save still proves they cleared. It reads the file. It does not guess.</p>
+  <span class="privacy">Nothing uploads · read in your browser · never leaves this machine</span>
 </header>
 <main>
-  <details class="how" open>
+  <details class="how frame" open>
     <summary>What it supports</summary>
     <div class="how-body">
-      <p>Drop a save from any of these. The game is detected from the file — no need to say which.</p>
+      <p>Drop a save from any of these. The game is detected from the file — no need to say which. Each renders in its own status screen.</p>
       <ul>
         <li><b>Dark Souls Remastered</b> — full: identity, class, all attributes, souls, humanity, inventory, held boss souls.</li>
         <li><b>Dark Souls: Prepare to Die</b> — full, same as Remastered.</li>
@@ -193,11 +224,11 @@
         <li><b>Dark Souls III</b> — full: attributes, souls, inventory, held boss souls, bosses defeated.</li>
         <li><b>Elden Ring</b> — identity, attributes and runes in full; owned weapons, armour and ashes named; held remembrances and the bosses they prove. The rest of the held inventory (talismans, spells, goods) is not read yet, so the item list is partial.</li>
       </ul>
-      <p>Every game also shows what each attribute governs, and degrades a slot to "inventory only" rather than print a stat it cannot verify.</p>
+      <p>Every game degrades a slot to "inventory only" rather than print a stat it cannot verify.</p>
       <p><b>Not supported:</b> vanilla Dark Souls II (pre-SOTFS) — its encryption key is not public.</p>
     </div>
   </details>
-  <details class="how" open>
+  <details class="how frame" open>
     <summary>How it works</summary>
     <div class="how-body">
       <p>A <code>.sl2</code> is a FromSoftware save: one packed archive of blocks, most of them encrypted, one per character plus a few for the world. This tool unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off known positions. No upload and no server. The file is parsed in your browser and forgotten the moment you close the tab.</p>
@@ -211,7 +242,7 @@
       <p>Two rules it never breaks. First, it never prints a number it cannot verify. If a stat block does not check out, the slot drops to "inventory only" and the attributes are simply gone. A missing field beats a wrong one. Second, the progress it shows is a floor, not a ceiling. It counts a boss dead only when the save still proves it: the soul in your pack, a defeat flag, or a point past it you could not have reached otherwise. A boss whose soul you already spent, with no flag and no gate, stays off the list. It under-claims on purpose.</p>
     </div>
   </details>
-  <div id="drop">
+  <div id="drop" class="frame">
     <div class="big">Drop a .sl2 save here, or click to choose</div>
     <div class="small">Read locally. Nothing is sent anywhere.</div>
     <input id="file" type="file" accept=".sl2" hidden>

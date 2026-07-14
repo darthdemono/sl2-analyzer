@@ -1,11 +1,11 @@
-// Render a parsed save into DOM cards. Website-only extras beyond the plain data:
-// KPI stat tiles, attribute magnitude bars, and an SVG build radar. Item/boss names
-// are set via textContent, never innerHTML.
+// Render a parsed save into DOM cards styled as that game's own status / level-up
+// screen. The whole result wraps in a per-game theme class (t-ds1/ds2/ds3/er) that
+// re-skins colour, type and ornament; each slot lays its attributes out in the game's
+// on-screen order. Item/boss names are set via textContent, never innerHTML. No charts,
+// no invented numbers — what the game shows, read from the file.
 
-import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, ds2DerivedStats, fmt, fmtPlaytime } from "./tables.js";
+import { statGovernsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, fmt, fmtPlaytime } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
-
-const SVGNS = "http://www.w3.org/2000/svg";
 
 function el(tag, props, ...kids) {
   const n = document.createElement(tag);
@@ -17,150 +17,75 @@ function el(tag, props, ...kids) {
   for (const c of kids.flat()) if (c != null) n.append(c.nodeType ? c : document.createTextNode(String(c)));
   return n;
 }
-function svg(tag, props, ...kids) {
-  const n = document.createElementNS(SVGNS, tag);
-  if (props) for (const k in props) n.setAttribute(k, props[k]);
-  for (const c of kids.flat()) if (c != null) n.append(c.nodeType ? c : document.createTextNode(String(c)));
-  return n;
-}
 
 const section = (title, kids) => el("section", { class: "sec" }, el("h4", { text: title }), ...kids);
 const itemList = (items) => el("ul", { class: "items" },
   ...items.map(([n, q]) => el("li", null, n + (q && q > 1 ? ` ×${q}` : ""))));
 
-// ── KPI tiles: the headline numbers as hero stats (no plot). ─────────────────
-function kpiRow(ch) {
-  const tiles = [];
-  const tile = (label, val, accent) => tiles.push(el("div", { class: "kpi" + (accent ? " accent" : "") },
-    el("div", { class: "kv", text: fmt(val) }), el("div", { class: "kl", text: label })));
-  if (ch.soul_memory != null) tile("Soul Memory", ch.soul_memory, true);
-  if (ch.souls != null) tile(ch.game === "er" ? "Runes Held" : "Souls Held", ch.souls);
-  if (ch.hp != null) tile("Max HP", ch.hp);
-  if (ch.stamina != null) tile("Stamina", ch.stamina);
-  if (ch.bosses) tile("Bosses Defeated", Object.keys(ch.bosses).length, true);
-  if (ch.bonfires) tile("Bonfires", ch.bonfires.length);
-  if (ch.deaths != null) tile("Deaths", ch.deaths);
-  return tiles.length ? el("div", { class: "kpis" }, ...tiles) : null;
+// ── Attributes, in the game's own level-up order. What each stat scales rides on
+//    the row's hover title (the in-game panel shows it inline; we keep it quiet). ──
+function orderedAttrKeys(game, stats) {
+  const order = attrOrderFor(game);
+  if (!order.length) return Object.keys(stats);
+  const inOrder = order.filter((k) => k in stats);
+  const rest = Object.keys(stats).filter((k) => !inOrder.includes(k));
+  return [...inOrder, ...rest];
 }
 
-// ── Attribute magnitude bars (single hue, value labels, baseline-anchored). ──
-function statBars(stats) {
-  const keys = Object.keys(stats);
-  const MAX = 99;
-  const rows = keys.map((k) => {
-    const v = stats[k] || 0;
-    const pct = Math.max(2, Math.min(100, (v / MAX) * 100));
-    return el("div", { class: "bar-row" },
-      el("span", { class: "bar-label", title: k, text: STAT_ABBR[k] || k.slice(0, 3).toUpperCase() }),
-      el("div", { class: "bar-track" }, el("div", { class: "bar-fill", style: `width:${pct}%` })),
-      el("span", { class: "bar-val", text: fmt(v) }));
+function attrPanel(ch) {
+  const gov = statGovernsFor(ch.game);
+  const rows = orderedAttrKeys(ch.game, ch.stats).map((k) => {
+    const row = el("div", { class: "arow" },
+      el("span", { class: "an", text: k }),
+      el("span", { class: "av", text: fmt(ch.stats[k]) }));
+    if (gov.has(k)) row.setAttribute("title", `${k} — ${gov.get(k)}`);
+    return row;
   });
-  return el("div", { class: "bars" }, ...rows);
+  return el("div", { class: "attrs" }, ...rows);
 }
 
-// ── Build radar: single-series polygon over the attributes (full tier only). The
-//    radius scales to the character's OWN peak stat, so the shape fills the wheel
-//    instead of hugging the centre (the bars carry the absolute 0–99 reading). ────
-function statRadar(stats) {
-  const keys = Object.keys(stats);
-  const n = keys.length;
-  if (n < 3) return null;
-  const SIZE = 260, C = SIZE / 2, R = C - 40;
-  const vals = keys.map((k) => stats[k] || 0);
-  const MAX = Math.max(...vals, 1);
-  const ang = (i) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
-  const at = (i, r) => [C + Math.cos(ang(i)) * r, C + Math.sin(ang(i)) * r];
-  const poly = (r) => keys.map((_, i) => at(i, r).map((x) => x.toFixed(1)).join(",")).join(" ");
-  const kids = [];
-  // four concentric rings + spokes
-  for (const f of [0.25, 0.5, 0.75, 1]) kids.push(svg("polygon", { points: poly(R * f), class: "radar-grid" }));
-  keys.forEach((k, i) => {
-    const [x, y] = at(i, R);
-    kids.push(svg("line", { x1: C, y1: C, x2: x.toFixed(1), y2: y.toFixed(1), class: "radar-grid" }));
-    const [lx, ly] = at(i, R + 16);
-    kids.push(svg("text", { x: lx.toFixed(1), y: ly.toFixed(1), class: "radar-axis",
-      "text-anchor": Math.abs(lx - C) < 6 ? "middle" : lx > C ? "start" : "end", "dominant-baseline": "middle" },
-      STAT_ABBR[k] || k.slice(0, 3).toUpperCase()));
-  });
-  // the character's shape, plus a dot at each vertex
-  kids.push(svg("polygon", { points: keys.map((k, i) => at(i, R * ((stats[k] || 0) / MAX)).map((x) => x.toFixed(1)).join(",")).join(" "), class: "radar-shape" }));
-  keys.forEach((k, i) => {
-    const [x, y] = at(i, R * ((stats[k] || 0) / MAX));
-    kids.push(svg("circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: 3, class: "radar-dot" }));
-  });
-  return el("div", { class: "radar-wrap" }, svg("svg", { viewBox: `0 0 ${SIZE} ${SIZE}`, class: "radar", role: "img", "aria-label": "attribute shape (scaled to the character's highest stat)" }, ...kids));
+// ── The numeric HUD line under the attributes: souls/runes, memory, time, deaths —
+//    the counters the game keeps on its status screen, each shown only when read. ──
+function metaBlock(ch) {
+  const out = [];
+  const stat = (label, val, accent) => out.push(el("div", { class: "mrow" + (accent ? " accent" : "") },
+    el("span", { class: "ml", text: label }), el("span", { class: "mv", text: fmt(val) })));
+  if (ch.souls != null) stat(ch.game === "er" ? "Runes Held" : "Souls Held", ch.souls, true);
+  if (ch.soul_memory != null) stat("Soul Memory", ch.soul_memory, true);
+  if (ch.humanity != null) stat("Humanity", ch.humanity);
+  if (ch.play_time) stat("Play Time", fmtPlaytime(ch.play_time));
+  if (ch.deaths != null) stat("Deaths", ch.deaths);
+  if (ch.hollow_lvl) stat("Hollowing", ch.hollow_lvl);
+  return out.length ? el("div", { class: "meta" }, ...out) : null;
 }
 
-function facts(ch) {
-  const rows = [];
-  const add = (label, val, wide) => rows.push(el("div", { class: "fact" + (wide ? " wide" : "") }, el("span", { class: "fk", text: label }), el("span", { class: "fv", text: val })));
-  if (ch.level != null) add(ch.game === "er" ? "Level" : "Soul Level", fmt(ch.level));
-  if (ch.klass) add("Class", ch.klass);
-  if (ch.covenant) add("Covenant", ch.covenant);
-  if (ch.gender) add("Gender", ch.gender);
-  if (ch.ng_plus != null) add("Playthrough", ch.ng_plus === 0 ? "New Game" : `New Game +${ch.ng_plus}`);
-  if (ch.play_time) add("Play Time", fmtPlaytime(ch.play_time));
-  if (ch.humanity != null) add("Humanity", fmt(ch.humanity));
-  if (ch.hollow_lvl) add("Hollowing", fmt(ch.hollow_lvl));
-  const build = guessBuild(ch.stats);
-  if (build) add("Build", build, true);
-  return rows.length ? el("div", { class: "facts" }, ...rows) : null;
+function statusTop(slot, ch) {
+  const sub = [ch.klass, ch.covenant, ch.gender,
+    ch.ng_plus != null ? (ch.ng_plus === 0 ? "New Game" : `New Game +${ch.ng_plus}`) : null]
+    .filter(Boolean).join("  ·  ");
+  const titleblock = el("div", { class: "titleblock" },
+    el("div", { class: "eyebrow", text: `Slot ${slot}` }),
+    el("h3", { class: "cname", text: ch.name }));
+  if (sub) titleblock.append(el("div", { class: "subid", text: sub }));
+  const kids = [titleblock];
+  if (ch.level != null) {
+    kids.push(el("div", { class: "levelbadge" + (ch.tier === "full" ? "" : " dim") },
+      el("div", { class: "lv", text: fmt(ch.level) }),
+      el("div", { class: "lvl", text: ch.game === "er" ? "Level" : "Soul Level" })));
+  }
+  return el("div", { class: "status-top" }, ...kids);
 }
 
 function characterCard(slot, ch) {
-  const card = el("article", { class: "char" });
-  card.append(el("div", { class: "char-head" },
-    el("h3", null, el("span", { class: "slot", text: `Slot ${slot}: ` }), el("span", { class: "cname", text: ch.name })),
-    el("span", { class: `badge ${ch.tier}`, text: ch.tier === "full" ? "full data" : "inventory only" })));
+  const card = el("article", { class: "status" });
+  card.append(statusTop(slot, ch));
+  card.append(el("span", { class: `badge ${ch.tier}`, text: ch.tier === "full" ? "full data" : "inventory only" }));
 
-  const kpis = kpiRow(ch);
-  if (kpis) card.append(kpis);
-  const f = facts(ch);
-  if (f) card.append(f);
+  if (Object.keys(ch.stats).length) card.append(attrPanel(ch));
+  else if (ch.tier === "inventory") card.append(el("p", { class: "note", text: "No attributes for this slot. Its stat block did not check out — an unrecognised patch, or an edited save — and a wrong number is worse than none. Everything below is still read straight from the file." }));
 
-  if (Object.keys(ch.stats).length) {
-    card.append(section("Attributes", [el("div", { class: "attr-grid" }, statBars(ch.stats), statRadar(ch.stats))]));
-    const gov = statGovernsFor(ch.game), cap = statCapsFor(ch.game);
-    const rows = Object.keys(ch.stats).filter((k) => gov.has(k));
-    const kids = [];
-    if (rows.length) {
-      kids.push(
-        el("p", { class: "hint", text: "What each stat scales, its soft caps, and your current value — game-mechanics reference, not a value read from this save." }),
-        el("div", { class: "scaling" },
-          ...rows.map((k) => el("div", { class: "scale-card" },
-            el("div", { class: "sc-head" },
-              el("span", { class: "sc-name" },
-                el("span", { class: "sc-nm", text: k }),
-                el("span", { class: "sc-abbr", text: STAT_ABBR[k] || k.slice(0, 3).toUpperCase() })),
-              el("span", { class: "sc-val", text: String(ch.stats[k]) })),
-            el("p", { class: "sc-gov", text: gov.get(k) }),
-            ...(cap.has(k) ? [el("p", { class: "sc-cap", text: capFirst(cap.get(k)) })] : [])))));
-    }
-    if (ch.game === "ds2sotfs") {
-      const d = ds2DerivedStats(ch.stats);
-      // Beautified derived-stat tiles, grouped so the elemental defences read as one row.
-      const tile = (label, val, cls) => el("div", { class: "dstat" + (cls ? " " + cls : "") },
-        el("div", { class: "dv", text: val }), el("div", { class: "dl", text: label }));
-      kids.push(
-        el("p", { class: "sub", text: "Derived Stats" }),
-        el("p", { class: "hint", text: "Computed from attributes — base values before rings & equipment. The in-game screen adds ring/gear bonuses on top." }),
-        el("div", { class: "derived" },
-          tile("Stamina", String(d.stamina)),
-          tile("Equip Load", d.equip_load.toFixed(1)),
-          tile("Attunement Slots", String(d.slots)),
-          tile(d.iframes ? `Agility · ${d.iframes} i-frames` : "Agility", String(d.agility)),
-          tile("Poise (base)", d.poise.toFixed(1)),
-          tile("ATK: Str", String(d.atk_str)),
-          tile("ATK: Dex", String(d.atk_dex)),
-          tile("Magic DEF", String(d.magic_def), "def mag"),
-          tile("Fire DEF", String(d.fire_def), "def fire"),
-          tile("Lightning DEF", String(d.lightning_def), "def lit"),
-          tile("Dark DEF", String(d.dark_def), "def dark")));
-    }
-    if (kids.length) card.append(section(ch.game === "ds2sotfs" ? "Attribute Scaling & Derived Stats" : "Attribute Scaling", kids));
-  } else if (ch.tier === "inventory") {
-    card.append(el("p", { class: "note", text: "No attributes for this slot. Its stat block did not check out — an unrecognised patch, or an edited save — and a wrong number is worse than none. Everything below is still read straight from the file." }));
-  }
+  const meta = metaBlock(ch);
+  if (meta) card.append(meta);
 
   if (ch.boss_souls && ch.boss_souls.length) {
     card.append(section(ch.game === "er" ? "Remembrances Held" : "Boss Souls Held", [
@@ -211,17 +136,21 @@ function copyButton(result, filename) {
       try { document.execCommand("copy"); } catch { ok = false; }
       ta.remove();
     }
-    btn.textContent = ok ? "Copied" : "Copy failed";
+    btn.textContent = ok ? "Copied" : "Copy Markdown";
     setTimeout(() => { btn.textContent = "Copy Markdown"; }, 1600);
   });
   return btn;
 }
 
-/** Build the DOM for a parsed save result. */
+/** Build the DOM for a parsed save result, themed to the detected game. */
 export function renderSave(result, filename) {
-  const root = el("div", { class: "result" });
+  const theme = GAME_THEME[result.game] || "ds1";
+  const root = el("div", { class: `result t-${theme}` });
   root.append(el("div", { class: "gamebar" },
-    el("div", { class: "gb-left" }, el("h2", { text: result.title }), el("p", { class: "src", text: filename || "" })),
+    el("div", { class: "gb-left" },
+      el("div", { class: "gb-eyebrow", text: "Status" }),
+      el("h2", { text: result.title }),
+      el("p", { class: "src", text: filename || "" })),
     el("div", { class: "gb-right" },
       el("span", { class: "count", text: `${result.characters.length} character${result.characters.length === 1 ? "" : "s"}` }),
       copyButton(result, filename))));

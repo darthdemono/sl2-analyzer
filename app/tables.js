@@ -59,6 +59,19 @@ export function statGovernsFor(game) {
   return new Map(m);
 }
 
+/**
+ * Attribute display order for a game's own level-up screen. STAT_GOVERNS already
+ * lists each family in that exact on-screen order, so reuse it — the renderer walks
+ * this to lay a slot's attributes out the way the game itself does.
+ */
+export function attrOrderFor(game) {
+  const fam = game === "dsr" || game === "ptde" ? "ds1" : game;
+  return (STAT_GOVERNS[fam] || []).map(([n]) => n);
+}
+
+/** Detected per-slot game id → visual theme family (dsr/ptde collapse to ds1). */
+export const GAME_THEME = { dsr: "ds1", ptde: "ds1", ds2sotfs: "ds2", ds3: "ds3", er: "er" };
+
 // Soft-cap / per-level breakpoint reference per attribute, per game. Documented
 // scaling RATES and soft-cap levels — a game-mechanics fact, NOT a per-character
 // computed value (computing the absolute would be wrong: DS2 Vigor 36 reads HP 1351
