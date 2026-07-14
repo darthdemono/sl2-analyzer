@@ -131,15 +131,28 @@ const BOSS_PREREQ = {
   },
 };
 
+// Bosses that can't be skipped to finish the game, so reaching NG+ proves them dead
+// (tag `clear`). Mirrors Python MANDATORY_BOSSES — endgame-safe; DS2 seeds its own
+// Nashandra in ds2InferBosses because its mid-game is skippable.
+const MANDATORY_BOSSES = {
+  dsr: ["Bell Gargoyles", "Chaos Witch Quelaag", "Iron Golem",
+    "Dragon Slayer Ornstein", "Executioner Smough", "Great Grey Wolf Sif",
+    "The Four Kings", "Seath the Scaleless", "Gravelord Nito", "Bed of Chaos",
+    "Gwyn, Lord of Cinder"],
+};
+MANDATORY_BOSSES.ptde = MANDATORY_BOSSES.dsr;
+
 function attachDefeatedBosses(ch, dbs) {
   const family = BOSS_SOUL_DB_DIR[ch.game];
   if (!family || ch.bosses) return;
   const soulDb = dbs[family].bossSouls || {};
   const bosses = new Map();
+  const add = (b, e) => (bosses.get(b) || bosses.set(b, new Set()).get(b)).add(e);
   for (const [name] of ch.boss_souls || []) {
     const boss = soulDb[name];
-    if (boss) (bosses.get(boss) || bosses.set(boss, new Set()).get(boss)).add("soul");
+    if (boss) add(boss, "soul");
   }
+  if ((ch.ng_plus || 0) > 0) for (const boss of MANDATORY_BOSSES[ch.game] || []) add(boss, "clear");
   const prereq = BOSS_PREREQ[ch.game] || {};
   for (const boss of [...bosses.keys()]) {
     for (const pre of prereq[boss] || []) {
@@ -258,6 +271,7 @@ function ds2InferBosses(world, ch, dbs) {
   for (const c in ch.inv) for (const [n] of ch.inv[c]) held.add(n);
   for (const [n] of ch.key_items || []) held.add(n);
   for (const item in DS2_ITEM_GATE) if (held.has(item)) for (const boss of DS2_ITEM_GATE[item]) add(boss, "gate");
+  if ((ch.ng_plus || 0) > 0) add("Nashandra", "clear"); // NG+ ⇒ final boss dead; closure fills the endgame chain
   for (const boss of [...out.keys()]) for (const pre of DS2_BOSS_PREREQ[boss] || []) add(pre, "gate");
   if (out.size === 0) return null;
   return mapToSortedEvidence(out, true);
@@ -645,7 +659,9 @@ export function parseSave(data, dbs) {
       }
     }
   }
-  return { game, title: meta.title, characters };
+  // DS2 carries a name→image-filename map (fextralife thumbnails) for the renderer.
+  const images = game === "ds2sotfs" ? dbs.ds2.images : null;
+  return { game, title: meta.title, characters, images };
 }
 
 export { ParseError };

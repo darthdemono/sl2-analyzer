@@ -76,7 +76,8 @@ export async function loadAllDbs(getJSON) {
 
   return {
     ds2: { items: ds2Items, bonfires: ds2Bonfires, bossFlags: ds2BossFlags,
-           bossSouls: (await jget(getJSON, "db_ds2/boss_souls.json")) || {} },
+           bossSouls: (await jget(getJSON, "db_ds2/boss_souls.json")) || {},
+           images: (await jget(getJSON, "db_ds2/images.json")) || {} },
     ds1: { items: ds1Items, bossSouls: (await jget(getJSON, "db_ds1/boss_souls.json")) || {} },
     ds3: { items: ds3Items, bossSouls: (await jget(getJSON, "db_ds3/boss_souls.json")) || {} },
     er: { items: erItems, bossSouls: (await jget(getJSON, "db_er/boss_souls.json")) || {} },

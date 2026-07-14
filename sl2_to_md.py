@@ -464,13 +464,31 @@ BOSS_PREREQ = {
     },
 }
 
+## @brief Bosses that CANNOT be skipped to finish the game, so **reaching NG+ proves
+#  every one of them dead at least once** (tag `clear`). DS1 (dsr/ptde) is linear from
+#  Anor Londo on: both bells (Gargoyles, Quelaag), Sen's/Anor Londo (Iron Golem, O&S),
+#  the four Lord Souls (Nito, Bed of Chaos, Four Kings — needs Sif's ring — and Seath)
+#  and Gwyn are all mandatory. Deliberately endgame-safe, the same core-rule caution as
+#  the gate maps — no mid-game boss whose route can be skipped is listed. (DS2 handles
+#  this itself in ds2_infer_bosses, seeding only its final boss Nashandra, because DS2's
+#  mid-game is skippable — Shrine of Winter opens on Soul Memory alone.)
+MANDATORY_BOSSES = {
+    "dsr": ["Bell Gargoyles", "Chaos Witch Quelaag", "Iron Golem",
+            "Dragon Slayer Ornstein", "Executioner Smough", "Great Grey Wolf Sif",
+            "The Four Kings", "Seath the Scaleless", "Gravelord Nito", "Bed of Chaos",
+            "Gwyn, Lord of Cinder"],
+}
+MANDATORY_BOSSES["ptde"] = MANDATORY_BOSSES["dsr"]
+
+
 ## @brief Attach a `bosses` defeat floor to a non-DS2 character from the boss souls
 #  / remembrances it still holds, plus endgame progression. A held boss soul is a
 #  boss killed — you cannot own the soul otherwise — so each maps to its boss with
 #  `soul` evidence, and its mandatory endgame predecessors get `gate` (see
-#  BOSS_PREREQ), the same certain-when-true signals DS2 uses. A boss whose soul was
-#  already consumed and isn't gated is invisible here (the render note says so). DS2
-#  sets its own richer `bosses` via augment and is not in BOSS_SOUL_DB_DIR, skipped.
+#  BOSS_PREREQ), the same certain-when-true signals DS2 uses. If the character is in
+#  NG+ (ng_plus > 0) every MANDATORY_BOSSES entry is proven dead too (`clear`). A boss
+#  whose soul was consumed, not gated and not mandatory, is invisible here (the render
+#  note says so). DS2 sets its own richer `bosses` via augment and is skipped.
 def attach_defeated_bosses(ch, base_dir):
     game = ch.get("game")
     subdir = BOSS_SOUL_DB_DIR.get(game)
@@ -482,6 +500,9 @@ def attach_defeated_bosses(ch, base_dir):
         boss = soul_db.get(name)
         if boss:
             bosses.setdefault(boss, set()).add("soul")
+    if (ch.get("ng_plus") or 0) > 0:
+        for boss in MANDATORY_BOSSES.get(game, ()):
+            bosses.setdefault(boss, set()).add("clear")
     prereq = BOSS_PREREQ.get(game, {})
     for boss in list(bosses):
         for pre in prereq.get(boss, ()):
@@ -861,6 +882,10 @@ def ds2_infer_bosses(world, ch, base_dir):
         if item in held:
             for boss in bosses:
                 out[boss].add("gate")
+    # NG+ proves the game was finished, so its final boss (and, via the closure below,
+    # the whole forced endgame chain) is dead — even if the soul was long since spent.
+    if (ch.get("ng_plus") or 0) > 0:
+        out["Nashandra"].add("clear")
     # Close over mandatory predecessors: any boss reached above implies the bosses
     # the game forces you through before it. One pass suffices (lists are transitive).
     for boss in list(out):
@@ -1770,10 +1795,10 @@ def md_for_character(ch, slot_no):
               "floor on progress)_", ""]
         L += [f"- {b}" for b in ch["bonfires"]] + [""]
     if ch.get("bosses"):
-        SRC = {"flag": "confirmed", "soul": "soul held", "gate": "progression"}
+        SRC = {"flag": "confirmed", "soul": "soul held", "gate": "progression", "clear": "cleared (NG+)"}
         L += [f"### Bosses Defeated ({len(ch['bosses'])})  _(a floor — from defeat "
-              "flags, held boss souls, and progression; a boss whose soul was consumed "
-              "and isn't gated may still be missing)_", ""]
+              "flags, held boss souls, progression, and NG+ clears; a boss whose soul "
+              "was consumed and isn't gated may still be missing)_", ""]
         for boss, srcs in ch["bosses"].items():
             L.append(f"- {boss}  _({', '.join(SRC[s] for s in srcs)})_")
         L.append("")

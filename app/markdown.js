@@ -86,7 +86,7 @@ function mdCharacter(ch, slot) {
       ...ch.bonfires.map((b) => `- ${b}`), "");
   }
   if (ch.bosses && Object.keys(ch.bosses).length) {
-    L.push(`### Bosses Defeated (${Object.keys(ch.bosses).length})  _(a floor — from defeat flags, held boss souls, and progression; a boss whose soul was consumed and isn't gated may still be missing)_`, "");
+    L.push(`### Bosses Defeated (${Object.keys(ch.bosses).length})  _(a floor — from defeat flags, held boss souls, progression, and NG+ clears; a boss whose soul was consumed and isn't gated may still be missing)_`, "");
     for (const [boss, srcs] of Object.entries(ch.bosses)) L.push(`- ${boss}  _(${srcs.map((s) => SRC[s]).join(", ")})_`);
     L.push("");
   }

@@ -19,8 +19,35 @@ function el(tag, props, ...kids) {
 }
 
 const section = (title, kids) => el("section", { class: "sec" }, el("h4", { text: title }), ...kids);
-const itemList = (items) => el("ul", { class: "items" },
-  ...items.map(([n, q]) => el("li", null, n + (q && q > 1 ? ` ×${q}` : ""))));
+
+// ── Item thumbnails (DS2 only): fextralife images keyed by base item name. These
+//    are the one thing that leaves the browser — the privacy note says so. Names
+//    carry infusion prefixes / "+N" the image map doesn't, so normalise before lookup.
+const IMG_BASE = "https://darksouls2.wiki.fextralife.com/file/Dark-Souls-2/";
+const INFUSIONS = ["Fire ", "Magic ", "Lightning ", "Dark ", "Poison ", "Bleed ", "Raw ", "Enchanted ", "Mundane "];
+let imgResolve = () => null;
+function makeImgResolver(images) {
+  if (!images) return () => null;
+  return (name) => {
+    if (images[name]) return images[name];
+    const base = name.replace(/ \+\d+$/, "");
+    if (images[base]) return images[base];
+    for (const p of INFUSIONS) if (base.startsWith(p)) return images[base.slice(p.length)] || null;
+    return null;
+  };
+}
+function itemLi(name, qty) {
+  const li = el("li", null);
+  const fn = imgResolve(name);
+  if (fn) {
+    const img = el("img", { class: "item-img", src: IMG_BASE + encodeURIComponent(fn), alt: "", loading: "lazy" });
+    img.addEventListener("error", () => { img.remove(); li.classList.add("noimg"); });
+    li.append(img);
+  } else li.classList.add("noimg");
+  li.append(name + (qty && qty > 1 ? ` ×${qty}` : ""));
+  return li;
+}
+const itemList = (items) => el("ul", { class: "items" }, ...items.map(([n, q]) => itemLi(n, q)));
 
 // ── Level-Up screen building blocks ─────────────────────────────────────────
 
@@ -155,7 +182,7 @@ function characterCard(slot, ch) {
       list.append(el("li", null, boss, " ", ...srcs.map((s) => el("span", { class: `tag ${s}`, text: SRC[s] }))));
     }
     card.append(section(`Bosses Defeated (${Object.keys(ch.bosses).length})`, [
-      el("p", { class: "hint", text: "A floor. Read from held souls, defeat flags, and points you could not have passed otherwise. A soul you already spent, with no flag, can still be missing." }), list]));
+      el("p", { class: "hint", text: "A floor. Read from held souls, defeat flags, points you could not have passed otherwise, and NG+ clears (reaching NG+ proves every mandatory boss dead). A soul you already spent, with no flag, can still be missing." }), list]));
   }
 
   const invCard = el("div", { class: "inv" });
@@ -194,6 +221,7 @@ function copyButton(result, filename) {
 
 /** Build the DOM for a parsed save result, themed to the detected game. */
 export function renderSave(result, filename) {
+  imgResolve = makeImgResolver(result.images);
   const theme = GAME_THEME[result.game] || "ds1";
   const root = el("div", { class: `result t-${theme}` });
   root.append(el("div", { class: "gamebar" },

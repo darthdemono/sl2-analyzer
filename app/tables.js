@@ -141,7 +141,7 @@ export const CAT_ORDER = ["weapons", "armors", "rings", "talismans", "spells", "
 export const DS2_GREAT_SOULS = new Set(["Old Witch Soul", "Old Dead One Soul", "Old King Soul", "Old Paledrake Soul"]);
 
 // Boss-defeat evidence tag → printed label.
-export const SRC = { flag: "confirmed", soul: "soul held", gate: "progression" };
+export const SRC = { flag: "confirmed", soul: "soul held", gate: "progression", clear: "cleared (NG+)" };
 
 /** Rough build label from the attribute spread. Mirrors Python guess_build. */
 export function guessBuild(stats) {
