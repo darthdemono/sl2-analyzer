@@ -1724,9 +1724,9 @@ def ds3_event_flag_base(buf):
 # @brief Read DS3 bonfires + boss-defeat flags off the event-flag region and attach
 #        them to @p ch: @c bonfire_areas as [(area, count)], and merge @c flag boss
 #        evidence into @c ch["bosses"] (deduping with any soul/gate evidence already
-#        there). No-op if the region can't be located. @param buf Decrypted slot.
-def ds3_attach_flags(ch, buf):
-    base = ds3_event_flag_base(buf)
+#        there). No-op if @p base is None (region not located). @param base The
+#        event-flag base from @ref ds3_event_flag_base (computed once per slot).
+def ds3_attach_flags(ch, buf, base):
     if base is None:
         return
     areas = []
@@ -1752,8 +1752,7 @@ def ds3_attach_flags(ch, buf):
 #  read 0xFFFF here, so an out-of-range value is omitted rather than printed wrong.
 #  Verified: Joy = 0 (New Game), a real NG+1 char = 1. @return The cycle, or None.
 DS3_NG_MAX = 99
-def ds3_journey(buf):
-    base = ds3_event_flag_base(buf)
+def ds3_journey(buf, base):
     if base is None:
         return None
     ng = u16(buf, base + 0x12 - 0xBCC)
@@ -2204,9 +2203,10 @@ def convert(data, filename, base_dir):
             if ch is not None:
                 if menu is not None:
                     ch["play_time"] = ds3_playtime(menu, i)
-                ch["ng_plus"] = ds3_journey(slot)
+                flag_base = ds3_event_flag_base(slot)  # walk the block chain once
+                ch["ng_plus"] = ds3_journey(slot, flag_base)
                 attach_defeated_bosses(ch, base_dir)
-                ds3_attach_flags(ch, slot)
+                ds3_attach_flags(ch, slot, flag_base)
                 characters.append((i, ch))
         head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
         body = ["_No populated character slots found._"] if not characters else []

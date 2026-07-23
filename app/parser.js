@@ -573,8 +573,7 @@ function ds3EventFlagBase(buf) {
   return base >= 0 && base < buf.length ? base : null;
 }
 function popcount(x) { let c = 0; while (x) { c += x & 1; x >>>= 1; } return c; }
-function ds3AttachFlags(ch, buf) {
-  const base = ds3EventFlagBase(buf);
+function ds3AttachFlags(ch, buf, base) {
   if (base == null) return;
   const areas = [];
   for (const [name, dist, mask] of DS3_BONFIRE_AREAS) {
@@ -598,8 +597,7 @@ function ds3AttachFlags(ch, buf) {
 // DS3 NG+ cycle: uint16 just before the event-flag region; guarded to a sane range
 // (a cheated mule reads 0xFFFF). See sl2_to_md.py.
 const DS3_NG_MAX = 99;
-function ds3Journey(buf) {
-  const base = ds3EventFlagBase(buf);
+function ds3Journey(buf, base) {
   if (base == null) return null;
   const ng = u16(buf, base + 0x12 - 0xBCC);
   return ng != null && ng >= 0 && ng <= DS3_NG_MAX ? ng : null;
@@ -743,9 +741,10 @@ export function parseSave(data, dbs) {
       const ch = ds3Parse(slot, dbs.ds3.items, names.get(i));
       if (ch) {
         if (menu) ch.play_time = ds3Playtime(menu, i);
-        ch.ng_plus = ds3Journey(slot);
+        const flagBase = ds3EventFlagBase(slot); // walk the block chain once
+        ch.ng_plus = ds3Journey(slot, flagBase);
         attachDefeatedBosses(ch, dbs);
-        ds3AttachFlags(ch, slot);
+        ds3AttachFlags(ch, slot, flagBase);
         characters.push({ slot: label(i), ch });
       }
     }
