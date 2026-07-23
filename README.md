@@ -4,7 +4,7 @@ This reads a FromSoftware `.sl2` save and tells you what is in it. That is the w
 
 There are two ways to use it, and they run the exact same reading logic:
 
-- **A web page.** Drop a `.sl2` onto [the site](https://darthdemono.github.io/sl2-analyzer/) and it lays the playthrough out as cards, stat bars, a build radar, and progress lists. It parses the file in your browser. Nothing uploads, nothing hits a server, and the save never leaves your machine.
+- **A web page.** Drop a `.sl2` onto [the site](https://darthdemono.github.io/sl2-analyzer/) and it lays each character out as a replica of that game's own in-game **Level-Up screen** — a framed stat panel skinned to the game, with progress lists and (for DS2) item thumbnails below. It parses the file in your browser. Nothing uploads, nothing hits a server, and the save never leaves your machine.
 - **A Python CLI.** Point `sl2_to_md.py` at a save and it writes one Markdown file describing the run. That is the format an LLM can actually read. A `.sl2` is an encrypted binary blob; paste it into a chat and you get nothing. Paste the Markdown and the model knows where you are in the run instead of guessing at it.
 
 Both read the save and never write to it. Point either one at your live save if you like. The worst case is a bad output file, not a bricked character.
@@ -21,7 +21,7 @@ Not every Souls save is mapped to the same depth in public tooling, so each game
 | Dark Souls Remastered | `DRAKS0005.sl2` | Yes | **full** | identity, stats, souls, full inventory, progress |
 | Dark Souls II: SOTFS | `DS2SOFS0000.sl2` | Yes | **full** | identity, stats, souls, full inventory, deep progress |
 | Dark Souls II (vanilla) | `DARKSII0000.sl2` | No | — | unsupported: AES key not public (re-save in SOTFS) |
-| Dark Souls III | `DS30000.sl2` | Yes | **full** | identity, stats, souls, full inventory, progress |
+| Dark Souls III | `DS30000.sl2` | Yes | **full** | identity, stats, souls, full inventory, deep progress |
 | Elden Ring | `ER0000.sl2` | Yes | **full\*** | identity, attributes, runes, remembrances, owned items (\*item list partial) |
 
 Five of the six FromSoftware `.sl2` variants are fully supported. Only vanilla Dark Souls II is out, and you never tell the tool which game it is: it works that out from the bytes itself.
@@ -47,7 +47,7 @@ Past that envelope the games stop agreeing with each other, and that disagreemen
 
 - **DS2** keeps stats and inventory at fixed offsets. You read them straight off. Item counts hide in the low two bytes of a four-byte field, because special items like the Estus Flask pack their charge state into the high two. So counts are read as a `uint16`, and the Estus keeps its charges to itself.
 - **DSR and PtDE** move the character block around, so a fixed offset is useless. Stats are read relative to an anchor that always sits next to the block. DSR keys on a fixed "magic" byte pattern. PtDE has no such pattern, so it anchors on the character name instead. The two games share the identical stat layout, which is why the same distances work once you find the anchor. Inventory is found by a second, game-independent anchor.
-- **DS3** hides its stats behind offsets that shift between patches, so guessing an offset is a losing game. Instead the stat block is *found by content*: it is the only run of nine attributes whose sum minus 89 equals the stored soul level. That is DS3's own levelling formula, so a false match is not credible. Item ids are full 32-bit and sparse, so the inventory is found by scanning the slot for known ids. Names come from the load-screen roster.
+- **DS3** hides its stats behind offsets that shift between patches, so guessing an offset is a losing game. Instead the stat block is *found by content*: it is the only run of nine attributes whose sum minus 89 equals the stored soul level. That is DS3's own levelling formula, so a false match is not credible. One catch the formula can't catch: memory order is not screen order — Vitality is stored last, alone, after the other eight, so its label has to be pinned against a real lopsided build, not assumed. Max HP and FP each store a current-and-max pair; the tool reads the max. Item ids are full 32-bit and sparse, so the inventory is found by scanning the slot for known ids. Names come from the load-screen roster, and play time from that same roster record. Bonfires and boss defeats come from a large event-flag region inside the slot, reached by walking the variable-length blocks in front of it — see below.
 - **Elden Ring** locates its stat block by content too, but with a twist: the block's offset varies from one character to the next, because variable-length data sits in front of it. So the search keys on the eight attributes whose sum minus 79 equals the in-slot level, which is ER's rune-level formula (a Wretch is all-tens at level one). Owned items are walked from the GaItem array at the slot start. Name and level come from the header's profile table.
 
 Notice the pattern. Where an offset is stable, read it. Where it moves, find the block by a fact only the real block satisfies. The level formulas do that work: they are cheap to check and almost impossible to hit by accident.
@@ -66,9 +66,17 @@ Every game gets the baseline: **boss souls and remembrances still held.** You ca
 - **Bosses defeated, from three independent signals**, each certain when it fires, merged per boss so overlap reads as corroboration. A **flag** is a mapped defeat event in the world block. A **soul** is the boss soul still in your pack. A **gate** is progression: a bonfire or item you could not have reached without the kill, plus the mandatory predecessors that chain implies. The gate logic is deliberately endgame-only. DS2's mid-game is four parallel, largely skippable paths, so a mid-game gate would risk claiming a kill you never made, and a false kill breaks the whole rule.
 - **Class, covenant, and hollowing level**, read from the character block by offsets pinned with differential saves, not guessed. An unknown covenant id is dropped rather than shown wrong.
 
-**Dark Souls III, Elden Ring, and Dark Souls 1** get the soul floor plus the same endgame-gate idea. Hold Dark Souls III's Soul of Cinder and all four Lords of Cinder are proven dead, because Cinder sits behind every throne. Hold Elden Ring's Remembrance of Hoarah Loux and Maliketh, the Fire Giant, and Morgott fall with it, because that chain is forced. Only strictly-linear, cannot-skip endgame chains qualify, for the same reason DS2's gates are endgame-only.
+**Dark Souls III now goes as deep as DS2,** because its event flags turned out to be in the save after all:
 
-What it does **not** do is read boss-defeat event flags for DS3 and Elden Ring. Those games store flags in a runtime "virtual memory" structure that tools read out of the live game's process, not the save file, and nobody has published how that block is serialised into the `.sl2`. So a consumed soul with no gate stays off the list. Honest floor, not a guess.
+- **Bonfires discovered.** DS3 packs each area's bonfires into a bitfield inside the event-flag region — one bit per bonfire. The tool masks that byte to the bonfires it knows and counts the set bits, so it reports how many you have lit in each area you have reached. A count can only be a floor: an unmapped bit is missed, never invented. On a real early save this reads Cemetery of Ash (3) and High Wall of Lothric (2) — the exact five bonfires that character had lit.
+- **Bosses defeated, from a defeat flag.** Each boss has a byte in that region that reaches a known value once it is dead. The read demands an exact match on that complete value, so a partial or unrelated state falls short — it can miss a kill but will not invent one. This is what finally catches bosses that drop no soul, like Iudex Gundyr, which the soul floor could never see.
+- **Playthrough (NG+), play time, max FP**, read alongside. Reaching NG+ proves every unskippable boss on the road to Soul of Cinder dead, even ones whose souls were long since spent — the same NG+ clear floor DS1 and DS2 already get.
+
+The offsets come from the alfizari DS3 save editor and are verified against a real save: it reads the true events and nothing else, zero false positives across every boss and area, and a cheat-mule save with injected items and no real playthrough correctly reads no flags at all.
+
+**Elden Ring and Dark Souls 1** get the soul floor plus the same endgame-gate idea. Hold Dark Souls III's Soul of Cinder and all four Lords of Cinder are proven dead, because Cinder sits behind every throne. Hold Elden Ring's Remembrance of Hoarah Loux and Maliketh, the Fire Giant, and Morgott fall with it, because that chain is forced. Only strictly-linear, cannot-skip endgame chains qualify, for the same reason DS2's gates are endgame-only.
+
+What it still does **not** do is read boss-defeat event flags for **Elden Ring**. ER keeps its flags in a runtime "virtual memory" structure that tools read out of the live game's process, and no published editor maps how that block lands in the `.sl2` — the DS3 breakthrough was a save editor that did exactly that, and no equivalent for ER has surfaced. So on ER a consumed soul with no gate stays off the list. Honest floor, not a guess.
 
 ---
 
@@ -76,11 +84,11 @@ What it does **not** do is read boss-defeat event flags for DS3 and Elden Ring. 
 
 The page is one static bundle. There is no backend, no upload, no analytics call. You drop a file, JavaScript reads it in the tab, and that is the end of it. Host it on any static host — it is built to run straight off GitHub Pages — or open it from a local server.
 
-On top of the plain data it shows a few things Markdown cannot:
+Instead of generic charts, each character is drawn as a replica of that game's own **Level-Up screen** — the screen you already know from playing it:
 
-- **Stat tiles** for the headline numbers: soul memory, souls or runes held, max HP, bosses defeated, bonfires lit.
-- **Attribute bars**, each read on the real 0–99 scale, so the shape of the build is obvious at a glance.
-- **A build radar**, scaled to the character's own highest stat so the shape fills the wheel. A strength build spikes hard toward STR; a quality build sits even. The bars carry the absolute numbers; the radar carries the shape.
+- **A framed stat panel, skinned per game.** DS1 and Elden Ring get the gold menu; DS2 the cold steel-blue; DS3 the ashen grey. A metallic title bar carries the name, slot, and support tier; the left column lists level, souls or runes, max HP and FP, then the attributes in the game's own on-screen order.
+- **Derived stats for DS2**, in the right-hand panel the real screen shows — stamina, equip load, agility and its roll i-frames, poise, attack ratings, elemental defences — every one computed from attributes and verified byte-exact. Fields the screen shows but the save cannot prove (weapon AR, bonuses, resistances) are left off, not faked.
+- **Item thumbnails for DS2**, pulled from the wiki so the inventory reads like the in-game menu. This is the one thing that leaves your browser: the save is still never uploaded, but each thumbnail request tells the wiki's image host which item it was for. The privacy note on the page says so.
 - **Copy Markdown.** One button dumps the exact same Markdown the Python CLI writes, ready to paste into a model.
 
 That last point is not a coincidence. The web app is a faithful port of the Python reader, and both are held to it: the JavaScript parser is checked byte-for-byte against the Python tool's output for every test save, and the browser's Markdown is checked byte-for-byte against the CLI's Markdown. If they ever drift, the check fails. Two front ends, one source of truth.
@@ -187,7 +195,7 @@ The inventory mirrors the in-game item menu: one heading per category, boss soul
 Said out loud rather than papered over:
 
 - **Progress is a floor, not a ceiling.** Covered above. A spent soul with no flag and no gate is a kill the save can no longer prove, so it is not listed.
-- **Boss-defeat flags for DS3 and Elden Ring are not read.** They live in a runtime structure, not the save file, and the save serialisation is not public. DS2's flags are readable and are used.
+- **Boss-defeat flags for Elden Ring are not read.** ER keeps them in a runtime structure and no public editor maps them into the save. DS2's and DS3's flags *are* read — DS3's came from a save editor that finally mapped the event-flag region — so only ER falls back to the soul-and-gate floor for kills.
 - **Upgraded gear in DS1 and DS3 is not named.** Those games bake the reinforcement level into the item id, so a +5 weapon has a different id from its base and misses the name table. Such items are counted so you know they exist, not guessed at. DS2 does not have this problem: its tables are built from the full SOTFS id list, so reinforced and infused variants all resolve by name. Elden Ring is the reverse, where the reinforced-weapon ids are skipped rather than counted.
 - **Vanilla Dark Souls II is unsupported.** No public key.
 
@@ -205,7 +213,7 @@ app/
   parser.js       the reader ported to the browser, all five games
   db.js           loads the item / progress databases
   tables.js       shared lookup tables and formatters
-  render.js       the DOM cards, stat tiles, bars, and build radar
+  render.js       the per-game Level-Up screen replicas (framed panels, DS2 derived stats + thumbnails)
   markdown.js     the browser's Copy-Markdown output
   main.js         file-drop wiring
 db_ds1/*.json     Dark Souls 1 item tables (shared by DSR and PtDE)
@@ -236,9 +244,10 @@ I did not reverse-engineer these formats from scratch, and I am not going to pre
 
 - DS2 offsets and item tables: [alfizari/Dark-Souls-2-Save-Editor-PS4-PC](https://github.com/alfizari/Dark-Souls-2-Save-Editor-PS4-PC).
 - DSR, DS3, and ER keys, decryption, and header layout: [jtesta/souls_givifier](https://github.com/jtesta/souls_givifier).
+- DS3 stat offsets, play time, and the event-flag region (bonfires, boss-defeat flags, NG+): [alfizari/Dark-Souls-3-Save-Editor-PS4-PC](https://github.com/alfizari/Dark-Souls-3-Save-Editor-PS4-PC).
 - DSR and DS1 offsets and item tables: [alfizari/Dark-Souls-Remastered-Save-Editor](https://github.com/alfizari/Dark-Souls-Remastered-Save-Editor).
 - Elden Ring save structure (GaItem array, profile table): [ClayAmore/ER-Save-Editor](https://github.com/ClayAmore/ER-Save-Editor).
 - DS2 key: the DS2 profile in [mi5hmash/SL2Bonfire](https://github.com/mi5hmash/SL2Bonfire).
 - DS2 bonfire, class, covenant, and world-block offsets: the Jappi88 DS2 save editor and the SOTFS Cheat Engine tables.
 
-What is mine: the `.sl2`-to-Markdown idea, the browser front end and its charts, the game auto-detection, the tier system and the rule behind it, the content-scan stat finders and the level-formula checks that make them safe, the id-scan and GaItem-walk inventory readers, the DS2 bonfire and multi-source boss inference, the cross-game endgame gates, and the byte-for-byte parity between the two front ends.
+What is mine: the `.sl2`-to-Markdown idea, the browser front end and its per-game Level-Up screens, the game auto-detection, the tier system and the rule behind it, the content-scan stat finders and the level-formula checks that make them safe, the id-scan and GaItem-walk inventory readers, the DS2 and DS3 bonfire and multi-source boss inference (including porting the DS3 event-flag region into a save-only read), the cross-game endgame gates and NG+ clear floors, and the byte-for-byte parity between the two front ends.

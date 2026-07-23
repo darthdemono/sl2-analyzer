@@ -479,6 +479,15 @@ MANDATORY_BOSSES = {
             "Gwyn, Lord of Cinder"],
 }
 MANDATORY_BOSSES["ptde"] = MANDATORY_BOSSES["dsr"]
+## DS3's unskippable path to Soul of Cinder — the four Lords of Cinder plus the
+## bosses that gate them (Iudex/Vordt/Dancer/Pontiff/Dragonslayer Armour). Reaching
+## NG+ proves all of these dead even if their souls were spent. Optional bosses
+## (Greatwood, Crystal Sage, Wolnir, Nameless King…) are deliberately excluded.
+MANDATORY_BOSSES["ds3"] = [
+    "Iudex Gundyr", "Vordt of the Boreal Valley", "Dancer of the Boreal Valley",
+    "Abyss Watchers", "Pontiff Sulyvahn", "Aldrich, Devourer of Gods",
+    "Yhorm the Giant", "Dragonslayer Armour", "Lothric, Younger Prince",
+    "Soul of Cinder"]
 
 
 ## @brief Attach a `bosses` defeat floor to a non-DS2 character from the boss souls
@@ -837,7 +846,16 @@ DS2_BOSS_GATE = {
 }
 ## @brief Inventory item held ⇒ boss dead (item only obtainable past it). The King's
 #  Ring sits in the room behind Velstadt and cannot be had otherwise.
-DS2_ITEM_GATE = {"King's Ring": ("Velstadt, the Royal Aegis",)}
+## @brief Item ⇒ boss it sits behind. Each item has exactly one documented source, and
+#  that source is past the boss's fog gate, so holding it is a certain kill. The two DLC
+#  gank bosses drop no soul at all, which is why they need this route:
+#  Pharros Mask lies on a corpse past the (Blue) Smelter Demon's arena in Iron Passage,
+#  and the Flower Skirt is in the chest between Cave of the Dead's trio and the exit.
+DS2_ITEM_GATE = {
+    "King's Ring": ("Velstadt, the Royal Aegis",),
+    "Pharros Mask": ("Blue Smelter Demon",),
+    "Flower Skirt": ("Graverobber, Varg, and Cerah",),
+}
 ## @brief Boss defeated ⇒ its mandatory predecessors also defeated (each list is the
 #  full transitive set, so a single pass closes it). Endgame only, where the order is
 #  forced.
@@ -849,6 +867,16 @@ DS2_BOSS_PREREQ = {
     "Velstadt, the Royal Aegis": ("Demon of Song", "Looking Glass Knight"),
     "Demon of Song": ("Looking Glass Knight",),
 }
+
+
+##
+# @brief An inventory name with its " +N" reinforcement suffix removed.
+# @details Gate matching compares against the plain db name, and armour/weapons render
+# upgraded. Only strips a trailing " +digits", so a name that genuinely ends that way is
+# untouched (none does).
+def ds2_base_name(name):
+    head, sep, tail = name.rpartition(" +")
+    return head if sep and tail.isdigit() else name
 
 
 ##
@@ -876,7 +904,9 @@ def ds2_infer_bosses(world, ch, base_dir):
     for bonfire in (ch.get("bonfires") or []):
         for boss in DS2_BOSS_GATE.get(bonfire, ()):
             out[boss].add("gate")
-    held = {n for items in ch["inv"].values() for n, _ in items}
+    # Armour and weapons render with a " +N" reinforcement suffix, so strip it before
+    # matching — an upgraded Pharros Mask is still the same gate item.
+    held = {ds2_base_name(n) for items in ch["inv"].values() for n, _ in items}
     held.update(n for n, _ in ch.get("key_items", []))
     for item, bosses in DS2_ITEM_GATE.items():
         if item in held:
@@ -1175,15 +1205,21 @@ def ptde_parse(buf, item_db):
 DS3_RECORD, DS3_QTY_OFF = 16, 4
 
 ## @brief DS3 stat block as signed distances from the Vigor field (the anchor).
-#  Nine attributes — eight contiguous uint32, then Luck after a two-field gap —
-#  in the game's own storage order. Read against a real save (all offsets checked
-#  on both a maxed and a fresh character in the same file).
+#  Storage order is NOT the level-up display order: eight contiguous uint32
+#  (Vigor, Attunement, Endurance, Strength, Dexterity, Intelligence, Faith, Luck),
+#  then Vitality alone after a two-field gap. Listed here in display order pointing
+#  at the true distances. Calibrated against a real lopsided build (Joy, STR 18 /
+#  VIT 14 / LCK 11 read out as VIT 18 / STR 9 / LCK 14 under the old naive mapping,
+#  which the order-independent level-sum identity could not catch).
 DS3_STAT_D = OrderedDict([
-    ("Vigor", 0), ("Attunement", 4), ("Endurance", 8), ("Vitality", 12),
-    ("Strength", 16), ("Dexterity", 20), ("Intelligence", 24), ("Faith", 28),
-    ("Luck", 40)])
-## @brief DS3 max HP, stamina, soul level and souls, same anchor-relative scheme.
-DS3_HP_D, DS3_STAM_D, DS3_LEVEL_D, DS3_SOULS_D = -40, -12, 44, 48
+    ("Vigor", 0), ("Attunement", 4), ("Endurance", 8), ("Vitality", 40),
+    ("Strength", 12), ("Dexterity", 16), ("Intelligence", 20), ("Faith", 24),
+    ("Luck", 28)])
+## @brief DS3 max HP, FP, stamina, soul level and souls, same anchor-relative scheme.
+#  HP/FP/stamina each store a current+max triple; these offsets point at the MAX
+#  copy (a lopsided real save read HP 728 max / 681 current at -40 / -36 — we take
+#  the max). FP at -28 verified 72 at ATN 6 and 450 at a high-attunement char.
+DS3_HP_D, DS3_FP_D, DS3_STAM_D, DS3_LEVEL_D, DS3_SOULS_D = -40, -28, -12, 44, 48
 ## @brief DS3's soul-level identity: level == (sum of all nine attributes) - 89.
 #  Deprived (all 10, sum 90) is level 1, and it holds at every level. This is the
 #  content check that pins the stat block without a per-patch offset table.
@@ -1300,6 +1336,7 @@ def ds3_parse(buf, iddb, name):
         "souls": u32(buf, v + DS3_SOULS_D) if v is not None else None,
         "stamina": u32(buf, v + DS3_STAM_D) if v is not None else None,
         "hp": u32(buf, v + DS3_HP_D) if v is not None else None,
+        "fp": u32(buf, v + DS3_FP_D) if v is not None else None,
         "boss_souls": find_boss_souls(goods), "key_items": find_key_goods(goods),
         "inv": inv, "unknown_count": 0,
     }
@@ -1546,6 +1583,162 @@ def parse_roster(menu_data, game):
     return roster
 
 
+## @brief Play time (seconds, uint32) inside slot @p i's DS3 roster descriptor.
+#  The status block does not carry it — it lives in the header menu block, at the
+#  same per-slot descriptor as the name, @c +38 past the descriptor start. Pinned
+#  by a ~17-minute differential (a real Joy save, 7573 s -> 8603 s, matching an
+#  on-screen 2:23:24). Per-character (one descriptor per slot).
+DS3_ROSTER_PLAYTIME_OFF = 38
+def ds3_playtime(menu_data, i):
+    p = ROSTER_PARAMS["ds3"]
+    return u32(menu_data, p["desc"] + p["stride"] * i + DS3_ROSTER_PLAYTIME_OFF)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  DS3 event flags — bonfires discovered + bosses defeated (read from the save)
+# ─────────────────────────────────────────────────────────────────────────────
+# DS3 serialises event flags in a large region inside each character slot, located
+# by walking the variable-length blocks that precede it (the GaItem array, then
+# inventory / storage / gesture / NG+ headers). Offsets/constants come from the
+# alfizari DS3 save editor (main_ds3.py parse_save) and were verified against a real
+# save: Joy reads Iudex Gundyr defeated + Cemetery-of-Ash / High-Wall bonfires and
+# NOTHING else — zero false positives across 25 bosses and 12 areas on two backups.
+# This retires the old "DS3 flags aren't in the save" blocker.
+#
+# Our decrypted slot drops the 4-byte length prefix alfizari's buffer keeps, so every
+# absolute offset is theirs minus 4: the GaItem walk starts at 0x6C (their 0x70); the
+# rest is block-relative and self-corrects.
+DS3_GAITEM_START = 0x6C
+DS3_GAITEM_SLOTS = 6144
+DS3_GAITEM_BIG = 60                                 # weapon/armour record; all else 8
+DS3_GAITEM_TYPES_BIG = (0x80000000, 0x90000000)     # weapon, armour top nibbles
+
+## @brief DS3 bonfire areas: distance from the event-flag base → the area's "all
+#  bonfires lit" bitmask. Each set bit is one bonfire, so we AND the save byte with
+#  the mask and count bits — only real bonfire bits count (never overcounts; can
+#  undercount if a bit is unmapped, a floor). Distances/masks from the alfizari
+#  editor's offset table + bonfire.json; its two non-bonfire "unlock" entries are
+#  dropped. Verified: Joy = Cemetery 3 + High Wall 2 = her 5 bonfires.
+DS3_BONFIRE_AREAS = OrderedDict([
+    ("Cemetery of Ash", (23154, 0xF8)),
+    ("High Wall of Lothric", (3953, 0xEC40)),
+    ("Undead Settlement", (6514, 0xF8)),
+    ("Road of Sacrifices", (11633, 0xFF80)),
+    ("Cathedral of the Deep", (15474, 0xF0)),
+    ("Catacombs of Carthus", (20594, 0xFA)),
+    ("Irithyll of the Boreal Valley", (19313, 0xFF80)),
+    ("Irithyll Dungeon", (21874, 0xE0)),
+    ("Lothric Castle", (5234, 0xE0)),
+    ("Grand Archives", (14194, 0xC0)),
+    ("Archdragon Peak", (9074, 0xF0)),
+    ("Kiln of the First Flame", (24434, 0xE0)),
+    ("Painted World of Ariandel (DLC)", (25714, 0xFF)),
+    ("The Dreg Heap (DLC)", (29554, 0xF0)),
+    ("The Ringed City (DLC)", (30834, 0xFC)),
+    ("Filianore's Rest (DLC)", (32114, 0xC0)),
+])
+
+## @brief DS3 boss-defeat flags: distance from the event-flag base → the byte value
+#  that is present once the boss is dead. Read the byte and compare exactly: the
+#  dead value is the complete-bit state, so a partial/unrelated state has fewer bits
+#  and won't match — the read can MISS a kill but won't invent one (core rule). Boss
+#  names are the canonical forms used by db_ds3/boss_souls.json so a held-soul kill
+#  and a flag kill dedup. Values/distances from the alfizari editor's Bosses.json;
+#  positively verified on Iudex Gundyr (the one boss dead in the calibration save),
+#  negatively verified on the other 24 (all correctly Alive). Still a floor.
+DS3_BOSS_FLAGS = OrderedDict([
+    ("Iudex Gundyr", (23254, 0xE0)),
+    ("Vordt of the Boreal Valley", (4054, 0xC0)),
+    ("Curse-Rotted Greatwood", (6614, 0xC0)),
+    ("Crystal Sage", (11736, 0x28)),
+    ("Abyss Watchers", (11734, 0xC0)),
+    ("Deacons of the Deep", (15574, 0xC0)),
+    ("High Lord Wolnir", (20694, 0xC0)),
+    ("Pontiff Sulyvahn", (19416, 0x20)),
+    ("Aldrich, Devourer of Gods", (19414, 0x80)),
+    ("Old Demon King", (20691, 0x02)),
+    ("Oceiros, the Consumed King", (4051, 0x42)),
+    ("Dancer of the Boreal Valley", (4059, 0x20)),
+    ("Dragonslayer Armour", (5334, 0x80)),
+    ("Yhorm the Giant", (21974, 0xC0)),
+    ("Nameless King", (9176, 0x21)),
+    ("Lothric, Younger Prince", (14291, 0x03)),
+    ("Champion Gundyr", (23251, 0x03)),
+    ("Soul of Cinder", (24534, 0xC0)),
+    ("Champion's Gravetender", (25815, 0x0C)),
+    ("Sister Friede", (25814, 0xC0)),
+    ("Halflight, Spear of the Church", (30934, 0xC0)),
+    ("Darkeater Midir", (30936, 0x30)),
+    ("Slave Knight Gael", (32214, 0xC0)),
+    ("Demon Prince", (29654, 0x80)),
+])
+
+
+##
+# @brief Locate the DS3 event-flag region base in a decrypted slot, or None.
+# @details Walks the same block chain the alfizari editor uses. Every read is
+# bounds-checked (u32 returns None past the buffer), so a short or edited save turns
+# the feature off rather than reading garbage. @return The base offset, or None.
+def ds3_event_flag_base(buf):
+    off = DS3_GAITEM_START
+    for _ in range(DS3_GAITEM_SLOTS):
+        handle = u32(buf, off)
+        if handle is None:
+            return None
+        big = handle and (handle & 0xF0000000) in DS3_GAITEM_TYPES_BIG
+        off += DS3_GAITEM_BIG if big else 8
+    above_counter = off + 0x13F + 0x1DD + 0x8808 + 0x11C
+    above_size = u32(buf, above_counter)
+    if above_size is None:
+        return None
+    gesture_end = above_counter + 4 + above_size * 8 + 0x18C + 0x4 + 0x8800 + 0xC + 0xA4
+    table2_size = u32(buf, gesture_end)
+    if table2_size is None:
+        return None
+    base = gesture_end + 4 + table2_size * 4 + 0x92 + 0xBCC - 0x12
+    return base if 0 <= base < len(buf) else None
+
+
+##
+# @brief Read DS3 bonfires + boss-defeat flags off the event-flag region and attach
+#        them to @p ch: @c bonfire_areas as [(area, count)], and merge @c flag boss
+#        evidence into @c ch["bosses"] (deduping with any soul/gate evidence already
+#        there). No-op if the region can't be located. @param buf Decrypted slot.
+def ds3_attach_flags(ch, buf):
+    base = ds3_event_flag_base(buf)
+    if base is None:
+        return
+    areas = []
+    for name, (dist, mask) in DS3_BONFIRE_AREAS.items():
+        val = u16(buf, base + dist) if mask > 0xFF else u8(buf, base + dist)
+        lit = bin(val & mask).count("1") if val is not None else 0
+        if lit:
+            areas.append((name, lit))
+    if areas:
+        ch["bonfire_areas"] = areas
+    bosses = {b: set(s) for b, s in (ch.get("bosses") or {}).items()}
+    for name, (dist, val) in DS3_BOSS_FLAGS.items():
+        got = u16(buf, base + dist) if val > 0xFF else u8(buf, base + dist)
+        if got == val:
+            bosses.setdefault(name, set()).add("flag")
+    if bosses:
+        ch["bosses"] = {b: sorted(bosses[b]) for b in bosses}
+
+
+## @brief DS3 New Game+ cycle (journey count), a uint16 just before the event-flag
+#  region, or None. new_game_plus sits at @c base + 0x12 - 0xBCC (base is that region
+#  less 0x12 — see @ref ds3_event_flag_base). Guarded to a sane range: a cheated mule
+#  read 0xFFFF here, so an out-of-range value is omitted rather than printed wrong.
+#  Verified: Joy = 0 (New Game), a real NG+1 char = 1. @return The cycle, or None.
+DS3_NG_MAX = 99
+def ds3_journey(buf):
+    base = ds3_event_flag_base(buf)
+    if base is None:
+        return None
+    ng = u16(buf, base + 0x12 - 0xBCC)
+    return ng if ng is not None and 0 <= ng <= DS3_NG_MAX else None
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 #  Markdown rendering
 # ═════════════════════════════════════════════════════════════════════════════
@@ -1725,6 +1918,8 @@ def md_for_character(ch, slot_no):
         L.append(f"- **Humanity:** {ch['humanity']}")
     if ch["hp"] is not None:
         L.append(f"- **Max HP:** {fmt(ch['hp'])}")
+    if ch.get("fp") is not None:
+        L.append(f"- **Max FP:** {fmt(ch['fp'])}")
     if ch.get("hollow_lvl"):
         L.append(f"- **Hollowing:** {ch['hollow_lvl']}  _(higher = more deaths without an effigy)_")
     if ch.get("deaths") is not None:
@@ -1794,6 +1989,12 @@ def md_for_character(ch, slot_no):
         L += [f"### Bonfires Discovered ({len(ch['bonfires'])})  _(areas reached — a "
               "floor on progress)_", ""]
         L += [f"- {b}" for b in ch["bonfires"]] + [""]
+    if ch.get("bonfire_areas"):
+        total = sum(c for _, c in ch["bonfire_areas"])
+        n = len(ch["bonfire_areas"])
+        L += [f"### Bonfires Discovered ({total} across {n} area{'s' if n != 1 else ''})"
+              "  _(bonfires lit, inferred from each area's flag bits — a floor)_", ""]
+        L += [f"- {name} ({c})" for name, c in ch["bonfire_areas"]] + [""]
     if ch.get("bosses"):
         SRC = {"flag": "confirmed", "soul": "soul held", "gate": "progression", "clear": "cleared (NG+)"}
         L += [f"### Bosses Defeated ({len(ch['bosses'])})  _(a floor — from defeat "
@@ -1973,7 +2174,11 @@ def convert(data, filename, base_dir):
                 continue
             ch = ds3_parse(slot, iddb, names.get(i))
             if ch is not None:
+                if menu is not None:
+                    ch["play_time"] = ds3_playtime(menu, i)
+                ch["ng_plus"] = ds3_journey(slot)
                 attach_defeated_bosses(ch, base_dir)
+                ds3_attach_flags(ch, slot)
                 characters.append((i, ch))
         head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
         body = ["_No populated character slots found._"] if not characters else []

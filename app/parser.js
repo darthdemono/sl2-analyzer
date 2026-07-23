@@ -141,6 +141,10 @@ const MANDATORY_BOSSES = {
     "Gwyn, Lord of Cinder"],
 };
 MANDATORY_BOSSES.ptde = MANDATORY_BOSSES.dsr;
+MANDATORY_BOSSES.ds3 = ["Iudex Gundyr", "Vordt of the Boreal Valley",
+  "Dancer of the Boreal Valley", "Abyss Watchers", "Pontiff Sulyvahn",
+  "Aldrich, Devourer of Gods", "Yhorm the Giant", "Dragonslayer Armour",
+  "Lothric, Younger Prince", "Soul of Cinder"];
 
 function attachDefeatedBosses(ch, dbs) {
   const family = BOSS_SOUL_DB_DIR[ch.game];
@@ -252,7 +256,15 @@ const DS2_BOSS_GATE = {
   "Undead Crypt Entrance": ["Looking Glass Knight", "Demon of Song"],
   "Throne Floor": ["Looking Glass Knight", "Demon of Song", "Velstadt, the Royal Aegis"],
 };
-const DS2_ITEM_GATE = { "King's Ring": ["Velstadt, the Royal Aegis"] };
+// Item ⇒ boss it sits behind. Each has one documented source, past that boss's fog gate.
+// The two DLC gank bosses drop no soul, so this is the only route to them.
+const DS2_ITEM_GATE = {
+  "King's Ring": ["Velstadt, the Royal Aegis"],
+  "Pharros Mask": ["Blue Smelter Demon"],
+  "Flower Skirt": ["Graverobber, Varg, and Cerah"],
+};
+// Strip a trailing " +N" so an upgraded piece still matches the plain db name.
+const ds2BaseName = (n) => n.replace(/ \+\d+$/, "");
 const DS2_BOSS_PREREQ = {
   "Nashandra": ["Throne Watcher", "Throne Defender", "Velstadt, the Royal Aegis", "Demon of Song", "Looking Glass Knight"],
   "Throne Watcher": ["Velstadt, the Royal Aegis", "Demon of Song", "Looking Glass Knight"],
@@ -268,7 +280,7 @@ function ds2InferBosses(world, ch, dbs) {
   for (const [name] of (ch.inv["bosssouls"] || [])) { const b = soulDb[name]; if (b) add(b, "soul"); }
   for (const bonfire of ch.bonfires || []) for (const boss of DS2_BOSS_GATE[bonfire] || []) add(boss, "gate");
   const held = new Set();
-  for (const c in ch.inv) for (const [n] of ch.inv[c]) held.add(n);
+  for (const c in ch.inv) for (const [n] of ch.inv[c]) held.add(ds2BaseName(n));
   for (const [n] of ch.key_items || []) held.add(n);
   for (const item in DS2_ITEM_GATE) if (held.has(item)) for (const boss of DS2_ITEM_GATE[item]) add(boss, "gate");
   if ((ch.ng_plus || 0) > 0) add("Nashandra", "clear"); // NG+ ⇒ final boss dead; closure fills the endgame chain
@@ -434,9 +446,11 @@ function ptdeParse(buf, itemDb) {
 
 // ── DS3 ─────────────────────────────────────────────────────────────────
 const DS3_RECORD = 16, DS3_QTY_OFF = 4;
-const DS3_STAT_D = [["Vigor", 0], ["Attunement", 4], ["Endurance", 8], ["Vitality", 12],
-  ["Strength", 16], ["Dexterity", 20], ["Intelligence", 24], ["Faith", 28], ["Luck", 40]];
-const DS3_HP_D = -40, DS3_STAM_D = -12, DS3_LEVEL_D = 44, DS3_SOULS_D = 48, DS3_LEVEL_BASE = 89;
+// Storage order != display order: Vitality lives alone at +40 after a two-field
+// gap; Str/Dex/Int/Fth/Luck are the contiguous +12..+28. See sl2_to_md.py.
+const DS3_STAT_D = [["Vigor", 0], ["Attunement", 4], ["Endurance", 8], ["Vitality", 40],
+  ["Strength", 12], ["Dexterity", 16], ["Intelligence", 20], ["Faith", 24], ["Luck", 28]];
+const DS3_HP_D = -40, DS3_FP_D = -28, DS3_STAM_D = -12, DS3_LEVEL_D = 44, DS3_SOULS_D = 48, DS3_LEVEL_BASE = 89;
 const SCAN_MIN_RUN = 3;
 
 function scanInventory(buf, iddb) {
@@ -496,11 +510,100 @@ function ds3Parse(buf, iddb, name) {
     souls: has ? u32(buf, v + DS3_SOULS_D) : null,
     stamina: has ? u32(buf, v + DS3_STAM_D) : null,
     hp: has ? u32(buf, v + DS3_HP_D) : null,
+    fp: has ? u32(buf, v + DS3_FP_D) : null,
     boss_souls: findBossSouls(goods), key_items: findKeyGoods(goods),
     inv, unknown_count: 0,
   };
 }
 const ROSTER_PARAMS_DS3 = { menu: 10, occ: 4244, desc: 4254, stride: 554, namelen: 16 };
+// Play time (u32 seconds) sits in the roster descriptor, +38 past the name. See sl2_to_md.py.
+const DS3_ROSTER_PLAYTIME_OFF = 38;
+function ds3Playtime(menu, i) {
+  const p = ROSTER_PARAMS_DS3;
+  return u32(menu, p.desc + p.stride * i + DS3_ROSTER_PLAYTIME_OFF);
+}
+
+// DS3 event flags (bonfires + boss defeats). Region located by walking the blocks
+// before it; our decrypt drops alfizari's 4-byte length prefix, so the GaItem walk
+// starts at 0x6C (their 0x70). Constants/tables mirror sl2_to_md.py — verified on a
+// real save (Iudex + Cemetery/High Wall, zero false positives). Keep in sync.
+const DS3_GAITEM_START = 0x6C, DS3_GAITEM_SLOTS = 6144, DS3_GAITEM_BIG = 60;
+const DS3_GAITEM_TYPES_BIG = [0x80000000, 0x90000000];
+const DS3_BONFIRE_AREAS = [
+  ["Cemetery of Ash", 23154, 0xF8], ["High Wall of Lothric", 3953, 0xEC40],
+  ["Undead Settlement", 6514, 0xF8], ["Road of Sacrifices", 11633, 0xFF80],
+  ["Cathedral of the Deep", 15474, 0xF0], ["Catacombs of Carthus", 20594, 0xFA],
+  ["Irithyll of the Boreal Valley", 19313, 0xFF80], ["Irithyll Dungeon", 21874, 0xE0],
+  ["Lothric Castle", 5234, 0xE0], ["Grand Archives", 14194, 0xC0],
+  ["Archdragon Peak", 9074, 0xF0], ["Kiln of the First Flame", 24434, 0xE0],
+  ["Painted World of Ariandel (DLC)", 25714, 0xFF], ["The Dreg Heap (DLC)", 29554, 0xF0],
+  ["The Ringed City (DLC)", 30834, 0xFC], ["Filianore's Rest (DLC)", 32114, 0xC0],
+];
+const DS3_BOSS_FLAGS = [
+  ["Iudex Gundyr", 23254, 0xE0], ["Vordt of the Boreal Valley", 4054, 0xC0],
+  ["Curse-Rotted Greatwood", 6614, 0xC0], ["Crystal Sage", 11736, 0x28],
+  ["Abyss Watchers", 11734, 0xC0], ["Deacons of the Deep", 15574, 0xC0],
+  ["High Lord Wolnir", 20694, 0xC0], ["Pontiff Sulyvahn", 19416, 0x20],
+  ["Aldrich, Devourer of Gods", 19414, 0x80], ["Old Demon King", 20691, 0x02],
+  ["Oceiros, the Consumed King", 4051, 0x42], ["Dancer of the Boreal Valley", 4059, 0x20],
+  ["Dragonslayer Armour", 5334, 0x80], ["Yhorm the Giant", 21974, 0xC0],
+  ["Nameless King", 9176, 0x21], ["Lothric, Younger Prince", 14291, 0x03],
+  ["Champion Gundyr", 23251, 0x03], ["Soul of Cinder", 24534, 0xC0],
+  ["Champion's Gravetender", 25815, 0x0C], ["Sister Friede", 25814, 0xC0],
+  ["Halflight, Spear of the Church", 30934, 0xC0], ["Darkeater Midir", 30936, 0x30],
+  ["Slave Knight Gael", 32214, 0xC0], ["Demon Prince", 29654, 0x80],
+];
+function ds3EventFlagBase(buf) {
+  let off = DS3_GAITEM_START;
+  for (let n = 0; n < DS3_GAITEM_SLOTS; n++) {
+    const handle = u32(buf, off);
+    if (handle == null) return null;
+    // `& 0xF0000000` yields a signed int32 in JS — >>>0 back to unsigned so the
+    // weapon/armour top-nibble compare matches (handles are >= 0x80000000).
+    const big = handle && DS3_GAITEM_TYPES_BIG.includes((handle & 0xF0000000) >>> 0);
+    off += big ? DS3_GAITEM_BIG : 8;
+  }
+  const aboveCounter = off + 0x13F + 0x1DD + 0x8808 + 0x11C;
+  const aboveSize = u32(buf, aboveCounter);
+  if (aboveSize == null) return null;
+  const gestureEnd = aboveCounter + 4 + aboveSize * 8 + 0x18C + 0x4 + 0x8800 + 0xC + 0xA4;
+  const table2Size = u32(buf, gestureEnd);
+  if (table2Size == null) return null;
+  const base = gestureEnd + 4 + table2Size * 4 + 0x92 + 0xBCC - 0x12;
+  return base >= 0 && base < buf.length ? base : null;
+}
+function popcount(x) { let c = 0; while (x) { c += x & 1; x >>>= 1; } return c; }
+function ds3AttachFlags(ch, buf) {
+  const base = ds3EventFlagBase(buf);
+  if (base == null) return;
+  const areas = [];
+  for (const [name, dist, mask] of DS3_BONFIRE_AREAS) {
+    const val = mask > 0xFF ? u16(buf, base + dist) : u8(buf, base + dist);
+    const lit = val == null ? 0 : popcount(val & mask);
+    if (lit) areas.push([name, lit]);
+  }
+  if (areas.length) ch.bonfire_areas = areas;
+  const bosses = {};
+  for (const [b, s] of Object.entries(ch.bosses || {})) bosses[b] = new Set(s);
+  for (const [name, dist, val] of DS3_BOSS_FLAGS) {
+    const got = val > 0xFF ? u16(buf, base + dist) : u8(buf, base + dist);
+    if (got === val) (bosses[name] || (bosses[name] = new Set())).add("flag");
+  }
+  const keys = Object.keys(bosses);
+  if (keys.length) {
+    ch.bosses = {};
+    for (const b of keys) ch.bosses[b] = [...bosses[b]].sort();
+  }
+}
+// DS3 NG+ cycle: uint16 just before the event-flag region; guarded to a sane range
+// (a cheated mule reads 0xFFFF). See sl2_to_md.py.
+const DS3_NG_MAX = 99;
+function ds3Journey(buf) {
+  const base = ds3EventFlagBase(buf);
+  if (base == null) return null;
+  const ng = u16(buf, base + 0x12 - 0xBCC);
+  return ng != null && ng >= 0 && ng <= DS3_NG_MAX ? ng : null;
+}
 function parseRosterDs3(menu) {
   const p = ROSTER_PARAMS_DS3, roster = new Map();
   for (let i = 0; i < 10; i++) {
@@ -638,7 +741,13 @@ export function parseSave(data, dbs) {
       const slot = decryptIvPrefixed(blobOf(data, entries[i]), DS3_KEY);
       if (slot === null) continue;
       const ch = ds3Parse(slot, dbs.ds3.items, names.get(i));
-      if (ch) { attachDefeatedBosses(ch, dbs); characters.push({ slot: label(i), ch }); }
+      if (ch) {
+        if (menu) ch.play_time = ds3Playtime(menu, i);
+        ch.ng_plus = ds3Journey(slot);
+        attachDefeatedBosses(ch, dbs);
+        ds3AttachFlags(ch, slot);
+        characters.push({ slot: label(i), ch });
+      }
     }
   } else {
     // DS2 (full, encrypted + augment + active-filter) and DS1 (dsr/ptde).

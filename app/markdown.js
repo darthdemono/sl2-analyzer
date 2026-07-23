@@ -34,6 +34,7 @@ function mdCharacter(ch, slot) {
   if (ch.souls != null) L.push(`- **${ch.game === "er" ? "Runes" : "Souls"} held:** ${fmt(ch.souls)}`);
   if (ch.humanity != null) L.push(`- **Humanity:** ${ch.humanity}`);
   if (ch.hp != null) L.push(`- **Max HP:** ${fmt(ch.hp)}`);
+  if (ch.fp != null) L.push(`- **Max FP:** ${fmt(ch.fp)}`);
   if (ch.hollow_lvl) L.push(`- **Hollowing:** ${ch.hollow_lvl}  _(higher = more deaths without an effigy)_`);
   if (ch.deaths != null) L.push(`- **Deaths:** ${fmt(ch.deaths)}`);
   if (ch.stamina != null) L.push(`- **Stamina:** ${fmt(ch.stamina)}`);
@@ -84,6 +85,11 @@ function mdCharacter(ch, slot) {
   if (ch.bonfires && ch.bonfires.length) {
     L.push(`### Bonfires Discovered (${ch.bonfires.length})  _(areas reached — a floor on progress)_`, "",
       ...ch.bonfires.map((b) => `- ${b}`), "");
+  }
+  if (ch.bonfire_areas && ch.bonfire_areas.length) {
+    const total = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0), n = ch.bonfire_areas.length;
+    L.push(`### Bonfires Discovered (${total} across ${n} area${n !== 1 ? "s" : ""})  _(bonfires lit, inferred from each area's flag bits — a floor)_`, "",
+      ...ch.bonfire_areas.map(([name, c]) => `- ${name} (${c})`), "");
   }
   if (ch.bosses && Object.keys(ch.bosses).length) {
     L.push(`### Bosses Defeated (${Object.keys(ch.bosses).length})  _(a floor — from defeat flags, held boss souls, progression, and NG+ clears; a boss whose soul was consumed and isn't gated may still be missing)_`, "");

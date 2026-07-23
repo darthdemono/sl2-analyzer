@@ -91,6 +91,11 @@ function leftColumn(slot, ch) {
   if (ch.souls != null) rows.push(statRow("souls", ch.game === "er" ? "Runes" : "Souls", ch.souls));
   if (ch.soul_memory != null) rows.push(statRow("mem", "Soul Memory", ch.soul_memory));
   if (ch.humanity != null) rows.push(statRow("hp", "Humanity", ch.humanity));
+  // Max HP/FP live in the DS2 derived panel for DS2; every other game shows them here.
+  if (ch.game !== "ds2sotfs") {
+    if (ch.hp != null) rows.push(statRow("hp", "Max HP", ch.hp));
+    if (ch.fp != null) rows.push(statRow("mag", "Max FP", ch.fp));
+  }
   const head = el("div", { class: "lp" }, ...rows);
   const gov = statGovernsFor(ch.game);
   const keys = orderedAttrKeys(ch.game, ch.stats);
@@ -175,6 +180,12 @@ function characterCard(slot, ch) {
     card.append(section(`Bonfires Discovered (${ch.bonfires.length})`, [
       el("p", { class: "hint", text: "Every bonfire you have lit. A floor on how far you got." }),
       el("ul", { class: "items cols" }, ...ch.bonfires.map((b) => el("li", { text: b })))]));
+  }
+  if (ch.bonfire_areas && ch.bonfire_areas.length) {
+    const total = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0), n = ch.bonfire_areas.length;
+    card.append(section(`Bonfires Discovered (${total} across ${n} area${n !== 1 ? "s" : ""})`, [
+      el("p", { class: "hint", text: "Bonfires lit, inferred from each area's flag bits. A floor on how far you got." }),
+      el("ul", { class: "items cols" }, ...ch.bonfire_areas.map(([name, c]) => el("li", { text: `${name} (${c})` })))]));
   }
   if (ch.bosses && Object.keys(ch.bosses).length) {
     const list = el("ul", { class: "items bosses" });
