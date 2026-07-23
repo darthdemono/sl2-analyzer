@@ -1241,6 +1241,15 @@ DS3_STAT_D = OrderedDict([
 #  copy (a lopsided real save read HP 728 max / 681 current at -40 / -36 — we take
 #  the max). FP at -28 verified 72 at ATN 6 and 450 at a high-attunement char.
 DS3_HP_D, DS3_FP_D, DS3_STAM_D, DS3_LEVEL_D, DS3_SOULS_D = -40, -28, -12, 44, 48
+## @brief DS3 embered flag: a lone uint8 at +188 in the stat-mirror struct behind the
+#  stat anchor — 1 = embered, 0 = hollow. Embered restores the ~30% Max HP bonus (which
+#  is why the stored Max HP at DS3_HP_D reads base*1.3 while this byte is 1), so reading
+#  it labels whether the Max HP figure is the embered or the base value. Pinned by a real
+#  Joy differential (using an Ember flipped 0->1 and Max HP 817->1062 = *1.30) and
+#  cross-checked on the all-items mule: its two embered slots read 1 with HP = base*1.3
+#  (vig 99, 1400->1819) and its hollow slot reads 0 with base HP (vig 16, 594) — both
+#  polarities, HP corroborating each. Guarded to {0,1}; any other value omits the field.
+DS3_EMBER_D = 188
 ## @brief DS3's soul-level identity: level == (sum of all nine attributes) - 89.
 #  Deprived (all 10, sum 90) is level 1, and it holds at every level. This is the
 #  content check that pins the stat block without a per-patch offset table.
@@ -1328,6 +1337,17 @@ def ds3_find_stats(buf):
     return None
 
 
+## @brief DS3 embered state for a slot, or None. @param v The stat anchor from
+#  @ref ds3_find_stats (None → feature off). Reads the @ref DS3_EMBER_D byte and only
+#  trusts a clean boolean: 1 → True (embered), 0 → False (hollow), anything else → None
+#  (never guess). @return True/False, or None when unlocated or out of range.
+def ds3_embered(buf, v):
+    if v is None:
+        return None
+    e = u8(buf, v + DS3_EMBER_D)
+    return True if e == 1 else False if e == 0 else None
+
+
 ##
 # @brief Parse one DS3 slot into the unified dict (full tier where stats validate).
 # @details Inventory comes from the id-scan; the name is supplied by the caller
@@ -1358,6 +1378,7 @@ def ds3_parse(buf, iddb, name):
         "stamina": u32(buf, v + DS3_STAM_D) if v is not None else None,
         "hp": u32(buf, v + DS3_HP_D) if v is not None else None,
         "fp": u32(buf, v + DS3_FP_D) if v is not None else None,
+        "embered": ds3_embered(buf, v),
         "boss_souls": find_boss_souls(goods), "key_items": find_key_goods(goods),
         "inv": inv, "unknown_count": 0,
     }
@@ -1665,8 +1686,9 @@ DS3_BONFIRE_AREAS = OrderedDict([
 #  and won't match — the read can MISS a kill but won't invent one (core rule). Boss
 #  names are the canonical forms used by db_ds3/boss_souls.json so a held-soul kill
 #  and a flag kill dedup. Values/distances from the alfizari editor's Bosses.json;
-#  positively verified on Iudex Gundyr (the one boss dead in the calibration save),
-#  negatively verified on the other 24 (all correctly Alive). Still a floor.
+#  positively verified on Iudex Gundyr and Vordt of the Boreal Valley (both dead in a
+#  real Joy playthrough differential — alive save reads 0x00 at dist 4054, dead save
+#  0xC0), negatively verified on the other 23 (all correctly Alive). Still a floor.
 DS3_BOSS_FLAGS = OrderedDict([
     ("Iudex Gundyr", (23254, 0xE0)),
     ("Vordt of the Boreal Valley", (4054, 0xC0)),
@@ -1938,6 +1960,10 @@ def md_for_character(ch, slot_no):
         L.append(f"- **Humanity:** {ch['humanity']}")
     if ch["hp"] is not None:
         L.append(f"- **Max HP:** {fmt(ch['hp'])}")
+    if ch.get("embered") is not None:
+        L.append("- **Embered:** Yes  _(Max HP above includes the +30% ember bonus)_"
+                 if ch["embered"] else
+                 "- **Embered:** No  _(hollow — Max HP above is the base value)_")
     if ch.get("fp") is not None:
         L.append(f"- **Max FP:** {fmt(ch['fp'])}")
     if ch.get("hollow_lvl"):

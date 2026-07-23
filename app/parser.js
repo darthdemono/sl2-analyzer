@@ -451,6 +451,9 @@ const DS3_RECORD = 16, DS3_QTY_OFF = 4;
 const DS3_STAT_D = [["Vigor", 0], ["Attunement", 4], ["Endurance", 8], ["Vitality", 40],
   ["Strength", 12], ["Dexterity", 16], ["Intelligence", 20], ["Faith", 24], ["Luck", 28]];
 const DS3_HP_D = -40, DS3_FP_D = -28, DS3_STAM_D = -12, DS3_LEVEL_D = 44, DS3_SOULS_D = 48, DS3_LEVEL_BASE = 89;
+// Embered flag: uint8 at +188 in the stat-mirror struct behind the anchor; 1 = embered
+// (Max HP carries the +30% bonus), 0 = hollow. See sl2_to_md.py DS3_EMBER_D for the calibration.
+const DS3_EMBER_D = 188;
 const SCAN_MIN_RUN = 3;
 
 function scanInventory(buf, iddb) {
@@ -511,9 +514,16 @@ function ds3Parse(buf, iddb, name) {
     stamina: has ? u32(buf, v + DS3_STAM_D) : null,
     hp: has ? u32(buf, v + DS3_HP_D) : null,
     fp: has ? u32(buf, v + DS3_FP_D) : null,
+    embered: ds3Embered(buf, v),
     boss_souls: findBossSouls(goods), key_items: findKeyGoods(goods),
     inv, unknown_count: 0,
   };
+}
+// DS3 embered state: 1 -> true, 0 -> false, anything else (or no anchor) -> null.
+function ds3Embered(buf, v) {
+  if (v == null) return null;
+  const e = u8(buf, v + DS3_EMBER_D);
+  return e === 1 ? true : e === 0 ? false : null;
 }
 const ROSTER_PARAMS_DS3 = { menu: 10, occ: 4244, desc: 4254, stride: 554, namelen: 16 };
 // Play time (u32 seconds) sits in the roster descriptor, +38 past the name. See sl2_to_md.py.

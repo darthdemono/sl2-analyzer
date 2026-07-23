@@ -153,6 +153,7 @@ function characterPanel(ch) {
   if (ch.covenant) rows.push(statRow(null, "Covenant", ch.covenant));
   if (ch.gender) rows.push(statRow(null, "Gender", ch.gender));
   if (ch.ng_plus != null) rows.push(statRow(null, "Playthrough", ch.ng_plus === 0 ? "New Game" : `New Game +${ch.ng_plus}`));
+  if (ch.embered != null) rows.push(statRow(null, "Embered", ch.embered ? "Yes (+30% HP)" : "No (hollow)"));
   if (ch.play_time) rows.push(statRow(null, "Play Time", fmtPlaytime(ch.play_time)));
   if (ch.deaths != null) rows.push(statRow(null, "Deaths", ch.deaths));
   if (ch.hollow_lvl) rows.push(statRow(null, "Hollowing", ch.hollow_lvl));

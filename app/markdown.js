@@ -34,6 +34,9 @@ function mdCharacter(ch, slot) {
   if (ch.souls != null) L.push(`- **${ch.game === "er" ? "Runes" : "Souls"} held:** ${fmt(ch.souls)}`);
   if (ch.humanity != null) L.push(`- **Humanity:** ${ch.humanity}`);
   if (ch.hp != null) L.push(`- **Max HP:** ${fmt(ch.hp)}`);
+  if (ch.embered != null) L.push(ch.embered
+    ? "- **Embered:** Yes  _(Max HP above includes the +30% ember bonus)_"
+    : "- **Embered:** No  _(hollow — Max HP above is the base value)_");
   if (ch.fp != null) L.push(`- **Max FP:** ${fmt(ch.fp)}`);
   if (ch.hollow_lvl) L.push(`- **Hollowing:** ${ch.hollow_lvl}  _(higher = more deaths without an effigy)_`);
   if (ch.deaths != null) L.push(`- **Deaths:** ${fmt(ch.deaths)}`);
