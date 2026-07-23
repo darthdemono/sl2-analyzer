@@ -3,7 +3,7 @@
 // md_for_character + convert's header; verified against the Python .md output by
 // scratch/md_harness.mjs (timestamp line excluded).
 
-import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, ds2DerivedStats, fmt, fmtPlaytime } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime } from "./tables.js";
 
 const REPO_URL = "https://github.com/darthdemono/sl2-analyzer";
 
@@ -69,6 +69,13 @@ function mdCharacter(ch, slot) {
         `- **Fire DEF:** ${d.fire_def}`,
         `- **Lightning DEF:** ${d.lightning_def}`,
         `- **Dark DEF:** ${d.dark_def}`, "");
+    }
+    if (ch.game === "ds3") {
+      const d = ds3DerivedStats(ch.stats);
+      L.push("### Derived Stats  _(computed from attributes — base values before rings, covenant & equipment)_", "",
+        `- **Attunement Slots:** ${d.slots}`,
+        `- **Equip Load:** ${d.equip_load.toFixed(1)}`,
+        `- **Item Discovery:** ${d.item_discovery}`, "");
     }
   } else if (ch.tier === "inventory") {
     L.push("_Attributes are not printed for this slot: its stat block did not validate (an unrecognised patch or an edited save), and a wrong number is worse than none. Inventory and progress below are read directly._", "");

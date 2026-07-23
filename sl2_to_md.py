@@ -764,6 +764,27 @@ def ds2_derived_stats(stats):
             "lightning_def": ds2_elem_def(fth), "dark_def": ds2_elem_def(min(intel, fth))}
 
 
+## @brief DS3 attunement-slot breakpoints (fextralife Attunement table): the nth
+#  entry is the ATN needed for the nth spell slot. Slots = count of these <= ATN.
+DS3_SLOT_BREAKS = (10, 14, 18, 24, 30, 40, 50, 60, 80, 99)
+
+##
+# @brief DS3 base derived stats that are closed-form functions of attributes only.
+# @details Only the three the character screen shows that don't need gear: attunement
+# slots (breakpoint count), base Equip Load (@c 40 + Vitality) and base Item Discovery
+# (@c 100 + Luck, hard cap 199). HP/FP/stamina are read from the save, not recomputed;
+# poise is gear-only in DS3, and defences/resistances/attack power are gear- and
+# level-scaled, so none of those are derived here. Formulas from the fextralife
+# Equipment Load / Attunement / Item Discovery pages. @param stats The attribute dict.
+def ds3_derived_stats(stats):
+    atn = stats.get("Attunement", 0) or 0
+    vit = stats.get("Vitality", 0) or 0
+    lck = stats.get("Luck", 0) or 0
+    return {"slots": sum(1 for b in DS3_SLOT_BREAKS if atn >= b),
+            "equip_load": 40.0 + vit,
+            "item_discovery": min(199, 100 + lck)}
+
+
 ## @brief Parse one DS2 slot into the unified character dict, or None if empty.
 def ds2_parse(buf, item_db):
     if ds2_name(buf) is None:
@@ -1966,6 +1987,13 @@ def md_for_character(ch, slot_no):
                   f"- **Fire DEF:** {d['fire_def']}",
                   f"- **Lightning DEF:** {d['lightning_def']}",
                   f"- **Dark DEF:** {d['dark_def']}", ""]
+        if ch["game"] == "ds3":
+            d = ds3_derived_stats(ch["stats"])
+            L += ["### Derived Stats  _(computed from attributes — base values before "
+                  "rings, covenant & equipment)_", "",
+                  f"- **Attunement Slots:** {d['slots']}",
+                  f"- **Equip Load:** {d['equip_load']:.1f}",
+                  f"- **Item Discovery:** {d['item_discovery']}", ""]
     elif ch["tier"] == "inventory":
         L += ["_Attributes are not printed for this slot: its stat block did not "
               "validate (an unrecognised patch or an edited save), and a wrong "

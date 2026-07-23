@@ -4,7 +4,7 @@
 // the save proves are shown — fields the screen has but we can't verify (weapon AR,
 // resistances, bonuses) are omitted, never faked. Names via textContent, never innerHTML.
 
-import { STAT_ABBR, statGovernsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, ds2DerivedStats, fmt, fmtPlaytime } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
 
 function el(tag, props, ...kids) {
@@ -133,6 +133,19 @@ function ds2DerivedPanel(ch) {
     el("p", { class: "lp-note", text: "Base values computed from attributes — before rings & equipment. Fields the screen also shows but the save can't prove (weapon AR, bonuses, resistances, physical defence, cast speed) are omitted, not guessed." }));
 }
 
+// DS3 derived panel — the base attribute-only values the status screen shows that
+// aren't already read from the save. See ds3DerivedStats.
+function ds3DerivedPanel(ch) {
+  const d = ds3DerivedStats(ch.stats);
+  return el("div", { class: "lp" },
+    el("div", { class: "lp-h", text: "Derived (base)" }),
+    el("div", { class: "lp-rows" },
+      statRow("load", "Attunement Slots", d.slots),
+      statRow("load", "Equip Load", d.equip_load.toFixed(1)),
+      statRow(null, "Item Discovery", d.item_discovery)),
+    el("p", { class: "lp-note", text: "Base values from attributes — before rings, covenant and equipment. HP/FP/stamina are read from the save above; poise, defences and attack power are gear-scaled, so they're left off." }));
+}
+
 /** Character panel: identity + counters that aren't in the left column. */
 function characterPanel(ch) {
   const rows = [];
@@ -149,6 +162,7 @@ function characterPanel(ch) {
 function levelUpScreen(slot, ch) {
   const rightPanels = [];
   if (ch.game === "ds2sotfs" && Object.keys(ch.stats).length) rightPanels.push(ds2DerivedPanel(ch));
+  if (ch.game === "ds3" && Object.keys(ch.stats).length) rightPanels.push(ds3DerivedPanel(ch));
   const cp = characterPanel(ch);
   if (cp) rightPanels.push(cp);
 

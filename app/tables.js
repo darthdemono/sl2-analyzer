@@ -216,6 +216,19 @@ export function ds2DerivedStats(stats) {
   };
 }
 
+// DS3 attunement-slot breakpoints (fextralife). Mirror of Python DS3_SLOT_BREAKS.
+const DS3_SLOT_BREAKS = [10, 14, 18, 24, 30, 40, 50, 60, 80, 99];
+/** DS3 base derived stats from attributes only — attunement slots, base equip load
+ *  (40 + VIT), base item discovery (100 + LUCK, cap 199). See sl2_to_md.py. */
+export function ds3DerivedStats(stats) {
+  const atn = stats.Attunement || 0, vit = stats.Vitality || 0, lck = stats.Luck || 0;
+  return {
+    slots: DS3_SLOT_BREAKS.filter((b) => atn >= b).length,
+    equip_load: 40 + vit,
+    item_discovery: Math.min(199, 100 + lck),
+  };
+}
+
 /** Format a value, or "—" when null. Integers get thousands separators (Python fmt). */
 export const fmt = (v) => (v == null ? "—" : typeof v === "number" ? v.toLocaleString("en-US") : String(v));
 
