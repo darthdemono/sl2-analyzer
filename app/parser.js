@@ -515,6 +515,9 @@ function ds3Parse(buf, iddb, name) {
     hp: has ? u32(buf, v + DS3_HP_D) : null,
     fp: has ? u32(buf, v + DS3_FP_D) : null,
     embered: ds3Embered(buf, v),
+    equipped_armor: ds3EquippedArmor(buf, iddb, v),
+    equipped_rings: ds3EquippedRings(buf, iddb, v),
+    equipped_ammo: ds3EquippedAmmo(buf, iddb, v),
     boss_souls: findBossSouls(goods), key_items: findKeyGoods(goods),
     inv, unknown_count: 0,
   };
@@ -524,6 +527,72 @@ function ds3Embered(buf, v) {
   if (v == null) return null;
   const e = u8(buf, v + DS3_EMBER_D);
   return e === 1 ? true : e === 0 ? false : null;
+}
+// EquipGameData sits a fixed 664 bytes past the stat anchor; armour handles at
+// +0x20..+0x2C, head-to-toe. See sl2_to_md.py DS3_EQUIP_D / DS3_ARMOR_SLOTS.
+const DS3_EQUIP_D = 664;
+const DS3_ARMOR_SLOTS = [["Head", 0x20], ["Chest", 0x24], ["Hands", 0x28], ["Legs", 0x2C]];
+// Ring slots +0x34..+0x40; a ring's handle encodes its id (type nibble 0xA -> 0x2).
+// See sl2_to_md.py DS3_RING_SLOTS / ds3_equipped_rings.
+const DS3_RING_SLOTS = [0x34, 0x38, 0x3C, 0x40];
+const DS3_RING_ID_MASK = 0x0FFFFFFF, DS3_RING_ID_TYPE = 0x20000000;
+// Ammo (arrow/bolt) slots +0x08..+0x14, GaItem handles resolving to the bolts category.
+const DS3_AMMO_SLOTS = [0x08, 0x0C, 0x10, 0x14];
+// GaItem handle -> item id (same walk as the event-flag base). Keep in sync with Python.
+function ds3GaitemMap(buf) {
+  const map = new Map();
+  let off = DS3_GAITEM_START;
+  for (let n = 0; n < DS3_GAITEM_SLOTS; n++) {
+    const handle = u32(buf, off);
+    if (handle == null) break;
+    const iid = u32(buf, off + 4);
+    if (handle && iid) map.set(handle, iid);
+    const big = handle && DS3_GAITEM_TYPES_BIG.includes((handle & 0xF0000000) >>> 0);
+    off += big ? DS3_GAITEM_BIG : 8;
+  }
+  return map;
+}
+// Equipped armour (four protection slots), resolved through the GaItem map and
+// kept only where the handle lands on a real armour item (self-consistency gate).
+// Weapons/rings/covenant not read — their save layout differs from the runtime
+// tables and needs a swap differential. See sl2_to_md.py ds3_equipped_armor.
+function ds3EquippedArmor(buf, iddb, v) {
+  if (v == null) return {};
+  const hmap = ds3GaitemMap(buf), base = v + DS3_EQUIP_D, out = {};
+  for (const [slot, d] of DS3_ARMOR_SLOTS) {
+    const handle = u32(buf, base + d);
+    const iid = handle ? hmap.get(handle) : null;
+    const entry = iid != null ? iddb.get(iid) : null;
+    if (entry && entry[1] === "armors") out[slot] = entry[0];
+  }
+  return out;
+}
+// Equipped rings (up to four): the handle encodes the id (nibble 0xA -> 0x2), kept
+// only where it lands on a real rings item. Rings aren't in the GaItem array. See Python.
+function ds3EquippedRings(buf, iddb, v) {
+  if (v == null) return [];
+  const base = v + DS3_EQUIP_D, out = [];
+  for (const d of DS3_RING_SLOTS) {
+    const handle = u32(buf, base + d);
+    if (!handle) continue;
+    const iid = ((handle & DS3_RING_ID_MASK) | DS3_RING_ID_TYPE) >>> 0;
+    const entry = iddb.get(iid);
+    if (entry && entry[1] === "rings") out.push(entry[0]);
+  }
+  return out;
+}
+// Equipped ammo (arrow/bolt quiver slots), resolved via the GaItem map; kept only
+// where the handle lands on a bolts item. Weapons proper not read. See Python.
+function ds3EquippedAmmo(buf, iddb, v) {
+  if (v == null) return [];
+  const hmap = ds3GaitemMap(buf), base = v + DS3_EQUIP_D, out = [];
+  for (const d of DS3_AMMO_SLOTS) {
+    const handle = u32(buf, base + d);
+    const iid = handle ? hmap.get(handle) : null;
+    const entry = iid != null ? iddb.get(iid) : null;
+    if (entry && entry[1] === "bolts") out.push(entry[0]);
+  }
+  return out;
 }
 const ROSTER_PARAMS_DS3 = { menu: 10, occ: 4244, desc: 4254, stride: 554, namelen: 16 };
 // Play time (u32 seconds) sits in the roster descriptor, +38 past the name. See sl2_to_md.py.

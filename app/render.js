@@ -211,6 +211,22 @@ function characterCard(slot, ch) {
       el("p", { class: "hint", text: "A floor. Read from held souls, defeat flags, points you could not have passed otherwise, and NG+ clears (reaching NG+ proves every mandatory boss dead). A soul you already spent, with no flag, can still be missing." }), list]));
   }
 
+  const eqArmor = ch.equipped_armor || {}, eqRings = ch.equipped_rings || [], eqAmmo = ch.equipped_ammo || [];
+  if (Object.keys(eqArmor).length || eqRings.length || eqAmmo.length) {
+    const list = el("ul", { class: "items" });
+    for (const [slot, name] of Object.entries(eqArmor)) {
+      list.append(el("li", null, el("span", { class: "slot", text: `${slot}: ` }), name));
+    }
+    if (eqRings.length) {
+      list.append(el("li", null, el("span", { class: "slot", text: "Rings: " }), eqRings.join(", ")));
+    }
+    if (eqAmmo.length) {
+      list.append(el("li", null, el("span", { class: "slot", text: "Ammo: " }), eqAmmo.join(", ")));
+    }
+    card.append(section("Equipped", [
+      el("p", { class: "hint", text: "Worn gear from the equip slots. Weapons and covenant are not read yet." }), list]));
+  }
+
   const invCard = el("div", { class: "inv" });
   let any = false;
   for (const cat of CAT_ORDER) {

@@ -107,6 +107,15 @@ function mdCharacter(ch, slot) {
     L.push("");
   }
 
+  const armor = ch.equipped_armor || {}, rings = ch.equipped_rings || [], ammo = ch.equipped_ammo || [];
+  if (Object.keys(armor).length || rings.length || ammo.length) {
+    L.push("### Equipped  _(worn gear read from the equip slots — weapons & covenant not yet read)_", "");
+    for (const [slot, name] of Object.entries(armor)) L.push(`- **${slot}:** ${name}`);
+    if (rings.length) L.push(`- **Rings:** ${rings.join(", ")}`);
+    if (ammo.length) L.push(`- **Ammo:** ${ammo.join(", ")}`);
+    L.push("");
+  }
+
   L.push("### Inventory", "");
   for (const cat of CAT_ORDER) {
     const items = ch.inv[cat];

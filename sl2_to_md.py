@@ -1348,6 +1348,139 @@ def ds3_embered(buf, v):
     return True if e == 1 else False if e == 0 else None
 
 
+## @brief EquipGameData sits a fixed 664 bytes past the stat (Vigor) anchor —
+#  invariant across saves whose anchor itself moves (56124..75156 on the Joy
+#  ladder), so it is read at a fixed anchor-relative offset, not searched for.
+DS3_EQUIP_D = 664
+## @brief Armour sub-offsets inside EquipGameData (base +0x20..+0x2C), in the
+#  game's own head-to-toe order. Each holds a GaItem *handle*, not an id.
+DS3_ARMOR_SLOTS = OrderedDict(
+    [("Head", 0x20), ("Chest", 0x24), ("Hands", 0x28), ("Legs", 0x2C)])
+## @brief The four ring sub-offsets inside EquipGameData (base +0x34..+0x40).
+DS3_RING_SLOTS = (0x34, 0x38, 0x3C, 0x40)
+## @brief The ammo sub-offsets (Arrow 1 / Bolt 1 / Arrow 2 / Bolt 2) at base
+#  +0x08..+0x14 — GaItem handles like weapons/armour (arrows and bolts share the
+#  db's `bolts` category). Weapons proper (the hand slots) are NOT read: on the
+#  all-items mule their +0x00/+0x04 handles fall outside the GaItem array and the
+#  left-hand region reshapes into 16-byte records, so right/left labelling is
+#  unverifiable without a weapon-swap differential — omitted, not guessed.
+DS3_AMMO_SLOTS = (0x08, 0x0C, 0x10, 0x14)
+## @brief A ring's equip handle encodes its own id: the low 28 bits are shared
+#  and the type nibble is 0xA where the goods/ring id's is 0x2 — so the id is
+#  the handle with its top nibble rewritten to 2 (verified 4/4 on the Joy ring
+#  set: 0xa0004e20 → 0x20004e20 = Life Ring, etc.). Rings are NOT in the GaItem
+#  array (that array is weapons/armour only), which is why they need this direct
+#  transform instead of a handle lookup.
+DS3_RING_ID_MASK = 0x0FFFFFFF
+DS3_RING_ID_TYPE = 0x20000000
+
+
+##
+# @brief Map every GaItem *handle* to its item id by walking the GaItem array.
+# @details Equip slots reference items by handle; the array (same walk the
+# event-flag base uses) is the handle→id table. Big records (weapon/armour
+# types) are 60 bytes, everything else 8. Stops at the first unreadable slot.
+# @param buf The decrypted slot.
+# @return { handle: item_id } for every populated entry.
+def ds3_gaitem_map(buf):
+    out, off = {}, DS3_GAITEM_START
+    for _ in range(DS3_GAITEM_SLOTS):
+        handle = u32(buf, off)
+        if handle is None:
+            break
+        iid = u32(buf, off + 4)
+        if handle and iid:
+            out[handle] = iid
+        big = handle and (handle & 0xF0000000) in DS3_GAITEM_TYPES_BIG
+        off += DS3_GAITEM_BIG if big else 8
+    return out
+
+
+##
+# @brief Equipped armour (the four protection slots) from EquipGameData.
+# @details Reads the four handles at @ref DS3_ARMOR_SLOTS, resolves each
+# through the GaItem map, and keeps it only when it lands on a real *armour*
+# item — a self-consistency gate: an equipped piece is one you own, and the
+# category proves the slot read a protector and not a stray weapon/ring
+# handle. Verified across the Joy ladder, including a Northern→Fallen Knight
+# set change and a lone gauntlet swap, so the slots track real gear. Weapons,
+# rings and the covenant slot are NOT read: their save layout does not match
+# the runtime editor tables (the +0x50 slot holds a left-hand weapon, not the
+# covenant), and pinning them needs a swap differential — omitted, not guessed.
+# @param buf  The decrypted slot.
+# @param iddb The flat DS3 id lookup.
+# @param v    The stat anchor (None → feature off).
+# @return { slot: armour name } for each occupied, resolvable slot (may be empty).
+def ds3_equipped_armor(buf, iddb, v):
+    if v is None:
+        return {}
+    hmap = ds3_gaitem_map(buf)
+    base = v + DS3_EQUIP_D
+    out = OrderedDict()
+    for slot, d in DS3_ARMOR_SLOTS.items():
+        handle = u32(buf, base + d)
+        iid = hmap.get(handle) if handle else None
+        entry = iddb.get(iid) if iid else None
+        if entry and entry[1] == "armors":
+            out[slot] = entry[0]
+    return out
+
+
+##
+# @brief Equipped rings (up to four) from EquipGameData.
+# @details Each ring slot holds an accessory *handle* whose id is the handle
+# with its type nibble rewritten from 0xA to 0x2 (@ref DS3_RING_ID_TYPE) — rings
+# are not in the GaItem array, so this direct transform stands in for a lookup.
+# A slot is kept only when the derived id is a real *rings* item (self-consistency
+# gate). The transform also carries a ring's reinforcement, so a +N ring names
+# itself (the all-items mule reads "Ring of Steel Protection +3"). Verified across
+# the Joy ladder, tracking her 2→4 ring growth.
+# @param buf  The decrypted slot.
+# @param iddb The flat DS3 id lookup.
+# @param v    The stat anchor (None → feature off).
+# @return An ordered list of ring names (may be empty).
+def ds3_equipped_rings(buf, iddb, v):
+    if v is None:
+        return []
+    base = v + DS3_EQUIP_D
+    out = []
+    for d in DS3_RING_SLOTS:
+        handle = u32(buf, base + d)
+        if not handle:
+            continue
+        iid = (handle & DS3_RING_ID_MASK) | DS3_RING_ID_TYPE
+        entry = iddb.get(iid)
+        if entry and entry[1] == "rings":
+            out.append(entry[0])
+    return out
+
+
+##
+# @brief Equipped ammunition (the arrow/bolt quiver slots) from EquipGameData.
+# @details The four slots at @ref DS3_AMMO_SLOTS hold GaItem handles resolved
+# through the same handle→id map as armour; a slot is kept only when it lands on
+# a `bolts` item (the db's shared arrow/bolt category), which gates out an empty
+# or non-ammo slot. Verified on the Joy ladder (Standard Arrow/Bolt) and the
+# all-items mule (Millwood Greatarrow, Exploding Bolt, …).
+# @param buf  The decrypted slot.
+# @param iddb The flat DS3 id lookup.
+# @param v    The stat anchor (None → feature off).
+# @return An ordered list of ammo names (may be empty).
+def ds3_equipped_ammo(buf, iddb, v):
+    if v is None:
+        return []
+    hmap = ds3_gaitem_map(buf)
+    base = v + DS3_EQUIP_D
+    out = []
+    for d in DS3_AMMO_SLOTS:
+        handle = u32(buf, base + d)
+        iid = hmap.get(handle) if handle else None
+        entry = iddb.get(iid) if iid else None
+        if entry and entry[1] == "bolts":
+            out.append(entry[0])
+    return out
+
+
 ##
 # @brief Parse one DS3 slot into the unified dict (full tier where stats validate).
 # @details Inventory comes from the id-scan; the name is supplied by the caller
@@ -1379,6 +1512,9 @@ def ds3_parse(buf, iddb, name):
         "hp": u32(buf, v + DS3_HP_D) if v is not None else None,
         "fp": u32(buf, v + DS3_FP_D) if v is not None else None,
         "embered": ds3_embered(buf, v),
+        "equipped_armor": ds3_equipped_armor(buf, iddb, v),
+        "equipped_rings": ds3_equipped_rings(buf, iddb, v),
+        "equipped_ammo": ds3_equipped_ammo(buf, iddb, v),
         "boss_souls": find_boss_souls(goods), "key_items": find_key_goods(goods),
         "inv": inv, "unknown_count": 0,
     }
@@ -2055,6 +2191,16 @@ def md_for_character(ch, slot_no):
               "was consumed and isn't gated may still be missing)_", ""]
         for boss, srcs in ch["bosses"].items():
             L.append(f"- {boss}  _({', '.join(SRC[s] for s in srcs)})_")
+        L.append("")
+
+    if ch.get("equipped_armor") or ch.get("equipped_rings") or ch.get("equipped_ammo"):
+        L += ["### Equipped  _(worn gear read from the equip slots — weapons & "
+              "covenant not yet read)_", ""]
+        L += [f"- **{slot}:** {name}" for slot, name in ch.get("equipped_armor", {}).items()]
+        if ch.get("equipped_rings"):
+            L.append(f"- **Rings:** {', '.join(ch['equipped_rings'])}")
+        if ch.get("equipped_ammo"):
+            L.append(f"- **Ammo:** {', '.join(ch['equipped_ammo'])}")
         L.append("")
 
     L += ["### Inventory", ""]
