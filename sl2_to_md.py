@@ -1360,11 +1360,49 @@ DS3_ARMOR_SLOTS = OrderedDict(
 DS3_RING_SLOTS = (0x34, 0x38, 0x3C, 0x40)
 ## @brief The ammo sub-offsets (Arrow 1 / Bolt 1 / Arrow 2 / Bolt 2) at base
 #  +0x08..+0x14 — GaItem handles like weapons/armour (arrows and bolts share the
-#  db's `bolts` category). Weapons proper (the hand slots) are NOT read: on the
-#  all-items mule their +0x00/+0x04 handles fall outside the GaItem array and the
-#  left-hand region reshapes into 16-byte records, so right/left labelling is
-#  unverifiable without a weapon-swap differential — omitted, not guessed.
+#  db's `bolts` category).
 DS3_AMMO_SLOTS = (0x08, 0x0C, 0x10, 0x14)
+## @brief The six weapon sub-offsets, in the game's own two-hand-by-slot order.
+#  The struct interleaves the hands (LH1, RH1, LH2, RH2, LH3, RH3) starting
+#  0x10 BEFORE the armour base — so relative to @ref DS3_EQUIP_D the right hand
+#  is -0x0C/-0x04/+0x04 and the left is -0x10/-0x08/+0x00. Each holds a GaItem
+#  *handle*, resolved through the same map as armour/ammo. Pinned by a real
+#  weapon-swap differential (a Deep Battle Axe moved right→left read out at
+#  RH1 then LH1, everything else unchanged), retiring the old "hand slots
+#  unverifiable" blocker. The id carries the infusion (Deep = base+900), so an
+#  infused weapon names itself; the +N reinforcement lives in the 52-byte
+#  weapon record and is still not read.
+DS3_WEAPON_SLOTS = OrderedDict(
+    [("Right Hand", -0x0C), ("Right Hand 2", -0x04), ("Right Hand 3", 0x04),
+     ("Left Hand", -0x10), ("Left Hand 2", -0x08), ("Left Hand 3", 0x00)])
+## @brief Item id of the default bare fist (an empty weapon slot reads this, not
+#  a null handle), so a slot resolving to it is skipped as "unarmed".
+DS3_FISTS = 110000
+## @brief Max reinforcement level, a sanity bound on the id-baked "+N".
+DS3_REINF_MAX = 10
+
+
+##
+# @brief Resolve an equipped DS3 weapon id to a name, unwrapping the baked "+N".
+# @details The GaItem array stores a weapon at its EXACT id, and reinforcement is
+# folded into that id as @c base+infusion*100+level (the same scheme DS1 uses; a
+# Deep Battle Axe +0/+1 read out as 7010900/7010901). Unlike DS1, the DS3 db keys
+# every infusion by name (7010900 → "Deep Battle Axe"), so only the LEVEL (the
+# units) is stripped — the base-infusion id already carries the infusion name. A
+# direct hit wins; otherwise the level is peeled off and a " +N" suffix appended.
+# The infusion itself is thus named for free; the level shows when > 0.
+# @param iddb The flat DS3 id lookup.
+# @param iid  The exact equipped-weapon id.
+# @return The display name, or None if it is not a (base) weapon.
+def ds3_resolve_weapon(iddb, iid):
+    entry = iddb.get(iid)
+    if entry and entry[1] == "weapons":
+        return entry[0]
+    level = iid % 100
+    if not 1 <= level <= DS3_REINF_MAX:
+        return None
+    base = iddb.get(iid - level)
+    return f"{base[0]} +{level}" if base and base[1] == "weapons" else None
 ## @brief A ring's equip handle encodes its own id: the low 28 bits are shared
 #  and the type nibble is 0xA where the goods/ring id's is 0x2 — so the id is
 #  the handle with its top nibble rewritten to 2 (verified 4/4 on the Joy ring
@@ -1393,6 +1431,36 @@ def ds3_gaitem_map(buf):
             out[handle] = iid
         big = handle and (handle & 0xF0000000) in DS3_GAITEM_TYPES_BIG
         off += DS3_GAITEM_BIG if big else 8
+    return out
+
+
+##
+# @brief Equipped weapons (up to three per hand) from EquipGameData.
+# @details Reads the six handles at @ref DS3_WEAPON_SLOTS, resolves each through
+# the GaItem map, and keeps a slot only when it lands on a real *weapons* item
+# that is not the bare @ref DS3_FISTS (an empty hand reads Fists, not a null
+# handle). Right/left labelling is verified by a weapon-swap differential; the
+# resolved id carries both the infusion (a Deep weapon names itself) and the
+# reinforcement, which @ref ds3_resolve_weapon peels off as a " +N" suffix
+# (verified by a Deep Battle Axe +0→+1 differential: id 7010900 → 7010901).
+# @param buf  The decrypted slot.
+# @param iddb The flat DS3 id lookup.
+# @param v    The stat anchor (None → feature off).
+# @return { slot label: weapon name } for each occupied, resolvable slot.
+def ds3_equipped_weapons(buf, iddb, v):
+    if v is None:
+        return {}
+    hmap = ds3_gaitem_map(buf)
+    base = v + DS3_EQUIP_D
+    out = OrderedDict()
+    for slot, d in DS3_WEAPON_SLOTS.items():
+        handle = u32(buf, base + d)
+        iid = hmap.get(handle) if handle else None
+        if not iid or iid == DS3_FISTS:
+            continue
+        name = ds3_resolve_weapon(iddb, iid)
+        if name:
+            out[slot] = name
     return out
 
 
@@ -1512,6 +1580,7 @@ def ds3_parse(buf, iddb, name):
         "hp": u32(buf, v + DS3_HP_D) if v is not None else None,
         "fp": u32(buf, v + DS3_FP_D) if v is not None else None,
         "embered": ds3_embered(buf, v),
+        "equipped_weapons": ds3_equipped_weapons(buf, iddb, v),
         "equipped_armor": ds3_equipped_armor(buf, iddb, v),
         "equipped_rings": ds3_equipped_rings(buf, iddb, v),
         "equipped_ammo": ds3_equipped_ammo(buf, iddb, v),
@@ -2193,9 +2262,11 @@ def md_for_character(ch, slot_no):
             L.append(f"- {boss}  _({', '.join(SRC[s] for s in srcs)})_")
         L.append("")
 
-    if ch.get("equipped_armor") or ch.get("equipped_rings") or ch.get("equipped_ammo"):
-        L += ["### Equipped  _(worn gear read from the equip slots — weapons & "
-              "covenant not yet read)_", ""]
+    if ch.get("equipped_weapons") or ch.get("equipped_armor") or \
+            ch.get("equipped_rings") or ch.get("equipped_ammo"):
+        L += ["### Equipped  _(worn gear read from the equip slots — covenant "
+              "not yet read)_", ""]
+        L += [f"- **{slot}:** {name}" for slot, name in ch.get("equipped_weapons", {}).items()]
         L += [f"- **{slot}:** {name}" for slot, name in ch.get("equipped_armor", {}).items()]
         if ch.get("equipped_rings"):
             L.append(f"- **Rings:** {', '.join(ch['equipped_rings'])}")

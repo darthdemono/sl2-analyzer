@@ -515,6 +515,7 @@ function ds3Parse(buf, iddb, name) {
     hp: has ? u32(buf, v + DS3_HP_D) : null,
     fp: has ? u32(buf, v + DS3_FP_D) : null,
     embered: ds3Embered(buf, v),
+    equipped_weapons: ds3EquippedWeapons(buf, iddb, v),
     equipped_armor: ds3EquippedArmor(buf, iddb, v),
     equipped_rings: ds3EquippedRings(buf, iddb, v),
     equipped_ammo: ds3EquippedAmmo(buf, iddb, v),
@@ -538,6 +539,26 @@ const DS3_RING_SLOTS = [0x34, 0x38, 0x3C, 0x40];
 const DS3_RING_ID_MASK = 0x0FFFFFFF, DS3_RING_ID_TYPE = 0x20000000;
 // Ammo (arrow/bolt) slots +0x08..+0x14, GaItem handles resolving to the bolts category.
 const DS3_AMMO_SLOTS = [0x08, 0x0C, 0x10, 0x14];
+// Weapon slots: the struct interleaves the hands (LH1,RH1,LH2,RH2,LH3,RH3) starting
+// 0x10 before the armour base, so right = -0xC/-0x4/+0x4, left = -0x10/-0x8/+0x0.
+// Pinned by a weapon-swap differential; the id carries the infusion, not the +N.
+// See sl2_to_md.py DS3_WEAPON_SLOTS / ds3_equipped_weapons.
+const DS3_WEAPON_SLOTS = [["Right Hand", -0x0C], ["Right Hand 2", -0x04], ["Right Hand 3", 0x04],
+  ["Left Hand", -0x10], ["Left Hand 2", -0x08], ["Left Hand 3", 0x00]];
+// Bare-fist id: an empty weapon slot reads this, not a null handle, so skip it.
+const DS3_FISTS = 110000;
+// Reinforcement is baked into the equipped weapon id as base+infusion*100+level
+// (Deep Battle Axe +0/+1 = 7010900/7010901); DS3's db keys each infusion by name,
+// so only the level (units, 1..10) is peeled off as a " +N" suffix. See Python.
+const DS3_REINF_MAX = 10;
+function ds3ResolveWeapon(iddb, iid) {
+  const entry = iddb.get(iid);
+  if (entry && entry[1] === "weapons") return entry[0];
+  const level = iid % 100;
+  if (level < 1 || level > DS3_REINF_MAX) return null;
+  const base = iddb.get(iid - level);
+  return base && base[1] === "weapons" ? `${base[0]} +${level}` : null;
+}
 // GaItem handle -> item id (same walk as the event-flag base). Keep in sync with Python.
 function ds3GaitemMap(buf) {
   const map = new Map();
@@ -552,10 +573,26 @@ function ds3GaitemMap(buf) {
   }
   return map;
 }
+// Equipped weapons (up to three per hand), resolved through the GaItem map; kept
+// only where the handle lands on a real weapons item that is not the bare Fists
+// (an empty hand reads Fists). Right/left verified by a weapon-swap differential.
+// See sl2_to_md.py ds3_equipped_weapons.
+function ds3EquippedWeapons(buf, iddb, v) {
+  if (v == null) return {};
+  const hmap = ds3GaitemMap(buf), base = v + DS3_EQUIP_D, out = {};
+  for (const [slot, d] of DS3_WEAPON_SLOTS) {
+    const handle = u32(buf, base + d);
+    const iid = handle ? hmap.get(handle) : null;
+    if (!iid || iid === DS3_FISTS) continue;
+    const name = ds3ResolveWeapon(iddb, iid);
+    if (name) out[slot] = name;
+  }
+  return out;
+}
 // Equipped armour (four protection slots), resolved through the GaItem map and
 // kept only where the handle lands on a real armour item (self-consistency gate).
-// Weapons/rings/covenant not read — their save layout differs from the runtime
-// tables and needs a swap differential. See sl2_to_md.py ds3_equipped_armor.
+// Rings/covenant not read — their save layout differs from the runtime tables.
+// See sl2_to_md.py ds3_equipped_armor.
 function ds3EquippedArmor(buf, iddb, v) {
   if (v == null) return {};
   const hmap = ds3GaitemMap(buf), base = v + DS3_EQUIP_D, out = {};
