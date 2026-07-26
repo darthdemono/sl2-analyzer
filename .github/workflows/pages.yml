@@ -1,0 +1,45 @@
+name: Deploy web app to GitHub Pages
+
+# The site is static: index.html + app/*.js + the db_*/ JSON tables, served from
+# the repo root exactly as they sit on disk (.nojekyll keeps Pages from touching
+# app/ and db_*/). So "build" is just packaging the checkout.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race; queue instead of cancelling, so a push mid-deploy
+# still ends up published.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      - name: Package the repo root
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      # After packaging on purpose: py_compile drops a __pycache__ that would
+      # otherwise ride along into the artifact.
+      - name: Syntax-check the Python CLI
+        run: python3 -m py_compile sl2_to_md.py
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
