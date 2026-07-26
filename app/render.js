@@ -200,7 +200,21 @@ function characterCard(slot, ch) {
     const total = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0), n = ch.bonfire_areas.length;
     card.append(section(`Bonfires Discovered (${total} across ${n} area${n !== 1 ? "s" : ""})`, [
       el("p", { class: "hint", text: "Bonfires lit, inferred from each area's flag bits. A floor on how far you got." }),
-      el("ul", { class: "items cols" }, ...ch.bonfire_areas.map(([name, c]) => el("li", { text: `${name} (${c})` })))]));
+      el("ul", { class: "items cols" }, ...ch.bonfire_areas.map(([name, c, named]) => {
+        if (named && named.length) {
+          const extra = c - named.length;
+          return el("li", { text: `${name}: ${named.join(", ")}${extra ? ` (+${extra} more)` : ""}` });
+        }
+        return el("li", { text: `${name} (${c})` });
+      }))]));
+  }
+  if (ch.questlines && Object.keys(ch.questlines).length) {
+    const list = el("ul", { class: "items" });
+    for (const [src, rw] of Object.entries(ch.questlines)) {
+      list.append(el("li", null, el("span", { class: "slot", text: `${src}: ` }), rw.join(", ")));
+    }
+    card.append(section("NPC Questlines", [
+      el("p", { class: "hint", text: "Rewards received from NPCs — a progress floor for each questline." }), list]));
   }
   if (ch.bosses && Object.keys(ch.bosses).length) {
     const list = el("ul", { class: "items bosses" });

@@ -1,0 +1,623 @@
+{
+ "Untended Graves": [
+  [
+   86640,
+   3,
+   "Eyes of a Fire Keeper"
+  ]
+ ],
+ "Anri of Astora": [
+  [
+   86639,
+   1,
+   "Anri's Straight Sword"
+  ],
+  [
+   86659,
+   1,
+   "Ring of the Evil Eye"
+  ]
+ ],
+ "Ludleth of Courland": [
+  [
+   86639,
+   0,
+   "Skull Ring"
+  ]
+ ],
+ "Yuria of Londor": [
+  [
+   86645,
+   7,
+   "Morion Blade"
+  ],
+  [
+   86645,
+   6,
+   "Darkdrift"
+  ],
+  [
+   86645,
+   5,
+   "Billed Mask - Lord of Hollow reward"
+  ],
+  [
+   86645,
+   4,
+   "Yuria's Ashes"
+  ],
+  [
+   86662,
+   4,
+   "Londor Braille Divine Tome"
+  ]
+ ],
+ "Company Captain Yorshka": [
+  [
+   86643,
+   3,
+   "Yorshka's Chime"
+  ]
+ ],
+ "Hawkwood the Deserter": [
+  [
+   86650,
+   1,
+   "Heavy Gem"
+  ]
+ ],
+ "Archdragon Peak": [
+  [
+   86650,
+   0,
+   "Twinkling Dragon Torso Stone - Pray at Altar"
+  ]
+ ],
+ "Hawkwood": [
+  [
+   86649,
+   7,
+   "Twinkling Dragon Head Stone"
+  ],
+  [
+   86649,
+   6,
+   "Farron Ring"
+  ],
+  [
+   86649,
+   5,
+   "Hawkwood's Shield"
+  ]
+ ],
+ "Sirris of the Sunless Realms": [
+  [
+   86648,
+   7,
+   "Blessed Mail Breaker"
+  ],
+  [
+   86648,
+   6,
+   "Sunset Shield"
+  ],
+  [
+   86648,
+   5,
+   "Sunless Talisman"
+  ],
+  [
+   86648,
+   4,
+   "Sunset Helm"
+  ]
+ ],
+ "Ringfinger Leonhard": [
+  [
+   86647,
+   5,
+   "Cracked Red Eye Orb"
+  ],
+  [
+   86647,
+   4,
+   "Lift Chamber Key"
+  ],
+  [
+   86647,
+   3,
+   "Black Eye Orb"
+  ],
+  [
+   86647,
+   2,
+   "Silver Mask"
+  ]
+ ],
+ "Andre": [
+  [
+   86654,
+   3,
+   "Hawkwood's Swordgrass"
+  ]
+ ],
+ "Shrine Handmaid": [
+  [
+   86653,
+   1,
+   "Priestess Ring"
+  ]
+ ],
+ "Greirat of the Undead Settlement": [
+  [
+   86651,
+   7,
+   "Blue Tearstone Ring"
+  ],
+  [
+   86651,
+   6,
+   "Greirat's Ashes"
+  ]
+ ],
+ "Orbeck of Vinheim": [
+  [
+   86658,
+   5,
+   "Young Dragon Ring"
+  ],
+  [
+   86658,
+   4,
+   "Slumbering Dragoncrest Ring"
+  ],
+  [
+   86658,
+   3,
+   "Orbeck's Ashes"
+  ]
+ ],
+ "Cornyx of the Great Swamp": [
+  [
+   86657,
+   3,
+   "Pyromancy Flame"
+  ],
+  [
+   86657,
+   2,
+   "Old Sage's Blindfold"
+  ],
+  [
+   86657,
+   1,
+   "Cornyx's Ashes"
+  ]
+ ],
+ "Karla": [
+  [
+   86656,
+   1,
+   "Karla's Pointed Hat"
+  ],
+  [
+   86656,
+   0,
+   "Karla's Ashes"
+  ]
+ ],
+ "Irina of Carim": [
+  [
+   86662,
+   7,
+   "Tower Key"
+  ],
+  [
+   86662,
+   3,
+   "Irina's Ashes"
+  ]
+ ],
+ "Undead Settlement": [
+  [
+   86662,
+   6,
+   "Saint's Talisman"
+  ]
+ ],
+ "Cathedral of the Deep": [
+  [
+   86662,
+   5,
+   "Deep Braille Divine Tome - Mimic drop"
+  ]
+ ],
+ "Eygon of Carim": [
+  [
+   86661,
+   5,
+   "Morne's Great Hammer"
+  ]
+ ],
+ "Yoel of Londor": [
+  [
+   86666,
+   6,
+   "Dark Sigil"
+  ]
+ ],
+ "Unbreakable Patches": [
+  [
+   86665,
+   5,
+   "Winged Spear"
+  ],
+  [
+   86665,
+   4,
+   "Patches' Ashes"
+  ]
+ ],
+ "Siegward of Catarina": [
+  [
+   86664,
+   5,
+   "Siegbräu"
+  ],
+  [
+   86664,
+   4,
+   "Siegbräu"
+  ],
+  [
+   86664,
+   3,
+   "Siegbräu"
+  ],
+  [
+   86664,
+   2,
+   "Kukri"
+  ],
+  [
+   86664,
+   1,
+   "Emit Force"
+  ],
+  [
+   86664,
+   0,
+   "Titanite Slab"
+  ],
+  [
+   86663,
+   7,
+   "Storm Ruler"
+  ],
+  [
+   86663,
+   6,
+   "Catarina Helm"
+  ],
+  [
+   86663,
+   5,
+   "Storm Ruler"
+  ]
+ ],
+ "High Priestess Emma": [
+  [
+   86670,
+   1,
+   "Basin of Vows"
+  ],
+  [
+   86669,
+   7,
+   "Small Lothric Banner"
+  ]
+ ],
+ "Giant": [
+  [
+   86667,
+   5,
+   "Young White Branch"
+  ],
+  [
+   86667,
+   4,
+   "Hawk Ring"
+  ]
+ ],
+ "Horace the Hushed": [
+  [
+   86674,
+   3,
+   "Llewellyn Shield"
+  ]
+ ],
+ "Londor Pilgrim": [
+  [
+   86677,
+   3,
+   "Chameleon"
+  ],
+  [
+   86677,
+   2,
+   "Sword of Avowal"
+  ]
+ ],
+ "Drowsy Forlorn": [
+  [
+   86676,
+   0,
+   "Homeward Bone"
+  ]
+ ],
+ "Sir Vilhelm": [
+  [
+   86705,
+   7,
+   "Contraption Key"
+  ],
+  [
+   86705,
+   6,
+   "Onyx Blade"
+  ]
+ ],
+ "Forlorn Corvian Settler": [
+  [
+   86703,
+   3,
+   "Titanite Slab"
+  ]
+ ],
+ "Sister Friede": [
+  [
+   86710,
+   1,
+   "Chillbite Ring"
+  ]
+ ],
+ "Amnesiac Lapp": [
+  [
+   86717,
+   3,
+   "Siegbräu"
+  ],
+  [
+   86717,
+   2,
+   "Titanite Slab"
+  ],
+  [
+   86717,
+   1,
+   "Siegbräu"
+  ],
+  [
+   86717,
+   0,
+   "Champion's Bones"
+  ],
+  [
+   86716,
+   7,
+   "Lapp's Helm"
+  ]
+ ],
+ "Shira, Knight of Filianore": [
+  [
+   86716,
+   1,
+   "Sacred Chime of Filianore"
+  ],
+  [
+   86716,
+   0,
+   "Titanite Slab"
+  ],
+  [
+   86715,
+   7,
+   "Crucifix of the Mad King"
+  ],
+  [
+   86757,
+   4,
+   "Crucifix of the Mad King"
+  ]
+ ],
+ "Stone-humped Hag": [
+  [
+   86720,
+   3,
+   "Old Woman's Ashes"
+  ]
+ ],
+ "Black Hand Gotthard": [
+  [
+   86723,
+   3,
+   "Grand Archives Key"
+  ]
+ ],
+ "Black Hand Kamui": [
+  [
+   86730,
+   6,
+   "Onikiri and Ubadachi"
+  ]
+ ],
+ "Havel the Rock": [
+  [
+   86730,
+   1,
+   "Dragon Tooth"
+  ]
+ ],
+ "Sword Master": [
+  [
+   86728,
+   7,
+   "Uchigatana"
+  ]
+ ],
+ "Brigand": [
+  [
+   86727,
+   5,
+   "Spider Shield"
+  ]
+ ],
+ "Drakeblood Knight": [
+  [
+   86734,
+   3,
+   "Drakeblood Greatsword"
+  ]
+ ],
+ "Rapier Champion": [
+  [
+   86733,
+   1,
+   "Ricard's Rapier"
+  ]
+ ],
+ "Exile Watchdog": [
+  [
+   86731,
+   7,
+   "Exile Greatsword"
+  ],
+  [
+   86738,
+   5,
+   "Great Club"
+  ]
+ ],
+ "Yellowfinger Heysel": [
+  [
+   86737,
+   3,
+   "Heysel Pick"
+  ]
+ ],
+ "Londor Pale Shade": [
+  [
+   86736,
+   1,
+   "Manikin Claws"
+  ]
+ ],
+ "Lion Knight Albert": [
+  [
+   86742,
+   7,
+   "Golden Wing Crest Shield"
+  ]
+ ],
+ "Daughter of Crystal Kriemhild": [
+  [
+   86741,
+   5,
+   "Sage's Crystal Staff"
+  ]
+ ],
+ "Court Sorcerer": [
+  [
+   86740,
+   3,
+   "Logan's Scroll"
+  ]
+ ],
+ "Drang Knight": [
+  [
+   86739,
+   1,
+   "Drang Twinspears"
+  ]
+ ],
+ "Knight Slayer Tsorig": [
+  [
+   86745,
+   7,
+   "Knight Slayer's Ring"
+  ],
+  [
+   86745,
+   2,
+   "Fume Ultra Greatsword"
+  ]
+ ],
+ "Creighton the Wanderer": [
+  [
+   86744,
+   5,
+   "Dragonslayer's Axe"
+  ]
+ ],
+ "Alva, Seeker of the Spurned": [
+  [
+   86743,
+   3,
+   "Murakumo"
+  ],
+  [
+   86761,
+   5,
+   "Wolf Ring+3"
+  ]
+ ],
+ "Longfinger Kirk": [
+  [
+   86750,
+   1,
+   "Barbed Straight Sword"
+  ]
+ ],
+ "Isabella the Mad": [
+  [
+   86748,
+   7,
+   "Butcher Knife"
+  ]
+ ],
+ "Livid Pyromancer Dunnel": [
+  [
+   86751,
+   7,
+   "Floating Chaos"
+  ]
+ ],
+ "Unk": [
+  [
+   86757,
+   3,
+   "White Birch Bow"
+  ]
+ ],
+ "Desert Pyromancer Zoey": [
+  [
+   86756,
+   1,
+   "Flame Fan"
+  ]
+ ],
+ "Silver Knight Ledo": [
+  [
+   86762,
+   7,
+   "Ledo's Great Hammer"
+  ]
+ ],
+ "Moaning Knight": [
+  [
+   86760,
+   3,
+   "Blindfold Mask"
+  ]
+ ]
+}

@@ -1,0 +1,415 @@
+{
+ "High Wall of Lothric": [
+  [
+   3954,
+   6,
+   "Oceiros, the Consumed King"
+  ],
+  [
+   3954,
+   5,
+   "Vordt of the Boreal Valley"
+  ],
+  [
+   3954,
+   3,
+   "Dancer of the Boreal Valley"
+  ],
+  [
+   3954,
+   2,
+   "Tower on the Wall"
+  ],
+  [
+   3953,
+   6,
+   "High Wall of Lothric"
+  ]
+ ],
+ "Lothric Castle": [
+  [
+   5234,
+   7,
+   "Lothric Castle"
+  ],
+  [
+   5234,
+   6,
+   "Dragonslayer Armour"
+  ],
+  [
+   5234,
+   5,
+   "Dragon Barracks"
+  ],
+  [
+   14194,
+   7,
+   "Twin Princes"
+  ],
+  [
+   14194,
+   6,
+   "Grand Archives"
+  ]
+ ],
+ "Undead Settlement": [
+  [
+   6514,
+   7,
+   "Undead Settlement"
+  ],
+  [
+   6514,
+   6,
+   "Pit of Hollows"
+  ],
+  [
+   6514,
+   5,
+   "Cliff Underside"
+  ],
+  [
+   6514,
+   4,
+   "Dilapidated Bridge"
+  ],
+  [
+   6514,
+   3,
+   "Foot of the High Wall"
+  ]
+ ],
+ "Archdragon Peak": [
+  [
+   9074,
+   7,
+   "Archdragon Peak"
+  ],
+  [
+   9074,
+   6,
+   "Nameless King"
+  ],
+  [
+   9074,
+   5,
+   "Great Belfry"
+  ],
+  [
+   9074,
+   4,
+   "Dragon-Kin Mausoleum"
+  ]
+ ],
+ "Road of Sacrifices": [
+  [
+   11634,
+   7,
+   "Halfway Fortress"
+  ],
+  [
+   11634,
+   6,
+   "Abyss Watchers"
+  ],
+  [
+   11634,
+   5,
+   "Crystal Sage"
+  ],
+  [
+   11634,
+   4,
+   "Farron Keep"
+  ],
+  [
+   11634,
+   3,
+   "Keep Ruins"
+  ],
+  [
+   11634,
+   2,
+   "Old Wolf of Farron"
+  ],
+  [
+   11634,
+   1,
+   "Road of Sacrifices"
+  ],
+  [
+   11634,
+   0,
+   "Crucifixion Woods"
+  ],
+  [
+   11633,
+   7,
+   "Farron Keep Perimeter"
+  ]
+ ],
+ "Cathedral of the Deep": [
+  [
+   15474,
+   7,
+   "Cleansing Chapel"
+  ],
+  [
+   15474,
+   6,
+   "Deacons of the Deep"
+  ],
+  [
+   15474,
+   5,
+   "Rosaria's Bed Chamber"
+  ],
+  [
+   15474,
+   4,
+   "Cathedral of the Deep"
+  ]
+ ],
+ "Irithyll of the Boreal Valley": [
+  [
+   19314,
+   7,
+   "Church of Yorshka"
+  ],
+  [
+   19314,
+   6,
+   "Pontiff Sulyvahn"
+  ],
+  [
+   19314,
+   5,
+   "Aldrich, Devourer of Gods"
+  ],
+  [
+   19314,
+   4,
+   "Anor Londo"
+  ],
+  [
+   19314,
+   3,
+   "Central Irithyll"
+  ],
+  [
+   19314,
+   2,
+   "Distant Manor"
+  ],
+  [
+   19314,
+   1,
+   "Water Reserve"
+  ],
+  [
+   19314,
+   0,
+   "Irithyll of the Boreal Valley"
+  ],
+  [
+   19313,
+   7,
+   "Prison Tower"
+  ]
+ ],
+ "Catacombs of Carthus": [
+  [
+   20594,
+   7,
+   "High Lord Wolnir"
+  ],
+  [
+   20594,
+   6,
+   "Abandoned Tomb"
+  ],
+  [
+   20594,
+   5,
+   "Old King's Antechamber"
+  ],
+  [
+   20594,
+   4,
+   "Demon Ruins"
+  ],
+  [
+   20594,
+   3,
+   "Old Demon King"
+  ],
+  [
+   20594,
+   1,
+   "Catacombs of Carthus"
+  ]
+ ],
+ "Irithyll Dungeon": [
+  [
+   21874,
+   7,
+   "Irithyll Dungeon"
+  ],
+  [
+   21874,
+   6,
+   "Yhorm the Giant"
+  ],
+  [
+   21874,
+   5,
+   "Profaned Capital"
+  ]
+ ],
+ "Cemetery of Ash": [
+  [
+   23154,
+   7,
+   "Firelink Shrine"
+  ],
+  [
+   23154,
+   6,
+   "Cemetery of Ash"
+  ],
+  [
+   23154,
+   5,
+   "Iudex Gundyr"
+  ],
+  [
+   23154,
+   4,
+   "Untended Graves"
+  ],
+  [
+   23154,
+   3,
+   "Champion Gundyr"
+  ]
+ ],
+ "Kiln of the First Flame": [
+  [
+   24434,
+   7,
+   "Flameless Shrine"
+  ],
+  [
+   24434,
+   6,
+   "Kiln of the First Flame"
+  ]
+ ],
+ "The Painted World of Ariandel": [
+  [
+   25714,
+   7,
+   "Sister Friede"
+  ],
+  [
+   25714,
+   6,
+   "Snowfield"
+  ],
+  [
+   25714,
+   5,
+   "Rope Bridge Cave"
+  ],
+  [
+   25714,
+   4,
+   "Corvian Settlement"
+  ],
+  [
+   25714,
+   3,
+   "Snowy Mountain Pass"
+  ],
+  [
+   25714,
+   2,
+   "Ariandel Chapel"
+  ],
+  [
+   25714,
+   1,
+   "Champion's Gravetender"
+  ],
+  [
+   25714,
+   0,
+   "Depths of the Painting"
+  ]
+ ],
+ "The Dreg Heap": [
+  [
+   29554,
+   7,
+   "The Demon Prince"
+  ],
+  [
+   29554,
+   6,
+   "The Dreg Heap"
+  ],
+  [
+   29554,
+   5,
+   "Earthen Peak Ruins"
+  ],
+  [
+   29554,
+   4,
+   "Within the Earthen Peak Ruins"
+  ]
+ ],
+ "The Ringed City": [
+  [
+   30834,
+   7,
+   "Church of Filianore"
+  ],
+  [
+   30834,
+   6,
+   "Darkeater Midir"
+  ],
+  [
+   30834,
+   5,
+   "Mausoleum Lookout"
+  ],
+  [
+   30834,
+   4,
+   "Ringed Inner Wall"
+  ],
+  [
+   30834,
+   3,
+   "Ringed City Streets"
+  ],
+  [
+   30834,
+   2,
+   "Shared Grave"
+  ],
+  [
+   32114,
+   7,
+   "Slave Knight Gael"
+  ],
+  [
+   32114,
+   6,
+   "Filianore's Rest"
+  ]
+ ]
+}

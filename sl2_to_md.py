@@ -825,6 +825,61 @@ def load_ds2_bonfires(base_dir):
     return _DS2_BONFIRE_CACHE[base_dir]
 
 
+## @brief Load the DS3 bonfire table (db_ds3/bonfires.json): area → list of
+#  @c [distance, bit, name], one entry per bonfire. Distance is from the event-flag
+#  base, bit is within that byte. Generated from the SoulSplitter/TGA flag list via
+#  the confirmed flag-id→bit formula (each bonfire flag `f`: group `f//1000`,
+#  `n=f%1000`, byte `= (n>>5)*4 + 3-((n&31)>>3)`, bit `= 7-(n&7)`; save distance =
+#  memory byte + 111, one constant delta verified across all 16 groups against real
+#  saves). Cached. Returns {} if absent.
+_DS3_BONFIRE_CACHE = {}
+def load_ds3_bonfires(base_dir):
+    if base_dir not in _DS3_BONFIRE_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "bonfires.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_BONFIRE_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_BONFIRE_CACHE[base_dir] = {}
+    return _DS3_BONFIRE_CACHE[base_dir]
+
+
+## @brief Load the DS3 boss-defeat flag table (db_ds3/boss_flags.json): boss name →
+#  @c [distance, bit] of its single "boss dead" event flag (the @c 13xxxx8xx per-map
+#  flag). Generated from the SoulSplitter boss list via the same flag-id→bit formula as
+#  bonfires; every offset independently reproduced the old hand-checked table, so a set
+#  bit is a certain kill. Cached. Returns {} if absent.
+_DS3_BOSS_CACHE = {}
+def load_ds3_boss_flags(base_dir):
+    if base_dir not in _DS3_BOSS_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "boss_flags.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_BOSS_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_BOSS_CACHE[base_dir] = {}
+    return _DS3_BOSS_CACHE[base_dir]
+
+
+## @brief Load the DS3 NPC-questline table (db_ds3/questlines.json): NPC/source →
+#  list of @c [distance, bit, reward] — one per reward that NPC hands out, each a
+#  "you received this" event flag in the common group 50006. The group-50006 save
+#  base (86639, region-relative) was derived empirically from a Hawkwood Heavy-Gem
+#  differential (the map-flag `k*0x500` bases don't cover the common groups) and
+#  verified against a real save. A set flag means that reward was obtained — a
+#  questline-progress floor. Cached. Returns {} if absent.
+_DS3_QUEST_CACHE = {}
+def load_ds3_questlines(base_dir):
+    if base_dir not in _DS3_QUEST_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "questlines.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_QUEST_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_QUEST_CACHE[base_dir] = {}
+    return _DS3_QUEST_CACHE[base_dir]
+
+
 ## @brief Load the DS2 boss-defeat flag table (db_ds2/boss_flags.json, world-block
 #  byte offset as hex → boss name). Cached. Returns {} if the file is absent.
 _DS2_BOSS_CACHE = {}
@@ -1257,6 +1312,17 @@ DS3_LEVEL_BASE = 89
 ## @brief Shortest run of consecutive records that counts as real inventory. Long
 #         enough to shrug off a stray id landing in unrelated data.
 SCAN_MIN_RUN = 3
+## @brief Largest gap (bytes) a run may bridge. The inventory is a 16-byte record
+#  grid, but records holding an UNTABLED id (not in our db) leave holes, so two
+#  known records can sit 32/48 bytes apart with the hole(s) between them. Bridging
+#  a gap that is a multiple of @c DS3_RECORD up to this bound keeps such a run
+#  whole, so an item flanked by unknowns on both sides (an island the strict
+#  stride-16 rule dropped) is still read. Observed holes are single-record (gap
+#  32); the extra record of slack tolerates a rare double hole. Kept small so the
+#  run can't leap to unrelated on-grid coincidences. (Found via a Soul of a Stray
+#  Demon that read out present in the buffer but vanished from the list, wedged
+#  between two untabled items.)
+DS3_MAX_RUN_GAP = 48
 
 
 ##
@@ -1279,11 +1345,12 @@ def load_scan_db(db_dir, files):
 
 ##
 # @brief Find inventory by scanning for known item ids in fixed-size records.
-# @details Collects every offset whose uint32 is a known id, groups those that sit
-# one record apart into runs, and keeps runs of at least @c SCAN_MIN_RUN. Each
-# surviving record contributes its id and quantity. Duplicate ids are summed. A
-# quantity outside a sane range drops the record — a cheap guard against a false
-# run of look-alike bytes.
+# @details Collects every offset whose uint32 is a known id, groups those on the
+# same 16-byte record grid into runs (bridging holes left by untabled items, up to
+# @ref DS3_MAX_RUN_GAP), and keeps runs of at least @c SCAN_MIN_RUN. Each surviving
+# record contributes its id and quantity. Duplicate ids are summed. A quantity
+# outside a sane range drops the record — a cheap guard against a false run of
+# look-alike bytes.
 # @param buf  The decrypted slot data.
 # @param iddb The flat id lookup from @ref load_scan_db.
 # @return @c (buckets, unknown_count), buckets mapping category to @c (name, qty).
@@ -1294,8 +1361,12 @@ def scan_inventory(buf, iddb):
     i, n = 0, len(positions)
     while i < n:
         j = i
-        while j + 1 < n and positions[j + 1] - positions[j] == DS3_RECORD:
-            j += 1
+        while j + 1 < n:
+            d = positions[j + 1] - positions[j]
+            if d % DS3_RECORD == 0 and d <= DS3_MAX_RUN_GAP:
+                j += 1
+            else:
+                break
         if j - i + 1 >= SCAN_MIN_RUN:
             for k in range(i, j + 1):
                 o = positions[k]
@@ -1860,68 +1931,6 @@ DS3_GAITEM_SLOTS = 6144
 DS3_GAITEM_BIG = 60                                 # weapon/armour record; all else 8
 DS3_GAITEM_TYPES_BIG = (0x80000000, 0x90000000)     # weapon, armour top nibbles
 
-## @brief DS3 bonfire areas: distance from the event-flag base → the area's "all
-#  bonfires lit" bitmask. Each set bit is one bonfire, so we AND the save byte with
-#  the mask and count bits — only real bonfire bits count (never overcounts; can
-#  undercount if a bit is unmapped, a floor). Distances/masks from the alfizari
-#  editor's offset table + bonfire.json; its two non-bonfire "unlock" entries are
-#  dropped. Verified: Joy = Cemetery 3 + High Wall 2 = her 5 bonfires.
-DS3_BONFIRE_AREAS = OrderedDict([
-    ("Cemetery of Ash", (23154, 0xF8)),
-    ("High Wall of Lothric", (3953, 0xEC40)),
-    ("Undead Settlement", (6514, 0xF8)),
-    ("Road of Sacrifices", (11633, 0xFF80)),
-    ("Cathedral of the Deep", (15474, 0xF0)),
-    ("Catacombs of Carthus", (20594, 0xFA)),
-    ("Irithyll of the Boreal Valley", (19313, 0xFF80)),
-    ("Irithyll Dungeon", (21874, 0xE0)),
-    ("Lothric Castle", (5234, 0xE0)),
-    ("Grand Archives", (14194, 0xC0)),
-    ("Archdragon Peak", (9074, 0xF0)),
-    ("Kiln of the First Flame", (24434, 0xE0)),
-    ("Painted World of Ariandel (DLC)", (25714, 0xFF)),
-    ("The Dreg Heap (DLC)", (29554, 0xF0)),
-    ("The Ringed City (DLC)", (30834, 0xFC)),
-    ("Filianore's Rest (DLC)", (32114, 0xC0)),
-])
-
-## @brief DS3 boss-defeat flags: distance from the event-flag base → the byte value
-#  that is present once the boss is dead. Read the byte and compare exactly: the
-#  dead value is the complete-bit state, so a partial/unrelated state has fewer bits
-#  and won't match — the read can MISS a kill but won't invent one (core rule). Boss
-#  names are the canonical forms used by db_ds3/boss_souls.json so a held-soul kill
-#  and a flag kill dedup. Values/distances from the alfizari editor's Bosses.json;
-#  positively verified on Iudex Gundyr and Vordt of the Boreal Valley (both dead in a
-#  real Joy playthrough differential — alive save reads 0x00 at dist 4054, dead save
-#  0xC0), negatively verified on the other 23 (all correctly Alive). Still a floor.
-DS3_BOSS_FLAGS = OrderedDict([
-    ("Iudex Gundyr", (23254, 0xE0)),
-    ("Vordt of the Boreal Valley", (4054, 0xC0)),
-    ("Curse-Rotted Greatwood", (6614, 0xC0)),
-    ("Crystal Sage", (11736, 0x28)),
-    ("Abyss Watchers", (11734, 0xC0)),
-    ("Deacons of the Deep", (15574, 0xC0)),
-    ("High Lord Wolnir", (20694, 0xC0)),
-    ("Pontiff Sulyvahn", (19416, 0x20)),
-    ("Aldrich, Devourer of Gods", (19414, 0x80)),
-    ("Old Demon King", (20691, 0x02)),
-    ("Oceiros, the Consumed King", (4051, 0x42)),
-    ("Dancer of the Boreal Valley", (4059, 0x20)),
-    ("Dragonslayer Armour", (5334, 0x80)),
-    ("Yhorm the Giant", (21974, 0xC0)),
-    ("Nameless King", (9176, 0x21)),
-    ("Lothric, Younger Prince", (14291, 0x03)),
-    ("Champion Gundyr", (23251, 0x03)),
-    ("Soul of Cinder", (24534, 0xC0)),
-    ("Champion's Gravetender", (25815, 0x0C)),
-    ("Sister Friede", (25814, 0xC0)),
-    ("Halflight, Spear of the Church", (30934, 0xC0)),
-    ("Darkeater Midir", (30936, 0x30)),
-    ("Slave Knight Gael", (32214, 0xC0)),
-    ("Demon Prince", (29654, 0x80)),
-])
-
-
 ##
 # @brief Locate the DS3 event-flag region base in a decrypted slot, or None.
 # @details Walks the same block chain the alfizari editor uses. Every read is
@@ -1949,28 +1958,40 @@ def ds3_event_flag_base(buf):
 
 ##
 # @brief Read DS3 bonfires + boss-defeat flags off the event-flag region and attach
-#        them to @p ch: @c bonfire_areas as [(area, count)], and merge @c flag boss
-#        evidence into @c ch["bosses"] (deduping with any soul/gate evidence already
-#        there). No-op if @p base is None (region not located). @param base The
-#        event-flag base from @ref ds3_event_flag_base (computed once per slot).
-def ds3_attach_flags(ch, buf, base):
+#        them to @p ch: @c bonfire_areas as [(area, count, [names])] — every lit
+#        bonfire named from @ref load_ds3_bonfires — and merge @c flag boss evidence
+#        into @c ch["bosses"] (deduping with any soul/gate evidence already there).
+#        No-op if @p base is None (region not located). @param base The event-flag
+#        base from @ref ds3_event_flag_base. @param base_dir Repo root for the db.
+def ds3_attach_flags(ch, buf, base, base_dir):
     if base is None:
         return
     areas = []
-    for name, (dist, mask) in DS3_BONFIRE_AREAS.items():
-        val = u16(buf, base + dist) if mask > 0xFF else u8(buf, base + dist)
-        lit = bin(val & mask).count("1") if val is not None else 0
-        if lit:
-            areas.append((name, lit))
+    for area, bonfires in load_ds3_bonfires(base_dir).items():
+        named = []
+        for dist, bit, name in bonfires:
+            val = u8(buf, base + dist)
+            if val is not None and val & (1 << bit):
+                named.append(name)
+        if named:
+            areas.append((area, len(named), named))
     if areas:
         ch["bonfire_areas"] = areas
     bosses = {b: set(s) for b, s in (ch.get("bosses") or {}).items()}
-    for name, (dist, val) in DS3_BOSS_FLAGS.items():
-        got = u16(buf, base + dist) if val > 0xFF else u8(buf, base + dist)
-        if got == val:
+    for name, (dist, bit) in load_ds3_boss_flags(base_dir).items():
+        val = u8(buf, base + dist)
+        if val is not None and val & (1 << bit):
             bosses.setdefault(name, set()).add("flag")
     if bosses:
         ch["bosses"] = {b: sorted(bosses[b]) for b in bosses}
+    quests = OrderedDict()
+    for src, rewards in load_ds3_questlines(base_dir).items():
+        got = [rw for dist, bit, rw in rewards
+               if (u8(buf, base + dist) or 0) & (1 << bit)]
+        if got:
+            quests[src] = got
+    if quests:
+        ch["questlines"] = quests
 
 
 ## @brief DS3 New Game+ cycle (journey count), a uint16 just before the event-flag
@@ -2248,11 +2269,21 @@ def md_for_character(ch, slot_no):
               "floor on progress)_", ""]
         L += [f"- {b}" for b in ch["bonfires"]] + [""]
     if ch.get("bonfire_areas"):
-        total = sum(c for _, c in ch["bonfire_areas"])
+        total = sum(c for _, c, _ in ch["bonfire_areas"])
         n = len(ch["bonfire_areas"])
         L += [f"### Bonfires Discovered ({total} across {n} area{'s' if n != 1 else ''})"
               "  _(bonfires lit, inferred from each area's flag bits — a floor)_", ""]
-        L += [f"- {name} ({c})" for name, c in ch["bonfire_areas"]] + [""]
+        for name, c, named in ch["bonfire_areas"]:
+            if named:
+                extra = c - len(named)
+                tail = f" (+{extra} more)" if extra else ""
+                L.append(f"- {name}: {', '.join(named)}{tail}")
+            else:
+                L.append(f"- {name} ({c})")
+        L.append("")
+    if ch.get("questlines"):
+        L += ["### NPC Questlines  _(rewards received from NPCs — a progress floor)_", ""]
+        L += [f"- **{src}:** {', '.join(rw)}" for src, rw in ch["questlines"].items()] + [""]
     if ch.get("bosses"):
         SRC = {"flag": "confirmed", "soul": "soul held", "gate": "progression", "clear": "cleared (NG+)"}
         L += [f"### Bosses Defeated ({len(ch['bosses'])})  _(a floor — from defeat "
@@ -2449,7 +2480,7 @@ def convert(data, filename, base_dir):
                 flag_base = ds3_event_flag_base(slot)  # walk the block chain once
                 ch["ng_plus"] = ds3_journey(slot, flag_base)
                 attach_defeated_bosses(ch, base_dir)
-                ds3_attach_flags(ch, slot, flag_base)
+                ds3_attach_flags(ch, slot, flag_base, base_dir)
                 characters.append((i, ch))
         head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
         body = ["_No populated character slots found._"] if not characters else []

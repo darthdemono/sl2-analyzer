@@ -99,7 +99,18 @@ function mdCharacter(ch, slot) {
   if (ch.bonfire_areas && ch.bonfire_areas.length) {
     const total = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0), n = ch.bonfire_areas.length;
     L.push(`### Bonfires Discovered (${total} across ${n} area${n !== 1 ? "s" : ""})  _(bonfires lit, inferred from each area's flag bits — a floor)_`, "",
-      ...ch.bonfire_areas.map(([name, c]) => `- ${name} (${c})`), "");
+      ...ch.bonfire_areas.map(([name, c, named]) => {
+        if (named && named.length) {
+          const extra = c - named.length;
+          return `- ${name}: ${named.join(", ")}${extra ? ` (+${extra} more)` : ""}`;
+        }
+        return `- ${name} (${c})`;
+      }), "");
+  }
+  if (ch.questlines && Object.keys(ch.questlines).length) {
+    L.push("### NPC Questlines  _(rewards received from NPCs — a progress floor)_", "");
+    for (const [src, rw] of Object.entries(ch.questlines)) L.push(`- **${src}:** ${rw.join(", ")}`);
+    L.push("");
   }
   if (ch.bosses && Object.keys(ch.bosses).length) {
     L.push(`### Bosses Defeated (${Object.keys(ch.bosses).length})  _(a floor — from defeat flags, held boss souls, progression, and NG+ clears; a boss whose soul was consumed and isn't gated may still be missing)_`, "");

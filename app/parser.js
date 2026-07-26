@@ -455,6 +455,9 @@ const DS3_HP_D = -40, DS3_FP_D = -28, DS3_STAM_D = -12, DS3_LEVEL_D = 44, DS3_SO
 // (Max HP carries the +30% bonus), 0 = hollow. See sl2_to_md.py DS3_EMBER_D for the calibration.
 const DS3_EMBER_D = 188;
 const SCAN_MIN_RUN = 3;
+// Bridge holes left by untabled items: two known records can sit 32/48 bytes apart
+// on the 16-byte grid. See sl2_to_md.py DS3_MAX_RUN_GAP.
+const DS3_MAX_RUN_GAP = 48;
 
 function scanInventory(buf, iddb) {
   const positions = [];
@@ -463,7 +466,11 @@ function scanInventory(buf, iddb) {
   const n = positions.length; let i = 0;
   while (i < n) {
     let j = i;
-    while (j + 1 < n && positions[j + 1] - positions[j] === DS3_RECORD) j++;
+    while (j + 1 < n) {
+      const d = positions[j + 1] - positions[j];
+      if (d % DS3_RECORD === 0 && d <= DS3_MAX_RUN_GAP) j++;
+      else break;
+    }
     if (j - i + 1 >= SCAN_MIN_RUN) {
       for (let k = i; k <= j; k++) {
         const o = positions[k];
@@ -645,30 +652,9 @@ function ds3Playtime(menu, i) {
 // real save (Iudex + Cemetery/High Wall, zero false positives). Keep in sync.
 const DS3_GAITEM_START = 0x6C, DS3_GAITEM_SLOTS = 6144, DS3_GAITEM_BIG = 60;
 const DS3_GAITEM_TYPES_BIG = [0x80000000, 0x90000000];
-const DS3_BONFIRE_AREAS = [
-  ["Cemetery of Ash", 23154, 0xF8], ["High Wall of Lothric", 3953, 0xEC40],
-  ["Undead Settlement", 6514, 0xF8], ["Road of Sacrifices", 11633, 0xFF80],
-  ["Cathedral of the Deep", 15474, 0xF0], ["Catacombs of Carthus", 20594, 0xFA],
-  ["Irithyll of the Boreal Valley", 19313, 0xFF80], ["Irithyll Dungeon", 21874, 0xE0],
-  ["Lothric Castle", 5234, 0xE0], ["Grand Archives", 14194, 0xC0],
-  ["Archdragon Peak", 9074, 0xF0], ["Kiln of the First Flame", 24434, 0xE0],
-  ["Painted World of Ariandel (DLC)", 25714, 0xFF], ["The Dreg Heap (DLC)", 29554, 0xF0],
-  ["The Ringed City (DLC)", 30834, 0xFC], ["Filianore's Rest (DLC)", 32114, 0xC0],
-];
-const DS3_BOSS_FLAGS = [
-  ["Iudex Gundyr", 23254, 0xE0], ["Vordt of the Boreal Valley", 4054, 0xC0],
-  ["Curse-Rotted Greatwood", 6614, 0xC0], ["Crystal Sage", 11736, 0x28],
-  ["Abyss Watchers", 11734, 0xC0], ["Deacons of the Deep", 15574, 0xC0],
-  ["High Lord Wolnir", 20694, 0xC0], ["Pontiff Sulyvahn", 19416, 0x20],
-  ["Aldrich, Devourer of Gods", 19414, 0x80], ["Old Demon King", 20691, 0x02],
-  ["Oceiros, the Consumed King", 4051, 0x42], ["Dancer of the Boreal Valley", 4059, 0x20],
-  ["Dragonslayer Armour", 5334, 0x80], ["Yhorm the Giant", 21974, 0xC0],
-  ["Nameless King", 9176, 0x21], ["Lothric, Younger Prince", 14291, 0x03],
-  ["Champion Gundyr", 23251, 0x03], ["Soul of Cinder", 24534, 0xC0],
-  ["Champion's Gravetender", 25815, 0x0C], ["Sister Friede", 25814, 0xC0],
-  ["Halflight, Spear of the Church", 30934, 0xC0], ["Darkeater Midir", 30936, 0x30],
-  ["Slave Knight Gael", 32214, 0xC0], ["Demon Prince", 29654, 0x80],
-];
+// Bonfires + boss flags both come from db_ds3/*.json (bonfires: area -> [[dist,bit,name]];
+// boss_flags: name -> [dist,bit]), generated from the DS3 flag-id list via the flag-id->bit
+// formula. See sl2_to_md.py load_ds3_bonfires / load_ds3_boss_flags.
 function ds3EventFlagBase(buf) {
   let off = DS3_GAITEM_START;
   for (let n = 0; n < DS3_GAITEM_SLOTS; n++) {
@@ -689,26 +675,39 @@ function ds3EventFlagBase(buf) {
   return base >= 0 && base < buf.length ? base : null;
 }
 function popcount(x) { let c = 0; while (x) { c += x & 1; x >>>= 1; } return c; }
-function ds3AttachFlags(ch, buf, base) {
+function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb) {
   if (base == null) return;
   const areas = [];
-  for (const [name, dist, mask] of DS3_BONFIRE_AREAS) {
-    const val = mask > 0xFF ? u16(buf, base + dist) : u8(buf, base + dist);
-    const lit = val == null ? 0 : popcount(val & mask);
-    if (lit) areas.push([name, lit]);
+  for (const [area, bonfires] of Object.entries(bonfireDb || {})) {
+    const named = [];
+    for (const [dist, bit, name] of bonfires) {
+      const val = u8(buf, base + dist);
+      if (val != null && (val & (1 << bit))) named.push(name);
+    }
+    if (named.length) areas.push([area, named.length, named]);
   }
   if (areas.length) ch.bonfire_areas = areas;
   const bosses = {};
   for (const [b, s] of Object.entries(ch.bosses || {})) bosses[b] = new Set(s);
-  for (const [name, dist, val] of DS3_BOSS_FLAGS) {
-    const got = val > 0xFF ? u16(buf, base + dist) : u8(buf, base + dist);
-    if (got === val) (bosses[name] || (bosses[name] = new Set())).add("flag");
+  for (const [name, [dist, bit]] of Object.entries(bossFlagDb || {})) {
+    const val = u8(buf, base + dist);
+    if (val != null && (val & (1 << bit))) (bosses[name] || (bosses[name] = new Set())).add("flag");
   }
   const keys = Object.keys(bosses);
   if (keys.length) {
     ch.bosses = {};
     for (const b of keys) ch.bosses[b] = [...bosses[b]].sort();
   }
+  const quests = {};
+  for (const [src, rewards] of Object.entries(questlineDb || {})) {
+    const got = [];
+    for (const [dist, bit, rw] of rewards) {
+      const val = u8(buf, base + dist);
+      if (val != null && (val & (1 << bit))) got.push(rw);
+    }
+    if (got.length) quests[src] = got;
+  }
+  if (Object.keys(quests).length) ch.questlines = quests;
 }
 // DS3 NG+ cycle: uint16 just before the event-flag region; guarded to a sane range
 // (a cheated mule reads 0xFFFF). See sl2_to_md.py.
@@ -860,7 +859,7 @@ export function parseSave(data, dbs) {
         const flagBase = ds3EventFlagBase(slot); // walk the block chain once
         ch.ng_plus = ds3Journey(slot, flagBase);
         attachDefeatedBosses(ch, dbs);
-        ds3AttachFlags(ch, slot, flagBase);
+        ds3AttachFlags(ch, slot, flagBase, dbs.ds3.bonfires, dbs.ds3.bossFlags, dbs.ds3.questlines);
         characters.push({ slot: label(i), ch });
       }
     }

@@ -79,7 +79,10 @@ export async function loadAllDbs(getJSON) {
            bossSouls: (await jget(getJSON, "db_ds2/boss_souls.json")) || {},
            images: (await jget(getJSON, "db_ds2/images.json")) || {} },
     ds1: { items: ds1Items, bossSouls: (await jget(getJSON, "db_ds1/boss_souls.json")) || {} },
-    ds3: { items: ds3Items, bossSouls: (await jget(getJSON, "db_ds3/boss_souls.json")) || {} },
+    ds3: { items: ds3Items, bossSouls: (await jget(getJSON, "db_ds3/boss_souls.json")) || {},
+           bonfires: (await jget(getJSON, "db_ds3/bonfires.json")) || {},
+           bossFlags: (await jget(getJSON, "db_ds3/boss_flags.json")) || {},
+           questlines: (await jget(getJSON, "db_ds3/questlines.json")) || {} },
     er: { items: erItems, bossSouls: (await jget(getJSON, "db_er/boss_souls.json")) || {} },
   };
 }
