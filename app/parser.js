@@ -97,8 +97,9 @@ const GENERIC_SOULS = new Set([
   "Soul of a Seasoned Warrior", "Large Soul of a Seasoned Warrior",
   "Soul of an Intrepid Hero", "Large Soul of an Intrepid Hero",
 ]);
-const DS1_PROGRESSION = new Set(["Lordvessel", "Peculiar Doll", "Broken Pendant", "Rite of Kindling"]);
-const BOSS_SOUL_EXTRA = new Set(["Core of an Iron Golem", "Guardian Soul", "Soul (Nito)", "Soul (Bed of Chaos)"]);
+const DS1_PROGRESSION = new Set(["Lordvessel", "Peculiar Doll", "Broken Pendant", "Rite of Kindling",
+  "Crest of Artorias"]);
+const BOSS_SOUL_EXTRA = new Set(["Core of an Iron Golem", "Guardian Soul"]);
 
 function findBossSouls(goods) {
   const out = [];
@@ -191,6 +192,9 @@ const DS2_CLASS_OFF = 1024, DS2_COVENANT_OFF = 189, DS2_GENDER_OFF = 378, DS2_HO
 const DS2_WORLD_ENTRY_DELTA = 10, DS2_BONFIRE_FLAG_DELTA = 0x200, DS2_BONFIRE_MIN_RUN = 16;
 const DS2_REINF_OFF = 12, DS2_INFUSE_OFF = 13;
 const DS2_CLASS = { 1: "Warrior", 2: "Knight", 4: "Bandit", 6: "Cleric", 7: "Sorcerer", 8: "Explorer", 9: "Swordsman", 10: "Deprived" };
+// Per-covenant discovered flag (+2) and rank (+12), dense runs in covenant-id order
+// past the current-covenant byte. See sl2_to_md.py DS2_COV_DISC_D / DS2_COV_RANK_D.
+const DS2_COV_DISC_D = 2, DS2_COV_RANK_D = 12, DS2_COV_MAX_RANK = 3;
 const DS2_COVENANT = { 1: "Heirs of the Sun", 2: "Blue Sentinels", 3: "Brotherhood of Blood", 4: "Way of Blue", 5: "Rat King", 6: "Bell Keepers", 7: "Dragon Remnants", 8: "Company of Champions", 9: "Pilgrims of Dark" };
 const DS2_INFUSION = { 1: "Fire", 2: "Magic", 3: "Lightning", 4: "Dark", 5: "Poison", 6: "Bleed", 7: "Raw", 8: "Enchanted", 9: "Mundane" };
 // Gender at +378: Female = 1, Male = 0 (verified by a real F→M differential save pair).
@@ -230,6 +234,21 @@ function ds2Inventory(buf, itemDb) {
   }
   return { buckets, unknown };
 }
+// Every DS2 covenant discovered, with rank. Both runs are validated as a whole
+// (flag 0/1, rank 0..3, no rank without discovery) and the feature turns itself off
+// on any violation rather than printing a wrong rank. See sl2_to_md.py ds2_covenants.
+function ds2Covenants(buf) {
+  const out = {};
+  let any = false;
+  for (const cid of Object.keys(DS2_COVENANT).map(Number).sort((a, b) => a - b)) {
+    const disc = u8(buf, DS2_COVENANT_OFF + DS2_COV_DISC_D + cid - 1);
+    const rank = u8(buf, DS2_COVENANT_OFF + DS2_COV_RANK_D + cid - 1);
+    if (disc == null || rank == null || disc > 1 || rank > DS2_COV_MAX_RANK) return null;
+    if (rank && !disc) return null;
+    if (disc) { out[DS2_COVENANT[cid]] = [rank ? `rank ${rank} of ${DS2_COV_MAX_RANK}` : "discovered"]; any = true; }
+  }
+  return any ? out : null;
+}
 function ds2Parse(buf, itemDb) {
   if (ds2Name(buf) === null) return null;
   const stats = {};
@@ -243,6 +262,7 @@ function ds2Parse(buf, itemDb) {
     tier: "full", game: "ds2sotfs", name: ds2Name(buf),
     klass: DS2_CLASS[u8(buf, DS2_CLASS_OFF)] ?? null,
     covenant: DS2_COVENANT[u8(buf, DS2_COVENANT_OFF)] ?? null,
+    covenants: ds2Covenants(buf),
     gender: DS2_GENDER[u8(buf, DS2_GENDER_OFF)] ?? null,
     level, stats, souls: u32(buf, DS2_SOULS_OFF), soul_memory: u32(buf, DS2_SOULMEM_OFF),
     humanity: null, stamina: null, hp: u32(buf, DS2_HP_OFF),
@@ -433,6 +453,68 @@ function ds1Character(buf, itemDb, m, game, ng, bossSouls) {
     inv, unknown_count: unknown,
   };
 }
+// DS1 bonfires. Unlike DS2/DS3 these are NOT event flags: DS1 keeps a NetBonfireDb
+// list of 20-byte {id, state} records. The list moves between saves, so it is located
+// by content — the longest run of consecutive records with a real id, a valid state and
+// no repeat. See sl2_to_md.py ds1_bonfires.
+const DS1_BONFIRE_REC = 20, DS1_BONFIRE_STATE_D = 4, DS1_BONFIRE_MIN_RUN = 5;
+const DS1_BONFIRE_STATE = { 0: "discovered", 10: "lit", 20: "kindled +1", 30: "kindled +2", 40: "kindled +3" };
+function ds1Bonfires(buf, db) {
+  if (!db || !Object.keys(db).length) return null;
+  let best = [];
+  let o = 0;
+  while (o + DS1_BONFIRE_REC <= buf.length) {
+    if (db[u32(buf, o)]) {
+      const run = [];
+      const seen = new Set();
+      let p = o;
+      while (p + DS1_BONFIRE_REC <= buf.length) {
+        const bid = u32(buf, p), state = u32(buf, p + DS1_BONFIRE_STATE_D);
+        if (!db[bid] || DS1_BONFIRE_STATE[state] === undefined || seen.has(bid)) break;
+        seen.add(bid); run.push([bid, state]); p += DS1_BONFIRE_REC;
+      }
+      if (run.length > best.length) best = run;
+      o = Math.max(p, o + 1);
+    } else o += 1;
+  }
+  if (best.length < DS1_BONFIRE_MIN_RUN) return null;
+  const areas = new Map();
+  for (const [bid, state] of best) {
+    const [name, area] = db[bid];
+    if (!areas.has(area)) areas.set(area, []);
+    areas.get(area).push(`${name} (${DS1_BONFIRE_STATE[state]})`);
+  }
+  return [...areas].map(([a, v]) => [a, v.length, v]);
+}
+// DS1 boss-defeat flags. The published DS1 flag addressing gives offsets inside the
+// event-flag region; the region's own start is not published and was searched for —
+// in the DSR mule exactly one offset in the whole slot has all 12 boss flags and both
+// bells set, and both PtDE saves agree on their own value. See sl2_to_md.py
+// DS1_FLAG_BASE. The density gate is the guard: a real flag region is ~0.6% set bits
+// against ~32% for ordinary save data, so a moved region turns the feature off.
+const DS1_FLAG_BASE = { dsr: 127721, ptde: 127273 };
+const DS1_FLAG_MAX_DENSITY = 0.05, DS1_FLAG_SPAN = 23156;
+function ds1AttachFlags(ch, buf, table, game) {
+  const base = DS1_FLAG_BASE[game];
+  if (base == null || !table || !Object.keys(table).length) return;
+  if (base + DS1_FLAG_SPAN > buf.length) return;
+  let bits = 0;
+  for (let i = base; i < base + DS1_FLAG_SPAN; i++) {
+    let x = buf[i];
+    while (x) { bits += x & 1; x >>= 1; }
+  }
+  if (bits > DS1_FLAG_SPAN * 8 * DS1_FLAG_MAX_DENSITY) return;
+  const bosses = new Map();
+  for (const [b, s] of Object.entries(ch.bosses || {})) bosses.set(b, new Set(s));
+  for (const [name, [off, mask]] of Object.entries(table)) {
+    const v = u32(buf, base + off);
+    if (v != null && (v & mask) >>> 0) {
+      if (!bosses.has(name)) bosses.set(name, new Set());
+      bosses.get(name).add("flag");
+    }
+  }
+  if (bosses.size) ch.bosses = mapToSortedEvidence(bosses, false);
+}
 function dsrParse(buf, itemDb) {
   const m = dsrFindAnchor(buf);
   if (m === null) return null;
@@ -454,6 +536,13 @@ const DS3_HP_D = -40, DS3_FP_D = -28, DS3_STAM_D = -12, DS3_LEVEL_D = 44, DS3_SO
 // Embered flag: uint8 at +188 in the stat-mirror struct behind the anchor; 1 = embered
 // (Max HP carries the +30% bonus), 0 = hollow. See sl2_to_md.py DS3_EMBER_D for the calibration.
 const DS3_EMBER_D = 188;
+// Covenant: uint32 equip HANDLE at +3944 from the anchor (DS3 wears the covenant like
+// an accessory), covenant item id = low 28 bits. See sl2_to_md.py DS3_COVENANT_D.
+const DS3_COVENANT_D = 3944;
+const DS3_COVENANT = new Map([[10000, "Blade of the Darkmoon"], [10020, "Watchdogs of Farron"],
+  [10030, "Aldrich Faithful"], [10040, "Warrior of Sunlight"], [10050, "Mound-makers"],
+  [10060, "Way of Blue"], [10070, "Blue Sentinels"], [10080, "Rosaria's Fingers"],
+  [10090, "Spears of the Church"]]);
 const SCAN_MIN_RUN = 3;
 // Bridge holes left by untabled items: two known records can sit 32/48 bytes apart
 // on the 16-byte grid. See sl2_to_md.py DS3_MAX_RUN_GAP.
@@ -522,6 +611,7 @@ function ds3Parse(buf, iddb, name) {
     hp: has ? u32(buf, v + DS3_HP_D) : null,
     fp: has ? u32(buf, v + DS3_FP_D) : null,
     embered: ds3Embered(buf, v),
+    covenant: ds3Covenant(buf, v),
     equipped_weapons: ds3EquippedWeapons(buf, iddb, v),
     equipped_armor: ds3EquippedArmor(buf, iddb, v),
     equipped_rings: ds3EquippedRings(buf, iddb, v),
@@ -535,6 +625,13 @@ function ds3Embered(buf, v) {
   if (v == null) return null;
   const e = u8(buf, v + DS3_EMBER_D);
   return e === 1 ? true : e === 0 ? false : null;
+}
+// DS3 covenant name, or null. Only ids in the table are named, so 0 (no covenant) and
+// a cheated slot's junk handle both fall through to null rather than being guessed.
+function ds3Covenant(buf, v) {
+  if (v == null) return null;
+  const h = u32(buf, v + DS3_COVENANT_D);
+  return h ? (DS3_COVENANT.get(h & 0x0FFFFFFF) ?? null) : null;
 }
 // EquipGameData sits a fixed 664 bytes past the stat anchor; armour handles at
 // +0x20..+0x2C, head-to-toe. See sl2_to_md.py DS3_EQUIP_D / DS3_ARMOR_SLOTS.
@@ -675,7 +772,7 @@ function ds3EventFlagBase(buf) {
   return base >= 0 && base < buf.length ? base : null;
 }
 function popcount(x) { let c = 0; while (x) { c += x & 1; x >>>= 1; } return c; }
-function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb) {
+function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, covenantDb) {
   if (base == null) return;
   const areas = [];
   for (const [area, bonfires] of Object.entries(bonfireDb || {})) {
@@ -708,6 +805,16 @@ function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb) {
     if (got.length) quests[src] = got;
   }
   if (Object.keys(quests).length) ch.questlines = quests;
+  const covs = {};
+  for (const [cov, marks] of Object.entries(covenantDb || {})) {
+    const got = [];
+    for (const [dist, bit, what] of marks) {
+      const val = u8(buf, base + dist);
+      if (val != null && (val & (1 << bit))) got.push(what);
+    }
+    if (got.length) covs[cov] = got;
+  }
+  if (Object.keys(covs).length) ch.covenants = covs;
 }
 // DS3 NG+ cycle: uint16 just before the event-flag region; guarded to a sane range
 // (a cheated mule reads 0xFFFF). See sl2_to_md.py.
@@ -859,7 +966,8 @@ export function parseSave(data, dbs) {
         const flagBase = ds3EventFlagBase(slot); // walk the block chain once
         ch.ng_plus = ds3Journey(slot, flagBase);
         attachDefeatedBosses(ch, dbs);
-        ds3AttachFlags(ch, slot, flagBase, dbs.ds3.bonfires, dbs.ds3.bossFlags, dbs.ds3.questlines);
+        ds3AttachFlags(ch, slot, flagBase, dbs.ds3.bonfires, dbs.ds3.bossFlags, dbs.ds3.questlines,
+          dbs.ds3.covenants);
         characters.push({ slot: label(i), ch });
       }
     }
@@ -877,7 +985,14 @@ export function parseSave(data, dbs) {
       const ch = parse(slot, itemDb);
       if (ch) {
         if (game === "ds2sotfs") ds2Augment(ch, data, entries, i, dbs);
+        else {
+          const areas = ds1Bonfires(slot, dbs.ds1.bonfires);
+          if (areas) ch.bonfire_areas = areas;
+        }
+        // Soul/NG+ floor first: attachDefeatedBosses refuses to run once `bosses`
+        // exists, so the flags must be merged on top of it, not before it.
         attachDefeatedBosses(ch, dbs);
+        if (game !== "ds2sotfs") ds1AttachFlags(ch, slot, dbs.ds1.bossFlags, game);
         characters.push({ slot: label(i), ch });
       }
     }

@@ -1,0 +1,108 @@
+{
+ "Warrior of Sunlight": [
+  [
+   963,
+   3,
+   "joined (emblem found)"
+  ],
+  [
+   963,
+   2,
+   "rank 1 reward: Sunlight Shield"
+  ],
+  [
+   963,
+   1,
+   "rank 2 reward: Sunlight Straight Sword"
+  ]
+ ],
+ "Mound-makers": [
+  [
+   970,
+   1,
+   "joined (emblem found)"
+  ],
+  [
+   970,
+   0,
+   "rank 1 reward: Bloodlust"
+  ],
+  [
+   969,
+   7,
+   "rank 2 reward: Warmth"
+  ]
+ ],
+ "Watchdogs of Farron": [
+  [
+   968,
+   7,
+   "joined (emblem found)"
+  ],
+  [
+   968,
+   6,
+   "rank 1 reward: Old Wolf Curved Sword"
+  ],
+  [
+   968,
+   5,
+   "rank 2 reward: Wolf Knight's Greatshield"
+  ]
+ ],
+ "Aldrich Faithful": [
+  [
+   967,
+   5,
+   "joined (emblem found)"
+  ],
+  [
+   967,
+   4,
+   "rank 1 reward: Great Deep Soul"
+  ],
+  [
+   967,
+   3,
+   "rank 2 reward: Archdeacon's Great Staff"
+  ]
+ ],
+ "Blue Sentinels": [
+  [
+   974,
+   3,
+   "joined (emblem found)"
+  ]
+ ],
+ "Blade of the Darkmoon": [
+  [
+   973,
+   1,
+   "joined (emblem found)"
+  ]
+ ],
+ "Rosaria's Fingers": [
+  [
+   971,
+   7,
+   "joined (emblem found)"
+  ],
+  [
+   971,
+   6,
+   "rank 1 reward: Obscuring Ring"
+  ],
+  [
+   971,
+   5,
+   "rank 2 reward: Man-grub's Staff"
+  ]
+ ],
+ "Way of Blue": [
+  [
+   978,
+   5,
+   "joined (emblem found)"
+  ]
+ ]
+}

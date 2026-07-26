@@ -6,6 +6,10 @@
 import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime } from "./tables.js";
 
 const REPO_URL = "https://github.com/darthdemono/sl2-analyzer";
+// DS1 reads each bonfire's own record (so it knows the kindle level and can list a
+// discovered-but-unlit one); DS3 only has per-area flag bits. See sl2_to_md.py.
+const DS1_BONFIRE_NOTE = "each bonfire's own record, with how far it is kindled — a floor";
+const DS3_BONFIRE_NOTE = "bonfires lit, inferred from each area's flag bits — a floor";
 
 // Per-game "how it works" note (verbatim from GAMES[...]["how"]) and the header tier.
 const HOW = {
@@ -98,7 +102,7 @@ function mdCharacter(ch, slot) {
   }
   if (ch.bonfire_areas && ch.bonfire_areas.length) {
     const total = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0), n = ch.bonfire_areas.length;
-    L.push(`### Bonfires Discovered (${total} across ${n} area${n !== 1 ? "s" : ""})  _(bonfires lit, inferred from each area's flag bits — a floor)_`, "",
+    L.push(`### Bonfires Discovered (${total} across ${n} area${n !== 1 ? "s" : ""})  _(${ch.game === "dsr" || ch.game === "ptde" ? DS1_BONFIRE_NOTE : DS3_BONFIRE_NOTE})_`, "",
       ...ch.bonfire_areas.map(([name, c, named]) => {
         if (named && named.length) {
           const extra = c - named.length;
@@ -106,6 +110,11 @@ function mdCharacter(ch, slot) {
         }
         return `- ${name} (${c})`;
       }), "");
+  }
+  if (ch.covenants && Object.keys(ch.covenants).length) {
+    L.push(`### Covenants Found (${Object.keys(ch.covenants).length})  _(discovered — a floor; the one currently worn is the Covenant field above)_`, "");
+    for (const [cov, w] of Object.entries(ch.covenants)) L.push(`- **${cov}:** ${w.join(", ")}`);
+    L.push("");
   }
   if (ch.questlines && Object.keys(ch.questlines).length) {
     L.push("### NPC Questlines  _(rewards received from NPCs — a progress floor)_", "");

@@ -199,7 +199,7 @@ function characterCard(slot, ch) {
   if (ch.bonfire_areas && ch.bonfire_areas.length) {
     const total = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0), n = ch.bonfire_areas.length;
     card.append(section(`Bonfires Discovered (${total} across ${n} area${n !== 1 ? "s" : ""})`, [
-      el("p", { class: "hint", text: "Bonfires lit, inferred from each area's flag bits. A floor on how far you got." }),
+      el("p", { class: "hint", text: ch.game === "dsr" || ch.game === "ptde" ? "Each bonfire's own record, with how far it is kindled. A floor on how far you got." : "Bonfires lit, inferred from each area's flag bits. A floor on how far you got." }),
       el("ul", { class: "items cols" }, ...ch.bonfire_areas.map(([name, c, named]) => {
         if (named && named.length) {
           const extra = c - named.length;
@@ -207,6 +207,14 @@ function characterCard(slot, ch) {
         }
         return el("li", { text: `${name} (${c})` });
       }))]));
+  }
+  if (ch.covenants && Object.keys(ch.covenants).length) {
+    const list = el("ul", { class: "items" });
+    for (const [cov, w] of Object.entries(ch.covenants)) {
+      list.append(el("li", null, el("span", { class: "slot", text: `${cov}: ` }), w.join(", ")));
+    }
+    card.append(section(`Covenants Found (${Object.keys(ch.covenants).length})`, [
+      el("p", { class: "hint", text: "Covenants discovered — a floor. The covenant currently worn is in the Character panel." }), list]));
   }
   if (ch.questlines && Object.keys(ch.questlines).length) {
     const list = el("ul", { class: "items" });

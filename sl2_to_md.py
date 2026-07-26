@@ -392,7 +392,9 @@ GENERIC_SOULS = {
     "Soul of an Intrepid Hero", "Large Soul of an Intrepid Hero",
 }
 ## @brief DS1 progression goods that gate the world but do not read as "keys".
-DS1_PROGRESSION = {"Lordvessel", "Peculiar Doll", "Broken Pendant", "Rite of Kindling"}
+#  Crest of Artorias opens the sealed Darkroot door, so it gates as hard as a key.
+DS1_PROGRESSION = {"Lordvessel", "Peculiar Doll", "Broken Pendant", "Rite of Kindling",
+                   "Crest of Artorias"}
 
 
 ## @brief Pull the likely boss / lord souls out of a goods list.
@@ -402,8 +404,7 @@ def find_boss_souls(goods):
         if n in GENERIC_SOULS:
             continue
         if ("Soul of " in n or "Lord Soul" in n
-                or n in ("Core of an Iron Golem", "Guardian Soul",
-                         "Soul (Nito)", "Soul (Bed of Chaos)")):
+                or n in ("Core of an Iron Golem", "Guardian Soul")):
             out.append((n, q))
     return out
 
@@ -556,6 +557,15 @@ DS2_CLASS = {1: "Warrior", 2: "Knight", 4: "Bandit", 6: "Cleric", 7: "Sorcerer",
 DS2_COVENANT = {1: "Heirs of the Sun", 2: "Blue Sentinels", 3: "Brotherhood of Blood",
                 4: "Way of Blue", 5: "Rat King", 6: "Bell Keepers",
                 7: "Dragon Remnants", 8: "Company of Champions", 9: "Pilgrims of Dark"}
+## @brief Per-covenant discovered flag and rank, as two dense byte runs in covenant-id
+#  order just past the current-covenant byte. DS2S-META puts CurrentCovenant at 0x1AD
+#  with Discovered at 0x1AF.. and Rank at 0x1B9.., so relative to our own (differential-
+#  verified) DS2_COVENANT_OFF the runs start +2 and +12 — the absolute bases differ
+#  between that editor and this tool, but the layout inside the struct does not.
+#  Checked across Joy's ladder: the flags read a clean 0/1, rank is never nonzero for
+#  an undiscovered covenant, and the only two she ranked to 3 are Way of Blue and
+#  Pilgrims of Dark — the two cheapest ladders in the game (1/5/10 and 1/2/3).
+DS2_COV_DISC_D, DS2_COV_RANK_D, DS2_COV_MAX_RANK = 2, 12, 3
 ## @brief Gender (u8) and hollowing level (u8) offsets in the slot block. From the
 #  Jappi88 DS2 save editor: its player block reads Gender then HollowLv at block[0]
 #  0x15A/0x15B, and that block starts at slot flat +32 (Level/Souls/Soul-Memory/Health
@@ -785,6 +795,147 @@ def ds3_derived_stats(stats):
             "item_discovery": min(199, 100 + lck)}
 
 
+##
+# @brief Every DS2 covenant the character has discovered, with its rank.
+# @details Two dense byte runs in covenant-id order (@ref DS2_COV_DISC_D /
+# @ref DS2_COV_RANK_D past the current-covenant byte). Both runs are validated as a
+# whole before anything is returned — a discovered flag must be 0 or 1, a rank must be
+# 0..3, and a rank cannot be nonzero where the covenant was never discovered. If any
+# of that fails the offsets have moved, so the feature turns itself off rather than
+# printing a wrong rank.
+# @return An OrderedDict {covenant: [description]}, or None.
+def ds2_covenants(buf):
+    out = OrderedDict()
+    for cid, name in sorted(DS2_COVENANT.items()):
+        disc = u8(buf, DS2_COVENANT_OFF + DS2_COV_DISC_D + cid - 1)
+        rank = u8(buf, DS2_COVENANT_OFF + DS2_COV_RANK_D + cid - 1)
+        if disc is None or rank is None or disc > 1 or rank > DS2_COV_MAX_RANK:
+            return None
+        if rank and not disc:
+            return None
+        if disc:
+            out[name] = [f"rank {rank} of {DS2_COV_MAX_RANK}" if rank else "discovered"]
+    return out or None
+
+
+## @brief Load the DS1 bonfire table (db_ds1/bonfires.json, NetBonfireDb id → [name,
+#  area]). Cached. Returns {} if absent.
+_DS1_BONFIRE_CACHE = {}
+def load_ds1_bonfires(base_dir):
+    if base_dir not in _DS1_BONFIRE_CACHE:
+        path = os.path.join(base_dir, "db_ds1", "bonfires.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS1_BONFIRE_CACHE[base_dir] = {int(k): tuple(v)
+                                                for k, v in json.load(f).items()}
+        except (OSError, ValueError):
+            _DS1_BONFIRE_CACHE[base_dir] = {}
+    return _DS1_BONFIRE_CACHE[base_dir]
+
+
+## @brief Load the DS1 boss-defeat flag table (db_ds1/boss_flags.json, canonical boss
+#  name → [region byte offset, uint32 mask]). Cached. Returns {} if absent.
+_DS1_BOSSFLAG_CACHE = {}
+def load_ds1_boss_flags(base_dir):
+    if base_dir not in _DS1_BOSSFLAG_CACHE:
+        path = os.path.join(base_dir, "db_ds1", "boss_flags.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS1_BOSSFLAG_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS1_BOSSFLAG_CACHE[base_dir] = {}
+    return _DS1_BOSSFLAG_CACHE[base_dir]
+
+
+## @brief Where the event-flag region starts in a decrypted DS1 slot, per game. The
+#  published DS1 flag addressing (group base + area*0x500 + section*128 + number/8,
+#  MSB-first mask) gives offsets INSIDE the region; the region's own position is not
+#  published, so it was searched for. In the DSR mule — an NG+2 character with all 43
+#  bonfires — exactly ONE offset in the whole 393216-byte slot has all twelve boss
+#  flags and both Bells of Awakening set, and both PtDE saves independently agree on
+#  their own single value, so the base is a per-game constant rather than a per-save
+#  search.
+DS1_FLAG_BASE = {"dsr": 127721, "ptde": 127273}
+## @brief Sanity gate on that base. A real flag region is overwhelmingly zero — it
+#  measures ~0.006 set bits at the true base against ~0.32 for ordinary save data — so
+#  anything denser than this means the region moved and the feature turns itself off
+#  rather than reporting bosses off the wrong bytes.
+DS1_FLAG_MAX_DENSITY, DS1_FLAG_SPAN = 0.05, 23156
+
+
+##
+# @brief Merge DS1 boss-defeat FLAGS into @c ch["bosses"] as @c flag evidence.
+# @details Unlike the held-soul floor this sees a boss whose soul was long since
+# consumed. Guarded twice: the region base must be known for the game, and the region
+# must actually read sparse (@ref DS1_FLAG_MAX_DENSITY) — a moved region fails that
+# and nothing is reported. Boss names are canonicalised to the boss_souls.json
+# spelling in the db, so a flag kill and a soul kill dedup onto one boss.
+def ds1_attach_flags(ch, buf, base_dir, game):
+    base = DS1_FLAG_BASE.get(game)
+    table = load_ds1_boss_flags(base_dir)
+    if base is None or not table or base + DS1_FLAG_SPAN > len(buf):
+        return
+    region = buf[base:base + DS1_FLAG_SPAN]
+    if sum(bin(b).count("1") for b in region) > len(region) * 8 * DS1_FLAG_MAX_DENSITY:
+        return
+    bosses = {b: set(s) for b, s in (ch.get("bosses") or {}).items()}
+    for name, (off, mask) in table.items():
+        v = u32(buf, base + off)
+        if v is not None and v & mask:
+            bosses.setdefault(name, set()).add("flag")
+    if bosses:
+        ch["bosses"] = {b: sorted(bosses[b]) for b in bosses}
+
+
+## @brief DS1 bonfire record: 20 bytes, id then state (the rest is unread flags).
+#  Unlike DS2 and DS3, DS1 does NOT keep bonfires as event flags — they are a
+#  NetBonfireDb list of {id, state} records, so this walks records rather than bits.
+DS1_BONFIRE_REC, DS1_BONFIRE_STATE_D = 20, 4
+## @brief The state values a real record can hold, and what each means. Anything else
+#  ends the walk, which is what keeps a misaligned start from inventing bonfires.
+DS1_BONFIRE_STATE = {0: "discovered", 10: "lit", 20: "kindled +1",
+                     30: "kindled +2", 40: "kindled +3"}
+## @brief Shortest believable run, so a stray id in unrelated data cannot pass.
+DS1_BONFIRE_MIN_RUN = 5
+
+
+##
+# @brief DS1 bonfires the character has found, grouped by area.
+# @details The list's offset moves between saves, so it is located BY CONTENT: the
+# longest run of consecutive 20-byte records whose id is a real bonfire and whose
+# state is one of @ref DS1_BONFIRE_STATE, with no id repeating. Shared by DSR and
+# PtDE — the layout is identical, only the decryption differs.
+# @return @c [(area, count, [names])] in the DS3 shape so it renders the same way,
+#         or None when no believable run exists.
+def ds1_bonfires(buf, db):
+    if not db:
+        return None
+    best, o = [], 0
+    while o + DS1_BONFIRE_REC <= len(buf):
+        if u32(buf, o) in db:
+            run, p, seen = [], o, set()
+            while p + DS1_BONFIRE_REC <= len(buf):
+                bid = u32(buf, p)
+                state = u32(buf, p + DS1_BONFIRE_STATE_D)
+                if bid not in db or state not in DS1_BONFIRE_STATE or bid in seen:
+                    break
+                seen.add(bid)
+                run.append((bid, state))
+                p += DS1_BONFIRE_REC
+            if len(run) > len(best):
+                best = run
+            o = max(p, o + 1)
+        else:
+            o += 1
+    if len(best) < DS1_BONFIRE_MIN_RUN:
+        return None
+    areas = OrderedDict()
+    for bid, state in best:
+        name, area = db[bid]
+        areas.setdefault(area, []).append(f"{name} ({DS1_BONFIRE_STATE[state]})")
+    return [(a, len(v), v) for a, v in areas.items()]
+
+
 ## @brief Parse one DS2 slot into the unified character dict, or None if empty.
 def ds2_parse(buf, item_db):
     if ds2_name(buf) is None:
@@ -796,6 +947,7 @@ def ds2_parse(buf, item_db):
         "tier": "full", "game": "ds2sotfs", "name": ds2_name(buf),
         "klass": DS2_CLASS.get(u8(buf, DS2_CLASS_OFF)),
         "covenant": DS2_COVENANT.get(u8(buf, DS2_COVENANT_OFF)),
+        "covenants": ds2_covenants(buf),
         "gender": DS2_GENDER.get(u8(buf, DS2_GENDER_OFF)),
         "level": stats.pop("Level"), "stats": stats,
         "souls": u32(buf, DS2_SOULS_OFF), "soul_memory": u32(buf, DS2_SOULMEM_OFF),
@@ -878,6 +1030,27 @@ def load_ds3_questlines(base_dir):
         except (OSError, ValueError):
             _DS3_QUEST_CACHE[base_dir] = {}
     return _DS3_QUEST_CACHE[base_dir]
+
+
+## @brief Load the DS3 covenant table (db_ds3/covenants.json,
+#  {covenant: [[region distance, bit, what it proves]]}). Built from the same
+#  item-pickup flag list as the questlines, on the group-6 base (879) derived from a
+#  real Rosaria's-Fingers join differential and confirmed by the whole ladder reading
+#  chronologically (Way of Blue and Warrior of Sunlight appearing together at the
+#  High Wall → Undead Settlement step, Blue Sentinels at Road of Sacrifices, Rosaria
+#  only in the final save, and no DLC or rank flags anywhere). A set flag means the
+#  covenant was found, or that rank reward collected — a floor, like the questlines.
+#  Cached. Returns {} if absent.
+_DS3_COV_CACHE = {}
+def load_ds3_covenants(base_dir):
+    if base_dir not in _DS3_COV_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "covenants.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_COV_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_COV_CACHE[base_dir] = {}
+    return _DS3_COV_CACHE[base_dir]
 
 
 ## @brief Load the DS2 boss-defeat flag table (db_ds2/boss_flags.json, world-block
@@ -1059,6 +1232,27 @@ def ds2_augment(ch, data, entries, i, base_dir):
     world = decrypt_ds2(data[entries[w].offset:entries[w].offset + entries[w].size])
     ch["bonfires"] = ds2_visited_bonfires(world, load_ds2_bonfires(base_dir))
     ch["bosses"] = ds2_infer_bosses(world, ch, base_dir)
+
+
+## @brief DS1-only augment: attach the bonfire list, which needs the db folder the
+#  parse function never sees. Re-decrypts the slot rather than threading the buffer
+#  through, so the generic loop keeps its (ch, data, entries, i, base_dir) shape.
+#  @param dec The game's decrypt callable (DSR is encrypted, PtDE is not).
+def ds1_augment(ch, data, entries, i, base_dir, dec):
+    if i >= len(entries):
+        return
+    buf = dec(data[entries[i].offset:entries[i].offset + entries[i].size])
+    if buf is None:
+        return
+    areas = ds1_bonfires(buf, load_ds1_bonfires(base_dir))
+    if areas:
+        ch["bonfire_areas"] = areas
+    # Order matters: attach_defeated_bosses refuses to run once `bosses` exists (that
+    # guard is what stops it trampling DS2's richer inference), so the soul/NG+ floor
+    # has to be built BEFORE the flags are merged on top. The caller's own call then
+    # no-ops on the same guard.
+    attach_defeated_bosses(ch, base_dir)
+    ds1_attach_flags(ch, buf, base_dir, ch.get("game"))
 
 
 ##
@@ -1305,6 +1499,23 @@ DS3_HP_D, DS3_FP_D, DS3_STAM_D, DS3_LEVEL_D, DS3_SOULS_D = -40, -28, -12, 44, 48
 #  (vig 99, 1400->1819) and its hollow slot reads 0 with base HP (vig 16, 594) — both
 #  polarities, HP corroborating each. Guarded to {0,1}; any other value omits the field.
 DS3_EMBER_D = 188
+## @brief DS3 covenant: a uint32 EQUIP HANDLE at +3944 from the stat anchor, not a
+#  small enum — the game models the covenant as a worn accessory, so the field holds
+#  0xA00027xx and the covenant's own item id is the low 28 bits (Rosaria's Fingers
+#  0xA0002760 -> 10080). Ids and names come from the TGA Cheat Engine table's
+#  "Current Covenant" dropdown. Pinned by a real Joy join differential: the two saves
+#  are 37 seconds apart with the same level, bonfires and souls, and joining Rosaria's
+#  Fingers is the only thing that happened — the handle appears EXACTLY ONCE in the
+#  after save and NOT AT ALL in the before one. Cross-checked across the whole ladder
+#  (all 27 earlier saves read 0 = no covenant) and against the all-items mule, whose
+#  two cheated slots hold values that are not covenant ids at all and are dropped by
+#  the table lookup rather than printed.
+DS3_COVENANT_D = 3944
+DS3_COVENANT = {10000: "Blade of the Darkmoon", 10020: "Watchdogs of Farron",
+                10030: "Aldrich Faithful", 10040: "Warrior of Sunlight",
+                10050: "Mound-makers", 10060: "Way of Blue",
+                10070: "Blue Sentinels", 10080: "Rosaria's Fingers",
+                10090: "Spears of the Church"}
 ## @brief DS3's soul-level identity: level == (sum of all nine attributes) - 89.
 #  Deprived (all 10, sum 90) is level 1, and it holds at every level. This is the
 #  content check that pins the stat block without a per-patch offset table.
@@ -1417,6 +1628,18 @@ def ds3_embered(buf, v):
         return None
     e = u8(buf, v + DS3_EMBER_D)
     return True if e == 1 else False if e == 0 else None
+
+
+## @brief DS3 covenant name for a slot, or None. @param v The stat anchor from
+#  @ref ds3_find_stats (None → feature off). The field is an equip handle, so the
+#  covenant id is its low 28 bits and only ids in @ref DS3_COVENANT are named —
+#  0 means no covenant, and a cheated slot's junk handle resolves to nothing and is
+#  omitted rather than guessed. @return The covenant name, or None.
+def ds3_covenant(buf, v):
+    if v is None:
+        return None
+    h = u32(buf, v + DS3_COVENANT_D)
+    return DS3_COVENANT.get(h & 0x0FFFFFFF) if h else None
 
 
 ## @brief EquipGameData sits a fixed 664 bytes past the stat (Vigor) anchor —
@@ -1651,6 +1874,7 @@ def ds3_parse(buf, iddb, name):
         "hp": u32(buf, v + DS3_HP_D) if v is not None else None,
         "fp": u32(buf, v + DS3_FP_D) if v is not None else None,
         "embered": ds3_embered(buf, v),
+        "covenant": ds3_covenant(buf, v),
         "equipped_weapons": ds3_equipped_weapons(buf, iddb, v),
         "equipped_armor": ds3_equipped_armor(buf, iddb, v),
         "equipped_rings": ds3_equipped_rings(buf, iddb, v),
@@ -1992,6 +2216,14 @@ def ds3_attach_flags(ch, buf, base, base_dir):
             quests[src] = got
     if quests:
         ch["questlines"] = quests
+    covs = OrderedDict()
+    for cov, marks in load_ds3_covenants(base_dir).items():
+        got = [what for dist, bit, what in marks
+               if (u8(buf, base + dist) or 0) & (1 << bit)]
+        if got:
+            covs[cov] = got
+    if covs:
+        ch["covenants"] = covs
 
 
 ## @brief DS3 New Game+ cycle (journey count), a uint16 just before the event-flag
@@ -2163,6 +2395,10 @@ def fmt_playtime(seconds):
 # @param ch      A unified character dict.
 # @param slot_no The 1-based save-slot number.
 # @return The Markdown for this character.
+DS1_BONFIRE_NOTE = "each bonfire's own record, with how far it is kindled — a floor"
+DS3_BONFIRE_NOTE = "bonfires lit, inferred from each area's flag bits — a floor"
+
+
 def md_for_character(ch, slot_no):
     L = [f"## Slot {slot_no}: {ch['name']}", ""]
     if ch["level"] is not None:
@@ -2271,8 +2507,11 @@ def md_for_character(ch, slot_no):
     if ch.get("bonfire_areas"):
         total = sum(c for _, c, _ in ch["bonfire_areas"])
         n = len(ch["bonfire_areas"])
+        # DS1 reads the real bonfire list (so it can say kindle level, and can list a
+        # discovered-but-unlit one); DS3 only has flag bits per area. Different note.
+        note = (DS1_BONFIRE_NOTE if ch.get("game") in ("dsr", "ptde") else DS3_BONFIRE_NOTE)
         L += [f"### Bonfires Discovered ({total} across {n} area{'s' if n != 1 else ''})"
-              "  _(bonfires lit, inferred from each area's flag bits — a floor)_", ""]
+              f"  _({note})_", ""]
         for name, c, named in ch["bonfire_areas"]:
             if named:
                 extra = c - len(named)
@@ -2281,6 +2520,10 @@ def md_for_character(ch, slot_no):
             else:
                 L.append(f"- {name} ({c})")
         L.append("")
+    if ch.get("covenants"):
+        L += [f"### Covenants Found ({len(ch['covenants'])})  _(discovered — a floor; "
+              "the one currently worn is the Covenant field above)_", ""]
+        L += [f"- **{cov}:** {', '.join(w)}" for cov, w in ch["covenants"].items()] + [""]
     if ch.get("questlines"):
         L += ["### NPC Questlines  _(rewards received from NPCs — a progress floor)_", ""]
         L += [f"- **{src}:** {', '.join(rw)}" for src, rw in ch["questlines"].items()] + [""]
@@ -2355,6 +2598,8 @@ GAMES = {
             "db": ("db_ds1", False, DS1_DB_FILES),
             "decrypt": lambda b: decrypt_iv_prefixed(b, DSR_KEY),
             "parse": dsr_parse, "slots": range(0, 10),
+            "augment": lambda ch, d, e, i, b: ds1_augment(
+                ch, d, e, i, b, lambda x: decrypt_iv_prefixed(x, DSR_KEY)),
             "how": "the save is locked the same way (AES-128 encryption, key shipped "
                    "inside the game), so the tool unlocks it first. The character "
                    "block does not sit at a fixed spot — it shifts as the save grows "
@@ -2366,6 +2611,7 @@ GAMES = {
     "ptde": {"title": "Dark Souls: Prepare to Die Edition", "tier": "full",
              "db": ("db_ds1", False, DS1_DB_FILES), "decrypt": decrypt_none,
              "parse": ptde_parse, "slots": range(0, 10),
+             "augment": lambda ch, d, e, i, b: ds1_augment(ch, d, e, i, b, decrypt_none),
              "how": "this original edition does not encrypt its save at all, so "
                     "there is nothing to unlock. It stores a character the same way "
                     "Remastered does but without that version's marker, so the tool "
