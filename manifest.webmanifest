@@ -1,0 +1,14 @@
+{
+  "name": "SL2 Analyzer — FromSoftware save viewer",
+  "short_name": "SL2 Analyzer",
+  "description": "Read a Dark Souls, Dark Souls II, Dark Souls III or Elden Ring .sl2 save in your browser. Nothing is uploaded.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#08080a",
+  "theme_color": "#08080a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

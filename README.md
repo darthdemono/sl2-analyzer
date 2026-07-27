@@ -309,8 +309,13 @@ Instead of generic charts, each character is drawn as a replica of that game's o
 
 - **A framed stat panel, skinned per game.** DS1 and Elden Ring get the gold menu; DS2 the cold steel-blue; DS3 the ashen grey. A metallic title bar carries the name, slot, and support tier; the left column lists level, souls or runes, max HP and FP, then the attributes in the game's own on-screen order.
 - **Derived stats where they exist** — the full verified panel for DS2, the three closed-form values for DS3, equip load and attunement slots for DS1. Fields the real screen shows but the save cannot prove (weapon AR, bonuses, resistances) are left off, not faked.
+- **An Attribute Scaling reference**, folded away beside the sheet: what each attribute governs in that game and where it soft-caps, next to your own value. It is documented mechanics rather than anything read from the save, and it says so.
+- **Bonfire completion as a fraction.** "22 of 77", with a bar. The denominator is real because the bonfire tables are complete for every game that has one. Bosses deliberately get no such fraction — those tables are a mapped subset, so a percentage would imply a roster the data cannot back.
+- **A tab per character** when a save holds more than one, so a ten-slot mule is readable instead of ten stacked sheets. Arrow keys move between them.
 - **Item thumbnails for DS2**, pulled from the wiki so the inventory reads like the in-game menu. This is the one thing that leaves your browser: the save is still never uploaded, but each thumbnail request tells the wiki's image host which item it was for. The privacy note on the page says so.
-- **Copy Markdown.** One button dumps the exact same Markdown the Python CLI writes, ready to paste into a model.
+- **Copy Markdown, or download it.** Either button emits the exact same Markdown the Python CLI writes, for every character in the file — not just the tab you are looking at.
+
+Three things make it quick. Parsing runs in a **Web Worker**, so a big save never freezes the tab. The game is detected from the archive header *before* any table is fetched, so dropping a DS3 save loads eleven files instead of all forty. And a **service worker** caches the page, its code and the tables you have used, so after the first visit it works with no connection at all — which suits a tool that already does all its work locally. The thumbnails are excluded from that cache on purpose: they are the one request that leaves the browser, and storing them would outlive the tab.
 
 That last point is not a coincidence. The web app is a faithful port of the Python reader, and both are held to it: the JavaScript parser is checked byte-for-byte against the Python tool's output for every test save, and the browser's Markdown is checked byte-for-byte against the CLI's Markdown. If they ever drift, the check fails. Two front ends, one source of truth.
 
@@ -562,17 +567,20 @@ Said out loud rather than papered over:
 ```
 sl2_to_md.py      the CLI converter (Doxygen-commented, bounds-checked throughout)
 index.html        the web app: markup and styling
+sw.js             service worker: caches the app + used tables so it runs offline
+manifest.webmanifest / icon.svg   installable-app metadata
 .nojekyll         tells GitHub Pages to serve the folders as-is
 .github/workflows/pages.yml   deploys the repo root to Pages on push to main
 app/
-  aes.js          AES-128-CBC decrypt, no padding (WebCrypto cannot do this)
+  aes.js          AES-128-CBC decrypt, no padding (WebCrypto refuses raw CBC)
   reader.js       bounds-checked buffer reads, the JS mirror of the Python helpers
   parser.js       the reader ported to the browser, all six save variants
-  db.js           loads the item / progress databases
+  db.js           loads the item / progress databases, per game and in parallel
   tables.js       shared lookup tables, formatters, per-game attribute order and theme
   render.js       the per-game Level-Up screen replicas (framed panels, DS2 derived stats + thumbnails)
   markdown.js     the browser's Copy-Markdown output
-  main.js         file-drop wiring
+  worker.js       runs detect + load + parse off the main thread
+  main.js         file-drop wiring and the inline fallback
 db_ds1/*.json     DS1 items (shared by DSR and PtDE), bonfires, boss flags, boss souls
 db_ds2/*.json     DS2 items, bonfires + areas, boss flags, boss souls, wiki image map
 db_ds3/*.json     DS3 items, bonfires, boss flags, boss souls, covenants, questlines

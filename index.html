@@ -4,6 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SL2 Analyzer · FromSoftware save viewer</title>
+<meta name="description" content="Drop a Dark Souls, Dark Souls II, Dark Souls III or Elden Ring .sl2 save and read the whole playthrough — stats, inventory, bonfires, bosses. Parsed in your browser; nothing is uploaded.">
+<link rel="canonical" href="https://darthdemono.github.io/sl2-analyzer/">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#08080a">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SL2 Analyzer · FromSoftware save viewer">
+<meta property="og:description" content="Read a Dark Souls / Dark Souls II / Dark Souls III / Elden Ring .sl2 save in your browser. Stats, inventory, bonfires and bosses — nothing uploaded.">
+<meta property="og:url" content="https://darthdemono.github.io/sl2-analyzer/">
+<meta property="og:image" content="https://darthdemono.github.io/sl2-analyzer/icon.svg">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SL2 Analyzer · FromSoftware save viewer">
+<meta name="twitter:description" content="Read a Souls .sl2 save in your browser. Nothing is uploaded.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
@@ -12,7 +25,9 @@
         engraved caps, hairline gold rule. Each game theme overrides these. ── */
   :root {
     --bg: #08080a; --bg2: #0d0c0a; --panel: rgba(9, 8, 6, 0.62);
-    --ink: #cbb98d; --ink-dim: #7c7156;
+    /* --ink-dim carries 11.5-14px text (notes, hints, eyebrows), so it is held at
+       >= 4.6:1 on --bg — WCAG AA for small text. It was 4.15:1 and failed. */
+    --ink: #cbb98d; --ink-dim: #857a5c;
     --accent: #c7a85c; --accent-2: #9c8442; --val: #efe7d0;
     --rule: rgba(199, 168, 92, 0.30); --rule-soft: rgba(199, 168, 92, 0.13);
     --danger: #c8564b; --ok: #8aa15a; --soul: #7fa8c9; --gate: #c9a94b;
@@ -24,7 +39,7 @@
   }
   /* Dark Souls II — cold steel blue, cleaner rule. */
   .t-ds2 {
-    --panel: rgba(6, 9, 13, 0.64); --ink: #a7bccc; --ink-dim: #5e7385;
+    --panel: rgba(6, 9, 13, 0.64); --ink: #a7bccc; --ink-dim: #657c8f;
     --accent: #7fa8c9; --accent-2: #536e84; --val: #e9f1f7;
     --rule: rgba(127, 168, 201, 0.26); --rule-soft: rgba(127, 168, 201, 0.11);
     --font-title: 'EB Garamond', serif; --glow: 0 0 26px rgba(127, 168, 201, 0.13);
@@ -32,7 +47,7 @@
   }
   /* Dark Souls III — ashen charcoal, a single ember-amber accent, no ornament. */
   .t-ds3 {
-    --panel: rgba(11, 11, 12, 0.60); --ink: #b8b4a9; --ink-dim: #6f6c63;
+    --panel: rgba(11, 11, 12, 0.60); --ink: #b8b4a9; --ink-dim: #7d7a6f;
     --accent: #c07c3d; --accent-2: #7c5227; --val: #eae8e0;
     --rule: rgba(184, 180, 169, 0.16); --rule-soft: rgba(184, 180, 169, 0.08);
     --font-title: 'EB Garamond', serif; --glow: 0 0 22px rgba(192, 124, 61, 0.11);
@@ -40,7 +55,7 @@
   }
   /* Elden Ring — ornate warm gold, heavier engraved title, double rule. */
   .t-er {
-    --panel: rgba(10, 8, 6, 0.68); --ink: #c9b072; --ink-dim: #7d6e44;
+    --panel: rgba(10, 8, 6, 0.68); --ink: #c9b072; --ink-dim: #89794a;
     --accent: #d9c07a; --accent-2: #a08542; --val: #f0e6c4;
     --rule: rgba(217, 192, 122, 0.32); --rule-soft: rgba(217, 192, 122, 0.14);
     --font-title: 'Cinzel', serif; --glow: 0 0 34px rgba(217, 192, 122, 0.17);
@@ -80,13 +95,19 @@
   .t-ds3 .frame::before, .t-ds3 .frame::after { display: none; } /* DS3 is unadorned */
   .t-er .frame { border-width: 1px; box-shadow: inset 0 0 0 3px rgba(217,192,122,.06); }
 
-  #drop { margin: 30px 0 6px; padding: 52px 24px; text-align: center; cursor: pointer;
-    border-style: dashed; transition: border-color .15s, box-shadow .15s, background .15s; }
+  /* A real <button>, so Tab reaches it and Enter/Space activate it for free. The
+     resets below undo the UA button styling; everything else is as it was. */
+  #drop { display: block; width: 100%; margin: 30px 0 6px; padding: 52px 24px; text-align: center;
+    cursor: pointer; border-style: dashed; font: inherit; color: inherit; -webkit-appearance: none;
+    transition: border-color .15s, box-shadow .15s, background .15s; }
   #drop:hover, #drop.over { border-color: var(--accent); box-shadow: var(--glow);
     background: color-mix(in srgb, var(--accent) 5%, var(--panel)); }
-  #drop .big { font-family: var(--font-title); font-size: 19px; letter-spacing: .12em;
+  #drop .big { display: block; font-family: var(--font-title); font-size: 19px; letter-spacing: .12em;
     text-transform: uppercase; color: var(--val); }
-  #drop .small { color: var(--ink-dim); font-size: 14px; font-style: italic; margin-top: 8px; }
+  #drop .small { display: block; color: var(--ink-dim); font-size: 14px; font-style: italic; margin-top: 8px; }
+  /* One visible focus ring for every interactive element. :focus-visible so a mouse
+     click does not leave it behind, but a keyboard Tab always shows it. */
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   #status { text-align: center; color: var(--ink-dim); min-height: 22px; font-size: 13px;
     letter-spacing: .08em; text-transform: uppercase; margin-top: 14px; }
   .error { background: color-mix(in srgb, var(--danger) 12%, var(--panel)); border: 1px solid var(--danger);
@@ -181,6 +202,46 @@
 
   .lp-note { margin: 11px 0 0; color: var(--ink-dim); font-size: 11.5px; font-style: italic; line-height: 1.55; }
 
+  /* A foldable sub-panel. Its summary IS the header rule, so it reads as a panel
+     that opens rather than a widget bolted on. */
+  .lp-fold > summary { list-style: none; cursor: pointer; }
+  .lp-fold > summary::-webkit-details-marker { display: none; }
+  .lp-fold > summary::after { content: '+'; float: right; font-size: 13px; line-height: 1;
+    color: var(--accent); opacity: .8; }
+  .lp-fold[open] > summary::after { content: '−'; }
+  .lp-fold > summary:hover { color: var(--val); }
+  .lp-foldbody { padding-top: 4px; }
+
+  /* Attribute Scaling rows — the stat, your value, what it governs, where it caps. */
+  .lp-scale { padding: 7px 2px; border-bottom: 1px dotted var(--rule-soft); }
+  .lp-scale:last-of-type { border-bottom: 0; }
+  .lp-scale .sc-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .lp-scale .sc-n { font-family: var(--font-title); font-size: 11.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink); }
+  .lp-scale .sc-v { font-weight: 600; font-size: 14px; color: var(--accent);
+    font-variant-numeric: tabular-nums; flex: none; }
+  .lp-scale .sc-g { color: var(--ink); font-size: 13px; line-height: 1.45; margin-top: 2px; }
+  .lp-scale .sc-c { color: var(--ink-dim); font-size: 12px; line-height: 1.45; font-style: italic; }
+
+  /* Bonfire completion bar. Only drawn where the table holds every bonfire. */
+  .pbar { height: 6px; margin: 0 0 12px; border-radius: 3px; overflow: hidden;
+    background: rgba(0, 0, 0, .45); border: 1px solid var(--rule-soft); }
+  .pbar-f { display: block; height: 100%; background: var(--accent); opacity: .75; }
+
+  /* Slot tabs — only rendered when a save holds more than one character. */
+  .slot-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 4px; }
+  .slot-tab { font-family: var(--font-body); text-align: left; cursor: pointer;
+    padding: 8px 14px; border-radius: var(--radius); border: 1px solid var(--rule);
+    background: var(--panel); color: var(--ink-dim); transition: .15s; }
+  .slot-tab:hover { border-color: var(--accent); color: var(--ink); }
+  .slot-tab.on { border-color: var(--accent); color: var(--val); box-shadow: var(--glow);
+    background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+  .slot-tab .st-n { display: block; font-family: var(--font-title); font-size: 14px; letter-spacing: .06em; }
+  .slot-tab .st-s { display: block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-dim); margin-top: 2px; }
+  .slot-tab.on .st-s { color: var(--accent-2); }
+  [hidden] { display: none !important; }
+
   .badge { display: inline-block; font-family: var(--font-title); font-size: 9.5px;
     text-transform: uppercase; letter-spacing: .14em; padding: 4px 11px; border-radius: var(--radius);
     border: 1px solid var(--rule); color: var(--ink-dim); }
@@ -247,10 +308,10 @@
         <li><b>Dark Souls: Prepare to Die</b> — full, same as Remastered.</li>
         <li><b>Dark Souls II: Scholar of the First Sin</b> — the deepest read: attributes, class, covenant, gender, hollowing, deaths, play time, full inventory with infusions and reinforcement, plus bonfires discovered and bosses defeated from the world block.</li>
         <li><b>Dark Souls II (vanilla, pre-Scholar)</b> — the same depth as Scholar. The two releases differ only by encryption key; everything inside is laid out identically.</li>
-        <li><b>Dark Souls III</b> — full: attributes, souls, inventory, held boss souls, bosses defeated.</li>
+        <li><b>Dark Souls III</b> — the deepest read of the lot: attributes, souls, play time, embered state, NG+, full inventory, equipped weapons, armour, rings and ammo, all 77 bonfires by name, 25 boss-defeat flags, covenants joined, and what 58 NPCs have handed over.</li>
         <li><b>Elden Ring</b> — identity, attributes and runes in full; owned weapons, armour and ashes named; held remembrances and the bosses they prove. The rest of the held inventory (talismans, spells, goods) is not read yet, so the item list is partial.</li>
       </ul>
-      <p>Every game degrades a slot to "inventory only" rather than print a stat it cannot verify.</p>
+      <p>Every game degrades a slot to "inventory only" rather than print a stat it cannot verify. A save holding several characters gets one tab per character, and either button up top writes the whole file — every slot, not just the one on screen.</p>
 
     </div>
   </details>
@@ -258,6 +319,7 @@
     <summary>How it works</summary>
     <div class="how-body">
       <p>A <code>.sl2</code> is a FromSoftware save: one packed archive of blocks, most of them encrypted, one per character plus a few for the world. This tool unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off known positions. The save is never uploaded — it is parsed in your browser and forgotten the moment you close the tab. The one exception: DS2 item thumbnails are fetched from fextralife.com as you view them, so those requests do reveal which items a save holds.</p>
+      <p>The work happens on a background thread, so a big save does not lock the page up, and only the item tables for the game you dropped are fetched rather than all four games' worth. Once you have loaded the page it keeps working <b>offline</b> — the page, its code and the tables it has already used are cached, so you can read a save with no connection at all. The thumbnails are the one thing not cached: they are the only request that leaves your browser, and keeping copies of them would outlive the tab.</p>
       <p>Every game hides its data differently, so each is read differently.</p>
       <ul>
         <li><b>Dark Souls II (both releases):</b> unlocked with its AES key — vanilla and Scholar use different keys but the same layout, so the tool tries both and reads whichever opens. Bonfires lit and bosses killed come from a second world block the game keeps apart from the character.</li>
@@ -268,12 +330,12 @@
       <p>Two rules it never breaks. First, it never prints a number it cannot verify. If a stat block does not check out, the slot drops to "inventory only" and the attributes are simply gone. A missing field beats a wrong one. Second, the progress it shows is a floor, not a ceiling. It counts a boss dead only when the save still proves it: the soul in your pack, a defeat flag, or a point past it you could not have reached otherwise. A boss whose soul you already spent, with no flag and no gate, stays off the list. It under-claims on purpose.</p>
     </div>
   </details>
-  <div id="drop" class="frame">
-    <div class="big">Drop a .sl2 save here, or click to choose</div>
-    <div class="small">Read locally. Nothing is sent anywhere.</div>
-    <input id="file" type="file" accept=".sl2" hidden>
-  </div>
-  <div id="status"></div>
+  <button type="button" id="drop" class="frame" aria-describedby="drop-note">
+    <span class="big">Drop a .sl2 save here, or click to choose</span>
+    <span class="small" id="drop-note">Read locally. Nothing is sent anywhere.</span>
+  </button>
+  <input id="file" type="file" accept=".sl2" hidden>
+  <div id="status" role="status" aria-live="polite"></div>
   <div id="out"></div>
 </main>
 <footer>

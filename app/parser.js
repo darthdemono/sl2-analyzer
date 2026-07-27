@@ -1004,9 +1004,22 @@ export const GAMES = {
 };
 
 /**
+ * Which game a save is, without parsing a single character. Detection reads only
+ * the BND4 header (plus, for DS2, a trial decrypt of one block), so the caller can
+ * find out which game it is holding BEFORE fetching any item table — which is what
+ * lets the page load one game's databases instead of all four.
+ * @param {Uint8Array} data the whole file
+ * @returns {string} a GAMES key. Throws ParseError on an unsupported save.
+ */
+export function detectSaveGame(data) {
+  data = data instanceof Uint8Array ? data : new Uint8Array(data);
+  return detectGame(data, parseBnd4(data));
+}
+
+/**
  * Parse a whole save into characters. `dbs` is the preloaded database bundle
- * (see db.js). Returns {game, title, characters:[{slot, ch}]}. Throws ParseError
- * on an unsupported/short save (message is user-facing).
+ * (see db.js). Returns {game, title, characters:[{slot, ch}], bonfireTotal}.
+ * Throws ParseError on an unsupported/short save (message is user-facing).
  */
 export function parseSave(data, dbs) {
   data = data instanceof Uint8Array ? data : new Uint8Array(data);
@@ -1080,7 +1093,14 @@ export function parseSave(data, dbs) {
   }
   // DS2 carries a name→image-filename map (fextralife thumbnails) for the renderer.
   const images = DS2_GAMES.has(game) ? dbs.ds2.images : null;
-  return { game, title: meta.title, characters, images };
+  // How many bonfires the game HAS, so the renderer can say "22 of 77" instead of
+  // a bare count. Taken from the table rather than hardcoded, and only honest
+  // because these three tables are complete (DS3 77/77, DS2 77/77, DS1 43/43).
+  // Deliberately not done for bosses: those tables are a mapped subset, so a
+  // denominator there would imply a roster the db does not represent.
+  const fam = DS2_GAMES.has(game) ? "ds2" : game === "dsr" || game === "ptde" ? "ds1" : game;
+  const bonfireTotal = (dbs[fam] && dbs[fam].bonfireTotal) || 0;
+  return { game, title: meta.title, characters, images, bonfireTotal };
 }
 
 export { ParseError };

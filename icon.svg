@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SL2 Analyzer">
+  <title>SL2 Analyzer</title>
+  <rect width="512" height="512" rx="72" fill="#08080a"/>
+  <rect x="28" y="28" width="456" height="456" rx="48" fill="none" stroke="#c7a85c" stroke-width="6" opacity="0.35"/>
+  <!-- A bonfire: the coiled sword standing in a bed of ash, which is the one image
+       every game in this list shares. -->
+  <g stroke="#c7a85c" stroke-linecap="round" fill="none">
+    <path d="M256 108 L256 372" stroke-width="20"/>
+    <path d="M212 168 L300 168" stroke-width="18"/>
+    <path d="M256 108 L238 138 L256 128 L274 138 Z" fill="#efe7d0" stroke="none"/>
+  </g>
+  <path d="M150 372 Q256 344 362 372 Q256 400 150 372 Z" fill="#c7a85c" opacity="0.55"/>
+  <g fill="#c07c3d" opacity="0.85">
+    <path d="M256 236 q30 34 30 62 a30 30 0 0 1 -60 0 q0 -28 30 -62 Z"/>
+  </g>
+</svg>

@@ -4,7 +4,7 @@
 // the save proves are shown — fields the screen has but we can't verify (weapon AR,
 // resistances, bonuses) are omitted, never faked. Names via textContent, never innerHTML.
 
-import { STAT_ABBR, statGovernsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, DS2_GAMES, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, statCapsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, DS2_GAMES, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
 
 function el(tag, props, ...kids) {
@@ -157,6 +157,38 @@ function ds1DerivedPanel(ch) {
     el("p", { class: "lp-note", text: "Base values from attributes — before rings and equipment. Stamina and Max HP are read from the save above; poise is armour-only and item discovery needs covenant/gear, so both are left off." }));
 }
 
+/**
+ * Attribute Scaling: what each stat governs and where it soft-caps, beside the
+ * character's own value. The CLI has printed this for a while; on the web it only
+ * existed as a title= tooltip, which touch can't reach and a keyboard can't focus.
+ *
+ * These are documented game mechanics, NOT values read from the save, and the note
+ * says so — the same reason the CLI labels the section that way.
+ */
+function scalingPanel(ch) {
+  const gov = statGovernsFor(ch.game), caps = statCapsFor(ch.game);
+  const rows = [];
+  for (const k of orderedAttrKeys(ch.game, ch.stats)) {
+    const g = gov.get(k), c = caps.get(k);
+    if (!g && !c) continue;
+    rows.push(el("div", { class: "lp-scale" },
+      el("div", { class: "sc-h" },
+        el("span", { class: "sc-n", text: k }),
+        el("span", { class: "sc-v", text: fmt(ch.stats[k]) })),
+      g ? el("div", { class: "sc-g", text: g }) : null,
+      c ? el("div", { class: "sc-c", text: capFirstLetter(c) }) : null));
+  }
+  if (!rows.length) return null;
+  // Folded shut by default. It is a reference table, not save data, and left open it
+  // is taller than the whole level-up screen it sits beside. <details> also gives
+  // keyboard open/close for free.
+  return el("details", { class: "lp lp-fold" },
+    el("summary", { class: "lp-h", text: "Attribute Scaling" }),
+    el("div", { class: "lp-foldbody" }, ...rows,
+      el("p", { class: "lp-note", text: "What each attribute does in this game and where it soft-caps — a mechanics reference, not a value read from your save. Your own number is on the right of each row." })));
+}
+const capFirstLetter = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
 /** Character panel: identity + counters that aren't in the left column. */
 function characterPanel(ch) {
   const rows = [];
@@ -178,6 +210,8 @@ function levelUpScreen(slot, ch) {
   if ((ch.game === "dsr" || ch.game === "ptde") && Object.keys(ch.stats).length) rightPanels.push(ds1DerivedPanel(ch));
   const cp = characterPanel(ch);
   if (cp) rightPanels.push(cp);
+  const sp = Object.keys(ch.stats).length ? scalingPanel(ch) : null;
+  if (sp) rightPanels.push(sp);
 
   const body = el("div", { class: "lvlup-body" + (rightPanels.length ? "" : " solo") },
     leftColumn(slot, ch),
@@ -192,7 +226,29 @@ function levelUpScreen(slot, ch) {
     body);
 }
 
-function characterCard(slot, ch) {
+/**
+ * "22 of 77" plus a bar, for bonfires only. The bonfire tables are COMPLETE for
+ * every game that has one (DS3 77/77, DS2 77/77, DS1 43/43), so the denominator is
+ * a real total rather than "however many we happened to map". Deliberately not done
+ * for bosses: those tables are a mapped subset (DS2 has 6 of ~41), so a fraction
+ * there would state a roster the data does not support.
+ * @returns the heading text, and a bar element or null when there is no total.
+ */
+function bonfireProgress(count, total, suffix) {
+  const usable = total > 0 && count <= total;
+  const title = usable
+    ? `Bonfires Discovered (${count} of ${total}${suffix})`
+    : `Bonfires Discovered (${count}${suffix})`;
+  if (!usable) return [title, null];
+  const pct = Math.round((count / total) * 100);
+  const bar = el("div", { class: "pbar", role: "progressbar", "aria-valuenow": String(count),
+    "aria-valuemin": "0", "aria-valuemax": String(total),
+    "aria-label": `${count} of ${total} bonfires discovered` },
+    el("span", { class: "pbar-f", style: `width:${pct}%` }));
+  return [title, bar];
+}
+
+function characterCard(slot, ch, bonfireTotal) {
   const card = el("article", { class: "status" });
   card.append(levelUpScreen(slot, ch));
 
@@ -206,14 +262,18 @@ function characterCard(slot, ch) {
   // DS2 keeps the flat list for the boss-gate logic; the grouped view wins when the
   // area table resolved it.
   if (ch.bonfires && ch.bonfires.length && !(ch.bonfire_areas && ch.bonfire_areas.length)) {
-    card.append(section(`Bonfires Discovered (${ch.bonfires.length})`, [
+    const [title, bar] = bonfireProgress(ch.bonfires.length, bonfireTotal, "");
+    card.append(section(title, [
       el("p", { class: "hint", text: "Every bonfire you have lit. A floor on how far you got." }),
+      bar,
       el("ul", { class: "items cols" }, ...ch.bonfires.map((b) => el("li", { text: b })))]));
   }
   if (ch.bonfire_areas && ch.bonfire_areas.length) {
-    const total = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0), n = ch.bonfire_areas.length;
-    card.append(section(`Bonfires Discovered (${total} across ${n} area${n !== 1 ? "s" : ""})`, [
+    const lit = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0), n = ch.bonfire_areas.length;
+    const [title, bar] = bonfireProgress(lit, bonfireTotal, ` across ${n} area${n !== 1 ? "s" : ""}`);
+    card.append(section(title, [
       el("p", { class: "hint", text: ch.game === "dsr" || ch.game === "ptde" ? "Each bonfire's own record, with how far it is kindled. A floor on how far you got." : DS2_GAMES.has(ch.game) ? "Every bonfire the save records as discovered, by area. A floor on how far you got." : "Bonfires lit, inferred from each area's flag bits. A floor on how far you got." }),
+      bar,
       el("ul", { class: "items cols" }, ...ch.bonfire_areas.map(([name, c, named]) => {
         if (named && named.length) {
           const extra = c - named.length;
@@ -284,6 +344,22 @@ function characterCard(slot, ch) {
   return card;
 }
 
+/** Save the same Markdown to a file, for anyone who wants it on disk not on the clipboard. */
+function downloadButton(result, filename) {
+  const btn = el("button", { class: "btn btn-ghost", type: "button", text: "Download .md" });
+  btn.addEventListener("click", () => {
+    const blob = new Blob([buildMarkdown(result, filename)], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = el("a", { href: url, download: `${(filename || "save").replace(/\.sl2$/i, "")}.md` });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    // Revoke on the next tick — revoking synchronously can beat the download.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  });
+  return btn;
+}
+
 function copyButton(result, filename) {
   const btn = el("button", { class: "btn btn-ghost copy", type: "button", text: "Copy Markdown" });
   btn.addEventListener("click", async () => {
@@ -301,6 +377,53 @@ function copyButton(result, filename) {
   return btn;
 }
 
+/**
+ * A tab strip for a save holding more than one character. A 10-slot mule otherwise
+ * renders as ten full sheets stacked, which is unreadable — so all cards are built
+ * (Copy Markdown still covers every one) and only the selected one is shown.
+ *
+ * Follows the ARIA tabs pattern: roving tabindex, arrows/Home/End move selection,
+ * each panel labelled by its tab.
+ */
+function slotTabs(cards, chars, uid) {
+  const tabs = chars.map(({ slot, ch }, i) => el("button", {
+    class: "slot-tab", type: "button", role: "tab", id: `${uid}-t${i}`,
+    "aria-controls": `${uid}-p${i}`, "aria-selected": i === 0 ? "true" : "false",
+    tabindex: i === 0 ? "0" : "-1",
+  }, el("span", { class: "st-n", text: ch.name || "(unnamed)" }),
+     el("span", { class: "st-s", text: `Slot ${slot}${ch.level != null ? ` · Lv ${ch.level}` : ""}` })));
+
+  const select = (i) => {
+    tabs.forEach((t, j) => {
+      t.setAttribute("aria-selected", j === i ? "true" : "false");
+      t.setAttribute("tabindex", j === i ? "0" : "-1");
+      if (j === i) t.classList.add("on"); else t.classList.remove("on");
+    });
+    cards.forEach((c, j) => { if (j === i) c.removeAttribute("hidden"); else c.setAttribute("hidden", ""); });
+  };
+
+  tabs.forEach((t, i) => {
+    t.addEventListener("click", () => select(i));
+    t.addEventListener("keydown", (e) => {
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      let next = null;
+      if (step != null) next = (i + step + tabs.length) % tabs.length;
+      else if (e.key === "Home") next = 0;
+      else if (e.key === "End") next = tabs.length - 1;
+      if (next == null) return;
+      e.preventDefault();
+      select(next);
+      tabs[next].focus();
+    });
+  });
+
+  tabs[0].classList.add("on");
+  cards.forEach((c, j) => { if (j) c.setAttribute("hidden", ""); });
+  return el("div", { class: "slot-tabs", role: "tablist", "aria-label": "Characters in this save" }, ...tabs);
+}
+
+let uidSeq = 0;
+
 /** Build the DOM for a parsed save result, themed to the detected game. */
 export function renderSave(result, filename) {
   imgResolve = makeImgResolver(result.images);
@@ -313,9 +436,22 @@ export function renderSave(result, filename) {
       el("p", { class: "src", text: filename || "" })),
     el("div", { class: "gb-right" },
       el("span", { class: "count", text: `${result.characters.length} character${result.characters.length === 1 ? "" : "s"}` }),
+      downloadButton(result, filename),
       copyButton(result, filename))));
   if (!result.characters.length) root.append(el("p", { class: "note", text: "No populated character slots found." }));
-  for (const { slot, ch } of result.characters) root.append(characterCard(slot, ch));
+
+  const uid = `slot${++uidSeq}`;
+  const cards = result.characters.map(({ slot, ch }) => characterCard(slot, ch, result.bonfireTotal));
+  if (cards.length > 1) {
+    cards.forEach((c, i) => {
+      c.setAttribute("role", "tabpanel");
+      c.setAttribute("id", `${uid}-p${i}`);
+      c.setAttribute("aria-labelledby", `${uid}-t${i}`);
+    });
+    root.append(slotTabs(cards, result.characters, uid));
+  }
+  for (const c of cards) root.append(c);
+
   root.append(el("p", { class: "foot", text: "All of it read from the save, in your browser. The progress sections are a floor: a spent soul or an unmapped flag can hide a kill. It never invents one." }));
   return root;
 }

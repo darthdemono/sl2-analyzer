@@ -4,6 +4,12 @@
 //   DS1/DS3 — name-keyed {name: decimal-id} → invert (DS1 last-wins, DS3 first-wins)
 //   ER   — {8-hex-id: name} per type → Map(id → name)
 // bonfires/boss_flags use big-endian int(hex); DS2 items use little-endian bytes.
+//
+// Two things matter for page load. Every file in a family is fetched with one
+// Promise.all rather than awaited in turn (40 sequential round trips was ~40x RTT
+// before the first parse could start), and a caller that already knows the game —
+// detectSaveGame only needs the BND4 header — can load that family alone. A DS3
+// save needs 11 files, not 40.
 
 const DS2_FILES = { weapons: "weapons", armors: "armors", rings: "rings", spells: "spells",
   key: "keys", bolts: "bolts", upgrade: "upgrade", consumables: "consumables",
@@ -11,6 +17,11 @@ const DS2_FILES = { weapons: "weapons", armors: "armors", rings: "rings", spells
 const DS1_FILES = { MeleeWeapons: "weapons", Armor: "armors", Rings: "rings", Consumables: "goods" };
 const DS3_FILES = { weapons: "weapons", armors: "armors", rings: "rings", goods: "goods", bolts: "bolts", spells: "spells" };
 const ER_FILES = ["weapons", "armors", "talismans", "goods", "ashes"];
+
+/** Detected per-slot game id → the db_* family it reads. Mirrors the Python routing. */
+export const DB_FAMILY = { dsr: "ds1", ptde: "ds1", ds2sotfs: "ds2", ds2vanilla: "ds2", ds3: "ds3", er: "er" };
+
+export const ALL_FAMILIES = ["ds1", "ds2", "ds3", "er"];
 
 /** Little-endian byte-hex ("d0093500") → integer, matching Python from_bytes(...,"little"). */
 function hexLE(hx) {
@@ -20,75 +31,150 @@ function hexLE(hx) {
   return v;
 }
 
+/** Fetch one JSON file, or null if it is missing — a db file is always optional. */
 async function jget(getJSON, path) {
   try { return await getJSON(path); } catch { return null; }
 }
 
 /**
- * Load every database. `getJSON(relPath)` returns parsed JSON (or throws if missing).
- * Returns the `dbs` bundle consumed by parseSave.
+ * Fetch every path in one round instead of one at a time.
+ * @returns {Promise<Array>} results in the SAME order as `paths` — which the
+ * first-wins / last-wins id rules depend on, so the order is load-bearing.
  */
-export async function loadAllDbs(getJSON) {
-  // DS2 items: id-keyed, setdefault.
-  const ds2Items = new Map();
-  for (const [stem, cat] of Object.entries(DS2_FILES)) {
-    const j = await jget(getJSON, `db_ds2/${stem}.json`);
-    if (!j) continue;
-    for (const [hx, name] of Object.entries(j)) {
+const jgetAll = (getJSON, paths) => Promise.all(paths.map((p) => jget(getJSON, p)));
+
+const toMap16 = (j) => {
+  const m = new Map();
+  if (j) for (const [k, v] of Object.entries(j)) m.set(parseInt(k, 16), v);
+  return m;
+};
+
+// ── Per-family loaders. Each returns the slice of the bundle parser.js reads. ──
+
+async function loadDs1(getJSON) {
+  const stems = Object.keys(DS1_FILES);
+  const [items, extra] = await Promise.all([
+    jgetAll(getJSON, stems.map((s) => `db_ds1/${s}.json`)),
+    jgetAll(getJSON, ["db_ds1/boss_souls.json", "db_ds1/bonfires.json", "db_ds1/boss_flags.json"]),
+  ]);
+  // name-keyed decimal, per-category, last-wins.
+  const table = {};
+  stems.forEach((stem, i) => {
+    if (!items[i]) return;
+    const m = new Map();
+    for (const [name, id] of Object.entries(items[i])) m.set(Number(id), name);
+    table[DS1_FILES[stem]] = m;
+  });
+  const bonfires = extra[1] || {};
+  return { items: table, bossSouls: extra[0] || {}, bonfires, bossFlags: extra[2] || {},
+           bonfireTotal: Object.keys(bonfires).length };
+}
+
+async function loadDs2(getJSON) {
+  const stems = Object.keys(DS2_FILES);
+  const [items, extra] = await Promise.all([
+    jgetAll(getJSON, stems.map((s) => `db_ds2/${s}.json`)),
+    jgetAll(getJSON, ["db_ds2/bonfires.json", "db_ds2/boss_flags.json", "db_ds2/bonfire_areas.json",
+                      "db_ds2/boss_souls.json", "db_ds2/images.json"]),
+  ]);
+  // id-keyed, setdefault — first file to claim an id keeps it, so stem order matters.
+  const table = new Map();
+  stems.forEach((stem, i) => {
+    if (!items[i]) return;
+    for (const [hx, name] of Object.entries(items[i])) {
       const id = hexLE(hx);
-      if (!ds2Items.has(id)) ds2Items.set(id, [name, cat]);
+      if (!table.has(id)) table.set(id, [name, DS2_FILES[stem]]);
     }
-  }
-  const toMap16 = (j) => { const m = new Map(); if (j) for (const [k, v] of Object.entries(j)) m.set(parseInt(k, 16), v); return m; };
-  const ds2Bonfires = toMap16(await jget(getJSON, "db_ds2/bonfires.json"));
-  const ds2BossFlags = toMap16(await jget(getJSON, "db_ds2/boss_flags.json"));
-  // Bonfire id -> area, so DS2 groups its discovered bonfires the way DS1/DS3 do.
-  const ds2BonfireAreas = toMap16(await jget(getJSON, "db_ds2/bonfire_areas.json"));
+  });
+  const bonfires = toMap16(extra[0]);
+  return { items: table, bonfires, bossFlags: toMap16(extra[1]),
+           bonfireAreas: toMap16(extra[2]), bossSouls: extra[3] || {}, images: extra[4] || {},
+           bonfireTotal: bonfires.size };
+}
 
-  // DS1 items: name-keyed decimal, per-category, last-wins.
-  const ds1Items = {};
-  for (const [stem, cat] of Object.entries(DS1_FILES)) {
-    const j = await jget(getJSON, `db_ds1/${stem}.json`);
-    if (!j) continue;
-    const m = new Map();
-    for (const [name, id] of Object.entries(j)) m.set(Number(id), name);
-    ds1Items[cat] = m;
-  }
-
-  // DS3 items: name-keyed decimal, flat id→[name,cat], first-wins.
-  const ds3Items = new Map();
-  for (const [stem, cat] of Object.entries(DS3_FILES)) {
-    const j = await jget(getJSON, `db_ds3/${stem}.json`);
-    if (!j) continue;
-    for (const [name, id] of Object.entries(j)) {
+async function loadDs3(getJSON) {
+  const stems = Object.keys(DS3_FILES);
+  const [items, extra] = await Promise.all([
+    jgetAll(getJSON, stems.map((s) => `db_ds3/${s}.json`)),
+    jgetAll(getJSON, ["db_ds3/boss_souls.json", "db_ds3/bonfires.json", "db_ds3/boss_flags.json",
+                      "db_ds3/questlines.json", "db_ds3/covenants.json"]),
+  ]);
+  // name-keyed decimal, flat id→[name,cat], first-wins.
+  const table = new Map();
+  stems.forEach((stem, i) => {
+    if (!items[i]) return;
+    for (const [name, id] of Object.entries(items[i])) {
       const n = Number(id);
-      if (!ds3Items.has(n)) ds3Items.set(n, [name, cat]);
+      if (!table.has(n)) table.set(n, [name, DS3_FILES[stem]]);
     }
-  }
+  });
+  const bonfires = extra[1] || {};
+  return { items: table, bossSouls: extra[0] || {}, bonfires, bossFlags: extra[2] || {},
+           questlines: extra[3] || {}, covenants: extra[4] || {},
+           // DS3 groups bonfires by area, so the total is the sum of the area lists.
+           bonfireTotal: Object.values(bonfires).reduce((s, a) => s + a.length, 0) };
+}
 
-  // ER items: hex-id → name, per category.
-  const erItems = {};
-  for (const cat of ER_FILES) {
-    const j = await jget(getJSON, `db_er/${cat}.json`);
-    if (!j) continue;
-    const m = new Map();
-    for (const [k, v] of Object.entries(j)) m.set(parseInt(k, 16), v);
-    erItems[cat] = m;
-  }
+async function loadEr(getJSON) {
+  const [items, bossSouls] = await Promise.all([
+    jgetAll(getJSON, ER_FILES.map((c) => `db_er/${c}.json`)),
+    jget(getJSON, "db_er/boss_souls.json"),
+  ]);
+  const table = {};
+  ER_FILES.forEach((cat, i) => { if (items[i]) table[cat] = toMap16(items[i]); });
+  return { items: table, bossSouls: bossSouls || {} };
+}
 
-  return {
-    ds2: { items: ds2Items, bonfires: ds2Bonfires, bonfireAreas: ds2BonfireAreas,
-           bossFlags: ds2BossFlags,
-           bossSouls: (await jget(getJSON, "db_ds2/boss_souls.json")) || {},
-           images: (await jget(getJSON, "db_ds2/images.json")) || {} },
-    ds1: { items: ds1Items, bossSouls: (await jget(getJSON, "db_ds1/boss_souls.json")) || {},
-           bonfires: (await jget(getJSON, "db_ds1/bonfires.json")) || {},
-           bossFlags: (await jget(getJSON, "db_ds1/boss_flags.json")) || {} },
-    ds3: { items: ds3Items, bossSouls: (await jget(getJSON, "db_ds3/boss_souls.json")) || {},
-           bonfires: (await jget(getJSON, "db_ds3/bonfires.json")) || {},
-           bossFlags: (await jget(getJSON, "db_ds3/boss_flags.json")) || {},
-           questlines: (await jget(getJSON, "db_ds3/questlines.json")) || {},
-           covenants: (await jget(getJSON, "db_ds3/covenants.json")) || {} },
-    er: { items: erItems, bossSouls: (await jget(getJSON, "db_er/boss_souls.json")) || {} },
-  };
+const LOADERS = { ds1: loadDs1, ds2: loadDs2, ds3: loadDs3, er: loadEr };
+
+/**
+ * An unloaded family still has to answer every lookup parseSave makes, so a family
+ * that was skipped is present and empty rather than missing. That way loading one
+ * game can never turn a lookup into a TypeError.
+ */
+const EMPTY = {
+  ds1: () => ({ items: {}, bossSouls: {}, bonfires: {}, bossFlags: {}, bonfireTotal: 0 }),
+  ds2: () => ({ items: new Map(), bonfires: new Map(), bonfireAreas: new Map(),
+                bossFlags: new Map(), bossSouls: {}, images: {}, bonfireTotal: 0 }),
+  ds3: () => ({ items: new Map(), bossSouls: {}, bonfires: {}, bossFlags: {},
+                questlines: {}, covenants: {}, bonfireTotal: 0 }),
+  er: () => ({ items: {}, bossSouls: {} }),
+};
+
+/**
+ * Load only the families named, in parallel. `getJSON(relPath)` returns parsed JSON
+ * (or throws if missing). Families not requested come back empty, so the returned
+ * bundle is always the full shape parseSave expects.
+ * @param {(p: string) => Promise<any>} getJSON
+ * @param {string[]} families subset of ALL_FAMILIES
+ */
+export async function loadDbsFor(getJSON, families) {
+  const want = ALL_FAMILIES.filter((f) => families.includes(f));
+  const loaded = await Promise.all(want.map((f) => LOADERS[f](getJSON)));
+  const dbs = {};
+  for (const f of ALL_FAMILIES) dbs[f] = EMPTY[f]();
+  want.forEach((f, i) => { dbs[f] = loaded[i]; });
+  return dbs;
+}
+
+/** Every database, all four games. The parity harnesses and any offline use want this. */
+export const loadAllDbs = (getJSON) => loadDbsFor(getJSON, ALL_FAMILIES);
+
+/** The db_* files a family needs — used by the service worker to precache them. */
+export function dbPathsFor(family) {
+  if (family === "ds1") {
+    return [...Object.keys(DS1_FILES).map((s) => `db_ds1/${s}.json`),
+      "db_ds1/boss_souls.json", "db_ds1/bonfires.json", "db_ds1/boss_flags.json"];
+  }
+  if (family === "ds2") {
+    return [...Object.keys(DS2_FILES).map((s) => `db_ds2/${s}.json`),
+      "db_ds2/bonfires.json", "db_ds2/boss_flags.json", "db_ds2/bonfire_areas.json",
+      "db_ds2/boss_souls.json", "db_ds2/images.json"];
+  }
+  if (family === "ds3") {
+    return [...Object.keys(DS3_FILES).map((s) => `db_ds3/${s}.json`),
+      "db_ds3/boss_souls.json", "db_ds3/bonfires.json", "db_ds3/boss_flags.json",
+      "db_ds3/questlines.json", "db_ds3/covenants.json"];
+  }
+  return [...ER_FILES.map((c) => `db_er/${c}.json`), "db_er/boss_souls.json"];
 }
