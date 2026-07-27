@@ -151,6 +151,12 @@ def is_valid_name(name):
 
 ## @brief AES-128 key for Dark Souls II: Scholar of the First Sin.
 DS2_KEY = bytes.fromhex("599F9B699640A55236EE2D70835EC744")
+## @brief AES-128 key for VANILLA Dark Souls II (the DX9 original, DARKSII0000.sl2),
+#  which is a different key from Scholar of the First Sin above. From TKGP's
+#  SoulsFormats `SFUtil.GetDS2SaveKey()`. Verified on a real DARKSII0000.sl2: the
+#  character block decrypts to entropy 2.8 (the SOTFS key gives 7.99 noise), the name
+#  reads out, and every SOTFS field offset lands — see DS2_VANILLA_LAYOUT below.
+DS2_VANILLA_KEY = bytes.fromhex("B7FD463E4A9C1102DF1739E5F3B2A50F")
 ## @brief AES-128 key for Dark Souls Remastered.
 DSR_KEY = bytes.fromhex("0123456789ABCDEFFEDCBA9876543210")
 ## @brief AES-128 key for Dark Souls III.
@@ -241,15 +247,17 @@ def detect_game(data, entries):
     sig = data[24:32]
     n = len(entries)
     if sig == DS2_SIGNATURE:
-        # Both DS2 variants share the signature. SOTFS is the one whose key works;
-        # vanilla DS2 uses a key that is not public, so it is not supported.
+        # Both DS2 variants share the signature, so they are told apart by which key
+        # decrypts: the length prefix at plaintext +0 must fit the block. A wrong key
+        # yields noise, which fails that test essentially always.
         blob = data[entries[1].offset:entries[1].offset + entries[1].size]
-        pt = _aes_cbc(DS2_KEY, blob[16:32], blob[32:])
-        dlen = u32(pt, 0)
-        if dlen is not None and 0 < dlen <= len(pt) - 4:
-            return "ds2sotfs"
-        sys.exit("Vanilla Dark Souls II (DARKSII0000.sl2) is not supported — its "
-                 "AES key is not public. Re-save in Scholar of the First Sin.")
+        for key, game in ((DS2_KEY, "ds2sotfs"), (DS2_VANILLA_KEY, "ds2vanilla")):
+            pt = _aes_cbc(key, blob[16:32], blob[32:])
+            dlen = u32(pt, 0)
+            if dlen is not None and 0 < dlen <= len(pt) - 4:
+                return game
+        sys.exit("Dark Souls II save found, but neither the Scholar nor the vanilla "
+                 "key decrypts it.")
     if n == 11:
         return "dsr" if sig == b"\x00" * 8 else "ptde"
     if n == 12:
@@ -278,11 +286,19 @@ def _aes_cbc(key, iv, ct):
 # @brief Decrypt a DS2 entry: [16B MD5][16B IV][ciphertext], plaintext prefixed
 #        by a uint32 length.
 # @param blob The raw entry bytes.
+# @param key  DS2_KEY (Scholar) or DS2_VANILLA_KEY (the DX9 original). The two
+#             variants share this layout exactly; only the key differs.
 # @return The game data, or None if the length prefix is unreadable.
-def decrypt_ds2(blob):
-    pt = _aes_cbc(DS2_KEY, blob[16:32], blob[32:])
+def decrypt_ds2(blob, key=DS2_KEY):
+    pt = _aes_cbc(key, blob[16:32], blob[32:])
     dlen = u32(pt, 0)
-    return None if dlen is None else pt[4:4 + dlen]
+    # The length must fit the block. A wrong key decrypts to noise whose "length" is
+    # a random uint32, so this doubles as a key check: rejecting it here means a
+    # mismatched key yields None (feature off) instead of a buffer of noise that the
+    # world-block readers would happily mistake for set event flags.
+    if dlen is None or not 0 < dlen <= len(pt) - 4:
+        return None
+    return pt[4:4 + dlen]
 
 
 ##
@@ -532,6 +548,17 @@ def find_key_goods(goods):
 #  Dark Souls II (SOTFS) — full tier
 # ═════════════════════════════════════════════════════════════════════════════
 
+## @brief The two DS2 releases. Vanilla (the DX9 original) and Scholar of the First
+#  Sin share the ENTIRE save layout — only the AES key differs. Verified field by
+#  field on a real DARKSII0000.sl2 against a real DS2SOFS0000.sl2: identical BND4
+#  entry count and sizes (bar one non-character block), the name at DS2_NAME_OFF, and
+#  DS2's own level identity (sum of the nine attributes minus level == 53) holding on
+#  both. So every DS2 table below is shared; anything keyed by game id resolves
+#  vanilla through DS2_FAMILY rather than carrying a duplicate entry.
+DS2_GAMES = ("ds2sotfs", "ds2vanilla")
+## @brief Game id to the id whose lookup tables it uses (attribute reference, derived
+#  stats, themes). DS1's two releases already collapse this way; DS2's now do too.
+DS2_FAMILY = {"dsr": "ds1", "ptde": "ds1", "ds2vanilla": "ds2sotfs"}
 ## @brief DS2 character-slot offsets (absolute, into decrypted game data).
 DS2_NAME_OFF, DS2_SOULS_OFF, DS2_SOULMEM_OFF, DS2_HP_OFF, DS2_NG_OFF = 960, 60, 64, 72, 1028
 ## @brief DS2 header (BND4 entry 0) title-list layout: each menu slot's name sits at
@@ -796,6 +823,20 @@ def ds3_derived_stats(stats):
 
 
 ##
+# @brief DS1 base derived stats that are closed-form functions of attributes only.
+# @details Only the two the equipment screen shows that need no gear: base Equip Load
+# (@c 40 + Endurance — fextralife's table is dead linear, END 10 -> 50.0, 99 -> 139.0)
+# and attunement slots (@ref DS1_SLOT_BREAKS). Stamina and Max HP are read from the
+# save, so they are not recomputed; poise comes from armour alone and item discovery
+# needs covenant/gear, so neither is derived. @param stats The attribute dict.
+def ds1_derived_stats(stats):
+    end = stats.get("Endurance", 0) or 0
+    atn = stats.get("Attunement", 0) or 0
+    return {"slots": sum(1 for b in DS1_SLOT_BREAKS if atn >= b),
+            "equip_load": float(DS1_EQUIP_BASE + end)}
+
+
+##
 # @brief Every DS2 covenant the character has discovered, with its rank.
 # @details Two dense byte runs in covenant-id order (@ref DS2_COV_DISC_D /
 # @ref DS2_COV_RANK_D past the current-covenant byte). Both runs are validated as a
@@ -937,14 +978,16 @@ def ds1_bonfires(buf, db):
 
 
 ## @brief Parse one DS2 slot into the unified character dict, or None if empty.
-def ds2_parse(buf, item_db):
+#  @param game Which DS2 release this slot came from. The layout is identical for
+#              both (see DS2_GAMES), so this only labels the output.
+def ds2_parse(buf, item_db, game="ds2sotfs"):
     if ds2_name(buf) is None:
         return None
     stats = OrderedDict((k, u16(buf, o) or 0) for k, o in DS2_STAT_OFF.items())
     buckets, unknown = ds2_inventory(buf, item_db)
     inv = {c: merge_qty(v) for c, v in buckets.items()}
     return {
-        "tier": "full", "game": "ds2sotfs", "name": ds2_name(buf),
+        "tier": "full", "game": game, "name": ds2_name(buf),
         "klass": DS2_CLASS.get(u8(buf, DS2_CLASS_OFF)),
         "covenant": DS2_COVENANT.get(u8(buf, DS2_COVENANT_OFF)),
         "covenants": ds2_covenants(buf),
@@ -975,6 +1018,25 @@ def load_ds2_bonfires(base_dir):
         except (OSError, ValueError):
             _DS2_BONFIRE_CACHE[base_dir] = {}
     return _DS2_BONFIRE_CACHE[base_dir]
+
+
+## @brief Load the DS2 bonfire→area table (db_ds2/bonfire_areas.json): bonfire id →
+#  the area it belongs to, so discovered bonfires group the way DS1's and DS3's do
+#  instead of listing 77 flat names. Generated from the fextralife Bonfires page,
+#  which lists every bonfire under its location; the two bonfires sharing the name
+#  "Tower of Prayer" are split by the id's own map cluster. Cached. Returns {} if
+#  absent, and the grouping then falls back to the flat list.
+_DS2_AREA_CACHE = {}
+def load_ds2_bonfire_areas(base_dir):
+    if base_dir not in _DS2_AREA_CACHE:
+        path = os.path.join(base_dir, "db_ds2", "bonfire_areas.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                raw = json.load(f)
+            _DS2_AREA_CACHE[base_dir] = {int(k, 16): v for k, v in raw.items()}
+        except (OSError, ValueError):
+            _DS2_AREA_CACHE[base_dir] = {}
+    return _DS2_AREA_CACHE[base_dir]
 
 
 ## @brief Load the DS3 bonfire table (db_ds3/bonfires.json): area → list of
@@ -1210,27 +1272,51 @@ def ds2_visited_bonfires(world, bf_db):
     visited = []
     for idx, bid in enumerate(ids):
         if u8(world, flag_base + idx):
-            visited.append(bf_db.get(bid, f"(bonfire {bid:#06x})"))
+            visited.append((bid, bf_db.get(bid, f"(bonfire {bid:#06x})")))
     return visited
+
+
+##
+# @brief Group discovered bonfires by area, in the (area, count, names) shape DS1
+#        and DS3 already emit, so all three render through the same section.
+# @param visited The (id, name) pairs from ds2_visited_bonfires.
+# @param area_db Bonfire id → area, from load_ds2_bonfire_areas.
+# @return The grouped list, or None when no id has a known area (the caller then
+#         keeps the flat list rather than inventing an "Unknown" bucket).
+def ds2_bonfire_areas(visited, area_db):
+    if not visited or not area_db:
+        return None
+    areas = OrderedDict()
+    for bid, name in visited:
+        area = area_db.get(bid)
+        if area is not None:
+            areas.setdefault(area, []).append(name)
+    return [(a, len(v), v) for a, v in areas.items()] or None
 
 
 ## @brief DS2-only augment: attach world-block progression (bonfires, bosses) to a
 #  parsed character. The world block for status entry @c i is entry
 #  @c i+DS2_WORLD_ENTRY_DELTA; a missing/undecryptable block leaves both fields None
 #  (sections omitted). Decrypts the world block once for both reads.
-def ds2_augment(ch, data, entries, i, base_dir):
+def ds2_augment(ch, data, entries, i, base_dir, dec=decrypt_ds2):
     # Play time lives in the header title record (one per slot), not the character
     # block. Title index for block entry i is i - slots.start, and DS2 starts at 1.
     if entries:
-        hdr = decrypt_ds2(data[entries[0].offset:entries[0].offset + entries[0].size])
+        hdr = dec(data[entries[0].offset:entries[0].offset + entries[0].size])
         if hdr is not None:
             base = DS2_TITLE_NAME_OFF + DS2_TITLE_STRIDE * (i - 1)
             ch["play_time"] = u32(hdr, base + DS2_TITLE_PLAYTIME_OFF)
     w = i + DS2_WORLD_ENTRY_DELTA
     if w >= len(entries):
         return
-    world = decrypt_ds2(data[entries[w].offset:entries[w].offset + entries[w].size])
-    ch["bonfires"] = ds2_visited_bonfires(world, load_ds2_bonfires(base_dir))
+    world = dec(data[entries[w].offset:entries[w].offset + entries[w].size])
+    visited = ds2_visited_bonfires(world, load_ds2_bonfires(base_dir))
+    # The flat name list stays: DS2_BOSS_GATE is keyed by bonfire name, so the boss
+    # inference below reads it. The grouped view is what gets rendered.
+    ch["bonfires"] = [name for _, name in visited] if visited else visited
+    areas = ds2_bonfire_areas(visited, load_ds2_bonfire_areas(base_dir))
+    if areas:
+        ch["bonfire_areas"] = areas
     ch["bosses"] = ds2_infer_bosses(world, ch, base_dir)
 
 
@@ -1244,6 +1330,9 @@ def ds1_augment(ch, data, entries, i, base_dir, dec):
     buf = dec(data[entries[i].offset:entries[i].offset + entries[i].size])
     if buf is None:
         return
+    if DS1_MENU_ENTRY < len(entries):
+        e = entries[DS1_MENU_ENTRY]
+        ds1_attach_playtime(ch, dec(data[e.offset:e.offset + e.size]))
     areas = ds1_bonfires(buf, load_ds1_bonfires(base_dir))
     if areas:
         ch["bonfire_areas"] = areas
@@ -1268,10 +1357,10 @@ def ds1_augment(ch, data, entries, i, base_dir, dec):
 # than a save the user would bother converting with every character deleted.
 # @return The set of active entry indices, or None if the header can't be read or
 #         the list came back empty (caller then applies no filter).
-def ds2_active_slots(data, entries, slots):
+def ds2_active_slots(data, entries, slots, dec=decrypt_ds2):
     if not entries:
         return None
-    hdr = decrypt_ds2(data[entries[0].offset:entries[0].offset + entries[0].size])
+    hdr = dec(data[entries[0].offset:entries[0].offset + entries[0].size])
     if hdr is None:
         return None
     active = set()
@@ -1292,6 +1381,44 @@ DSR_MAGIC = bytes.fromhex("00FFFFFFFF000000000000000000000000FFFFFFFF")
 ## @brief DSR field distances from the anchor.
 DSR_SOULS_D, DSR_HP_D, DSR_STAM_D, DSR_LEVEL_D, DSR_CLASS_D, DSR_HUM_D = -291, -419, -391, -295, -233, -307
 DSR_NG_D, DSR_NAME_D = 0x1E3A7, -271
+## @brief Gender (u8) distance from the anchor. Two independent sources agree, which
+#  is what makes this shippable without a differential save: alfizari's DSR editor puts
+#  Gender at magic-237, and tarvitz/dsfp (a PtDE parser) has a boolean `male` field 34
+#  bytes past the name — the same byte, since the name sits at magic-271. Both call 1
+#  Male, so DS1's polarity is the OPPOSITE of DS2's (where 1 is Female). Cross-read on
+#  a real save: dsfp's frame and ours both report male=1 for the same character.
+DSR_GENDER_D = -237
+## @brief DS1 gender enum. Note the inverted polarity against DS2_GENDER.
+DS1_GENDER = {0: "Female", 1: "Male"}
+## @brief Total deaths (u32), at a slot-absolute offset per release rather than a
+#  distance from the moving anchor — the counter lives in a fixed struct near the
+#  event-flag region, not in the character block. PtDE's offset is dsfp's (0x1F128 in
+#  its frame, which is 16 bytes ahead of ours), verified on two real saves: an
+#  all-items mule reads 459 and a real playthrough reads 39. DSR shifts this struct by
+#  the same 448 bytes its event-flag region moves (see DS1_FLAG_BASE), and the
+#  neighbouring fields confirm it: both releases read [deaths][0xFFFFFFFF][~1.5M][2048]
+#  in that order. DS1_DEATHS_SENTINEL is checked before the value is used, so a moved
+#  struct omits the field instead of printing whatever is there.
+DS1_DEATHS_OFF = {"ptde": 0x1F118, "dsr": 0x1F2D8}
+DS1_DEATHS_SENTINEL, DS1_DEATHS_SENTINEL_D = 0xFFFFFFFF, 4
+## @brief DS1's load-screen roster lives in BND4 entry 10, one fixed record per slot:
+#  name at +0 (UTF-16), soul level at +36, play time at +40 as a uint32 of SECONDS.
+#  dsfp documents the 0x170 record stride, which its own play-time constant confirms
+#  (its file-absolute index minus the record base is exactly this +40). The block's
+#  start differs between the releases, so the record is located by the character's own
+#  name and only accepted when the level at +36 matches the level parsed from the
+#  slot — a self-consistency gate, the same trick DS3's equip slots use. Verified on
+#  three saves: 25:16:39 at level 95 (DSR), 19:25:30 at 81 (PtDE), 151h on a mule.
+DS1_MENU_ENTRY = 10
+DS1_MENU_LEVEL_D, DS1_MENU_PLAYTIME_D = 36, 40
+## @brief DS1 derived values that are pure functions of one attribute, so they can be
+#  computed exactly rather than guessed. Equip Load is 40 + Endurance (fextralife's
+#  table: END 10 -> 50.0, 40 -> 80.0, 99 -> 139.0, dead linear with base 40).
+#  Attunement slots are the documented breakpoints, 10 slots max at 50. Stamina and HP
+#  are NOT computed — DS1 stores both in the save, so they are read. Poise is armour-
+#  only and everything else is gear-scaled, so nothing else is derived.
+DS1_EQUIP_BASE = 40
+DS1_SLOT_BREAKS = (10, 12, 14, 16, 19, 23, 28, 34, 41, 50)
 ## @brief DSR attribute distances from the anchor (uint8 each), in display order.
 DSR_STAT_D = OrderedDict([
     ("Vitality", -375), ("Attunement", -367), ("Endurance", -359),
@@ -1397,6 +1524,43 @@ def ds1_inventory(buf, item_db):
 # passes it (PtDE has no calibrated NG+ field and passes None).
 # @param m  The stat anchor (a DSR-equivalent anchor position).
 # @param ng New Game+ count, or None to omit the field.
+##
+# @brief Total deaths for a DS1 slot, or None when the struct isn't where expected.
+# @details Guarded by the sentinel that follows the counter in both releases: if the
+# uint32 at +4 isn't 0xFFFFFFFF the struct has moved and the field is dropped rather
+# than read from the wrong place.
+# @param buf  The decrypted slot.
+# @param game "dsr" or "ptde".
+# @return The death count, or None.
+def ds1_deaths(buf, game):
+    off = DS1_DEATHS_OFF.get(game)
+    if off is None:
+        return None
+    if u32(buf, off + DS1_DEATHS_SENTINEL_D) != DS1_DEATHS_SENTINEL:
+        return None
+    return u32(buf, off)
+
+
+##
+# @brief Attach play time from DS1's load-screen roster block.
+# @details The roster record is found by the character's own name and accepted only
+# when the level stored beside it matches the level already parsed from the slot, so a
+# renamed/duplicate name or a shifted block turns the field off instead of attaching
+# another character's clock.
+# @param ch    The parsed character (read for name/level, written for play_time).
+# @param menu  The decrypted menu block, or None.
+def ds1_attach_playtime(ch, menu):
+    if not menu or not ch.get("name") or ch.get("level") is None:
+        return
+    want = ch["name"].encode("utf-16-le")
+    pos = menu.find(want)
+    while pos >= 0:
+        if u32(menu, pos + DS1_MENU_LEVEL_D) == ch["level"]:
+            ch["play_time"] = u32(menu, pos + DS1_MENU_PLAYTIME_D)
+            return
+        pos = menu.find(want, pos + 2)
+
+
 def ds1_character(buf, item_db, m, game, ng):
     stats = OrderedDict((k, u8(buf, m + d)) for k, d in DSR_STAT_D.items())
     buckets, unknown = ds1_inventory(buf, item_db)
@@ -1406,6 +1570,8 @@ def ds1_character(buf, item_db, m, game, ng):
         "tier": "full", "game": game,
         "name": name if is_valid_name(name) else "(unnamed slot)",
         "klass": DS1_CLASS.get(u8(buf, m + DSR_CLASS_D)),
+        "gender": DS1_GENDER.get(u8(buf, m + DSR_GENDER_D)),
+        "deaths": ds1_deaths(buf, game),
         "level": u16(buf, m + DSR_LEVEL_D), "stats": stats,
         "souls": u32(buf, m + DSR_SOULS_D), "soul_memory": None,
         "humanity": u8(buf, m + DSR_HUM_D), "stamina": u32(buf, m + DSR_STAM_D),
@@ -2296,7 +2462,7 @@ STAT_GOVERNS = {
 }
 ## @brief Map a per-slot game id to its STAT_GOVERNS family (DSR and PtDE share DS1).
 def stat_governs_for(game):
-    return STAT_GOVERNS.get("ds1" if game in ("dsr", "ptde") else game, {})
+    return STAT_GOVERNS.get(DS2_FAMILY.get(game, game), {})
 ## @brief Soft-cap / per-level breakpoint reference per attribute, per game. These are
 #  the documented scaling RATES and soft-cap levels (a game-mechanics fact, true for any
 #  build), NOT a per-character computed value — computing the absolute would be wrong
@@ -2346,7 +2512,7 @@ STAT_CAPS = {
 }
 ## @brief Soft-cap reference for a per-slot game id (DSR and PtDE share DS1).
 def stat_caps_for(game):
-    return STAT_CAPS.get("ds1" if game in ("dsr", "ptde") else game, {})
+    return STAT_CAPS.get(DS2_FAMILY.get(game, game), {})
 ## @brief Category id to printed heading (covers every id scheme / game).
 CAT_TITLE = {"weapons": "Weapons", "armors": "Armor", "rings": "Rings",
              "talismans": "Talismans", "spells": "Spells", "bolts": "Ammunition",
@@ -2397,6 +2563,9 @@ def fmt_playtime(seconds):
 # @return The Markdown for this character.
 DS1_BONFIRE_NOTE = "each bonfire's own record, with how far it is kindled — a floor"
 DS3_BONFIRE_NOTE = "bonfires lit, inferred from each area's flag bits — a floor"
+# DS2 reads the world block's own discovered-bonfire array, so it names every one it
+# found; the areas are a grouping of that list, not an inference.
+DS2_BONFIRE_NOTE = "each bonfire the save records as discovered, by area — a floor"
 
 
 def md_for_character(ch, slot_no):
@@ -2456,7 +2625,7 @@ def md_for_character(ch, slot_no):
                 caps = f" {cap[k][:1].upper() + cap[k][1:]}." if cap.get(k) else ""
                 L.append(f"- **{k}** ({ch['stats'][k]}) — {gov[k]}.{caps}")
             L.append("")
-        if ch["game"] == "ds2sotfs":
+        if ch["game"] in DS2_GAMES:
             d = ds2_derived_stats(ch["stats"])
             agl = f"{d['agility']}" + (f"  _({d['iframes']} roll i-frames)_"
                                        if d["iframes"] else "")
@@ -2481,6 +2650,12 @@ def md_for_character(ch, slot_no):
                   f"- **Attunement Slots:** {d['slots']}",
                   f"- **Equip Load:** {d['equip_load']:.1f}",
                   f"- **Item Discovery:** {d['item_discovery']}", ""]
+        if ch["game"] in ("dsr", "ptde"):
+            d = ds1_derived_stats(ch["stats"])
+            L += ["### Derived Stats  _(computed from attributes — base values before "
+                  "rings & equipment)_", "",
+                  f"- **Attunement Slots:** {d['slots']}",
+                  f"- **Equip Load:** {d['equip_load']:.1f}", ""]
     elif ch["tier"] == "inventory":
         L += ["_Attributes are not printed for this slot: its stat block did not "
               "validate (an unrecognised patch or an edited save), and a wrong "
@@ -2500,7 +2675,9 @@ def md_for_character(ch, slot_no):
     if ch["key_items"]:
         L += ["### Key Items  _(progress / areas & shortcuts unlocked)_", ""]
         L += bullets(ch["key_items"]) + [""]
-    if ch.get("bonfires"):
+    # DS2 keeps a flat name list for the boss-gate logic, but renders the grouped
+    # view when the area table resolved it; the flat list is the fallback.
+    if ch.get("bonfires") and not ch.get("bonfire_areas"):
         L += [f"### Bonfires Discovered ({len(ch['bonfires'])})  _(areas reached — a "
               "floor on progress)_", ""]
         L += [f"- {b}" for b in ch["bonfires"]] + [""]
@@ -2509,7 +2686,9 @@ def md_for_character(ch, slot_no):
         n = len(ch["bonfire_areas"])
         # DS1 reads the real bonfire list (so it can say kindle level, and can list a
         # discovered-but-unlit one); DS3 only has flag bits per area. Different note.
-        note = (DS1_BONFIRE_NOTE if ch.get("game") in ("dsr", "ptde") else DS3_BONFIRE_NOTE)
+        note = (DS1_BONFIRE_NOTE if ch.get("game") in ("dsr", "ptde")
+                else DS2_BONFIRE_NOTE if ch.get("game") in DS2_GAMES
+                else DS3_BONFIRE_NOTE)
         L += [f"### Bonfires Discovered ({total} across {n} area{'s' if n != 1 else ''})"
               f"  _({note})_", ""]
         for name, c, named in ch["bonfire_areas"]:
@@ -2594,6 +2773,26 @@ GAMES = {
                         "reinforcement level and infusion sit in a separate field of "
                         "each item record and are shown as a '+N' suffix and an "
                         "infusion prefix (e.g. 'Fire Longsword +6')"},
+    "ds2vanilla": {"title": "Dark Souls II", "tier": "full",
+                   "db": ("db_ds2", True, DS2_DB_FILES),
+                   "decrypt": lambda b: decrypt_ds2(b, DS2_VANILLA_KEY),
+                   "parse": lambda b, d: ds2_parse(b, d, "ds2vanilla"),
+                   "slots": range(1, 11),
+                   # The header and world blocks are encrypted with the same key as
+                   # the slot, so both hooks must be given the vanilla one — reading
+                   # them with the Scholar key yields noise, not an empty result.
+                   "active": lambda d, e, s: ds2_active_slots(
+                       d, e, s, lambda b: decrypt_ds2(b, DS2_VANILLA_KEY)),
+                   "augment": lambda ch, d, e, i, b: ds2_augment(
+                       ch, d, e, i, b, lambda x: decrypt_ds2(x, DS2_VANILLA_KEY)),
+                   "how": "the original (pre-Scholar) release locks its save with a "
+                          "different AES-128 key from Scholar's, but stores everything "
+                          "in the same places once unlocked — so the same reader "
+                          "handles both. Name, level, the nine attributes, souls and "
+                          "the inventory sit at fixed known positions, and every item "
+                          "ID is looked up in the community SOTFS name table. Note "
+                          "the Scholar-only items and bonfires simply never appear in "
+                          "an original-edition save"},
     "dsr": {"title": "Dark Souls Remastered", "tier": "full",
             "db": ("db_ds1", False, DS1_DB_FILES),
             "decrypt": lambda b: decrypt_iv_prefixed(b, DSR_KEY),

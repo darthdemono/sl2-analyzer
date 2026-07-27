@@ -20,13 +20,13 @@ Not every Souls save is mapped to the same depth in public tooling, so each game
 | Dark Souls: Prepare to Die Edition | `DRAKS0005.sl2` | Yes | **full** | identity, stats, souls, full inventory, progress |
 | Dark Souls Remastered | `DRAKS0005.sl2` | Yes | **full** | identity, stats, souls, full inventory, progress |
 | Dark Souls II: SOTFS | `DS2SOFS0000.sl2` | Yes | **full** | identity, stats, souls, full inventory, deep progress |
-| Dark Souls II (vanilla) | `DARKSII0000.sl2` | No | — | unsupported: AES key not public (re-save in SOTFS) |
+| Dark Souls II (vanilla) | `DARKSII0000.sl2` | Yes | **full** | identity, stats, souls, full inventory, deep progress |
 | Dark Souls III | `DS30000.sl2` | Yes | **full** | identity, stats, souls, full inventory, deep progress |
 | Elden Ring | `ER0000.sl2` | Yes | **full\*** | identity, attributes, runes, remembrances, owned items (\*item list partial) |
 
-Five of the six FromSoftware `.sl2` variants are fully supported. Only vanilla Dark Souls II is out, and you never tell the tool which game it is: it works that out from the bytes itself.
+All six FromSoftware `.sl2` variants are supported, and you never tell the tool which game it is: it works that out from the bytes itself.
 
-Vanilla Dark Souls II is the one wall I could not get past. Its payload is encrypted with an AES key that has never been published anywhere I could find, and the Scholar of the First Sin key does not decrypt it. So the tool detects it, says so plainly, and stops, instead of printing garbage. Re-save the file in Scholar of the First Sin and it becomes a `DS2SOFS0000.sl2` that works.
+Vanilla Dark Souls II used to be the one wall, because the Scholar key does not decrypt it and I could not find its own key anywhere. The key turned out to be published after all, in TKGP's SoulsFormats (`SFUtil.GetDS2SaveKey`). Everything else about the two releases is identical — same BND4 layout, same field offsets, same item ids — so once the right key goes in, vanilla reads exactly as deep as Scholar does. Both are told apart automatically by which key decrypts the block.
 
 The asterisk on Elden Ring is honest too. Identity, every attribute, runes held, and remembrances are read straight from the save. The item *list* is partial: owned items come from the GaItem array, so armour, talismans, goods, and base weapons resolve, but a reinforced or affinity weapon bakes the upgrade into its id and misses the base-id table. Per-item quantities are not read either. What is listed is really owned. It is just not the complete stash.
 
@@ -73,6 +73,8 @@ Every game gets the baseline: **boss souls and remembrances still held.** You ca
 - **Playthrough (NG+), play time, max FP**, read alongside. Reaching NG+ proves every unskippable boss on the road to Soul of Cinder dead, even ones whose souls were long since spent — the same NG+ clear floor DS1 and DS2 already get.
 
 The offsets come from the alfizari DS3 save editor and are verified against a real save: it reads the true events and nothing else, zero false positives across every boss and area, and a cheat-mule save with injected items and no real playthrough correctly reads no flags at all.
+
+**Dark Souls 1 (both releases) reads more than the soul floor too.** Bonfires are not flags there — the game keeps a record list, one entry per bonfire, carrying its state — so DS1 is the only game that can tell you a bonfire is *discovered but never lit*, and how far each one is kindled. Twelve bosses have usable defeat flags, found by searching for the event-flag region and gated on bit density so a moved region turns the feature off instead of inventing kills. Alongside those: play time and soul level from the load-screen roster, total deaths, gender, and the two derived values that are pure attribute functions (equip load, attunement slots).
 
 **Elden Ring and Dark Souls 1** get the soul floor plus the same endgame-gate idea. Hold Dark Souls III's Soul of Cinder and all four Lords of Cinder are proven dead, because Cinder sits behind every throne. Hold Elden Ring's Remembrance of Hoarah Loux and Maliketh, the Fire Giant, and Morgott fall with it, because that chain is forced. Only strictly-linear, cannot-skip endgame chains qualify, for the same reason DS2's gates are endgame-only.
 
@@ -197,7 +199,7 @@ Said out loud rather than papered over:
 - **Progress is a floor, not a ceiling.** Covered above. A spent soul with no flag and no gate is a kill the save can no longer prove, so it is not listed.
 - **Boss-defeat flags for Elden Ring are not read.** ER keeps them in a runtime structure and no public editor maps them into the save. DS2's and DS3's flags *are* read — DS3's came from a save editor that finally mapped the event-flag region — so only ER falls back to the soul-and-gate floor for kills.
 - **Upgraded gear in DS1 and DS3 is not named.** Those games bake the reinforcement level into the item id, so a +5 weapon has a different id from its base and misses the name table. Such items are counted so you know they exist, not guessed at. DS2 does not have this problem: its tables are built from the full SOTFS id list, so reinforced and infused variants all resolve by name. Elden Ring is the reverse, where the reinforced-weapon ids are skipped rather than counted.
-- **Vanilla Dark Souls II is unsupported.** No public key.
+- **Scholar-only content is absent from a vanilla DS2 save,** which is the game's doing, not the tool's. The two releases share one id table, so a vanilla save simply never carries the items and bonfires Scholar added.
 
 ---
 

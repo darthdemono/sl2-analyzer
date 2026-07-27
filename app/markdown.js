@@ -3,16 +3,20 @@
 // md_for_character + convert's header; verified against the Python .md output by
 // scratch/md_harness.mjs (timestamp line excluded).
 
-import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, DS2_GAMES, fmt, fmtPlaytime } from "./tables.js";
 
 const REPO_URL = "https://github.com/darthdemono/sl2-analyzer";
 // DS1 reads each bonfire's own record (so it knows the kindle level and can list a
 // discovered-but-unlit one); DS3 only has per-area flag bits. See sl2_to_md.py.
 const DS1_BONFIRE_NOTE = "each bonfire's own record, with how far it is kindled — a floor";
 const DS3_BONFIRE_NOTE = "bonfires lit, inferred from each area's flag bits — a floor";
+// DS2 reads the world block's own discovered-bonfire array, so it names every one it
+// found; the areas are a grouping of that list, not an inference.
+const DS2_BONFIRE_NOTE = "each bonfire the save records as discovered, by area — a floor";
 
 // Per-game "how it works" note (verbatim from GAMES[...]["how"]) and the header tier.
 const HOW = {
+  ds2vanilla: "the original (pre-Scholar) release locks its save with a different AES-128 key from Scholar's, but stores everything in the same places once unlocked — so the same reader handles both. Name, level, the nine attributes, souls and the inventory sit at fixed known positions, and every item ID is looked up in the community SOTFS name table. Note the Scholar-only items and bonfires simply never appear in an original-edition save",
   ds2sotfs: "the save is scrambled with a lock (AES-128 encryption) whose key ships inside the game itself, so the tool applies that key to unlock the raw data. From there each character's details sit at fixed, known positions: name, level, the nine attributes, and souls are read straight from those spots. Every inventory entry stores a numeric item ID, which the tool looks up in a name table built from the community's SOTFS ID list, so you read 'Longsword' instead of a number; reinforcement level and infusion sit in a separate field of each item record and are shown as a '+N' suffix and an infusion prefix (e.g. 'Fire Longsword +6')",
   dsr: "the save is locked the same way (AES-128 encryption, key shipped inside the game), so the tool unlocks it first. The character block does not sit at a fixed spot — it shifts as the save grows — so the tool locates it by a fixed marker (a 'magic' byte pattern) that always sits beside it, then reads the level, stats, and souls at known distances from that marker. The inventory is found by a second, separate marker, and every item ID is matched to its real name",
   ptde: "this original edition does not encrypt its save at all, so there is nothing to unlock. It stores a character the same way Remastered does but without that version's marker, so the tool finds the character by locating the name text and reads the level, stats, souls, and inventory that sit at known distances around it",
@@ -61,7 +65,7 @@ function mdCharacter(ch, slot) {
       L.push("### Attribute Scaling  _(what each stat scales, its soft caps, and your current value — game-mechanics reference, not a value read from this save)_", "");
       L.push(...rows.map((k) => `- **${k}** (${ch.stats[k]}) — ${gov.get(k)}.${cap.has(k) ? ` ${capFirst(cap.get(k))}.` : ""}`), "");
     }
-    if (ch.game === "ds2sotfs") {
+    if (DS2_GAMES.has(ch.game)) {
       const d = ds2DerivedStats(ch.stats);
       const agl = `${d.agility}` + (d.iframes ? `  _(${d.iframes} roll i-frames)_` : "");
       L.push("### Derived Stats  _(computed from attributes — base values before rings & equipment; the in-game screen adds ring/gear bonuses on top)_", "",
@@ -84,6 +88,12 @@ function mdCharacter(ch, slot) {
         `- **Equip Load:** ${d.equip_load.toFixed(1)}`,
         `- **Item Discovery:** ${d.item_discovery}`, "");
     }
+    if (ch.game === "dsr" || ch.game === "ptde") {
+      const d = ds1DerivedStats(ch.stats);
+      L.push("### Derived Stats  _(computed from attributes — base values before rings & equipment)_", "",
+        `- **Attunement Slots:** ${d.slots}`,
+        `- **Equip Load:** ${d.equip_load.toFixed(1)}`, "");
+    }
   } else if (ch.tier === "inventory") {
     L.push("_Attributes are not printed for this slot: its stat block did not validate (an unrecognised patch or an edited save), and a wrong number is worse than none. Inventory and progress below are read directly._", "");
   }
@@ -96,13 +106,15 @@ function mdCharacter(ch, slot) {
   if (ch.key_items && ch.key_items.length) {
     L.push("### Key Items  _(progress / areas & shortcuts unlocked)_", "", ...bullets(ch.key_items), "");
   }
-  if (ch.bonfires && ch.bonfires.length) {
+  // DS2 keeps a flat name list for the boss-gate logic, but renders the grouped view
+  // when the area table resolved it; the flat list is the fallback.
+  if (ch.bonfires && ch.bonfires.length && !(ch.bonfire_areas && ch.bonfire_areas.length)) {
     L.push(`### Bonfires Discovered (${ch.bonfires.length})  _(areas reached — a floor on progress)_`, "",
       ...ch.bonfires.map((b) => `- ${b}`), "");
   }
   if (ch.bonfire_areas && ch.bonfire_areas.length) {
     const total = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0), n = ch.bonfire_areas.length;
-    L.push(`### Bonfires Discovered (${total} across ${n} area${n !== 1 ? "s" : ""})  _(${ch.game === "dsr" || ch.game === "ptde" ? DS1_BONFIRE_NOTE : DS3_BONFIRE_NOTE})_`, "",
+    L.push(`### Bonfires Discovered (${total} across ${n} area${n !== 1 ? "s" : ""})  _(${ch.game === "dsr" || ch.game === "ptde" ? DS1_BONFIRE_NOTE : DS2_GAMES.has(ch.game) ? DS2_BONFIRE_NOTE : DS3_BONFIRE_NOTE})_`, "",
       ...ch.bonfire_areas.map(([name, c, named]) => {
         if (named && named.length) {
           const extra = c - named.length;

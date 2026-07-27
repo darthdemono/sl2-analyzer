@@ -243,14 +243,15 @@
     <div class="how-body">
       <p>Drop a save from any of these. The game is detected from the file — no need to say which. Each renders in its own status screen.</p>
       <ul>
-        <li><b>Dark Souls Remastered</b> — full: identity, class, all attributes, souls, humanity, inventory, held boss souls.</li>
+        <li><b>Dark Souls Remastered</b> — full: identity, class, gender, all attributes, souls, humanity, play time, deaths, inventory, held boss souls, boss-defeat flags, and every bonfire with how far it is kindled.</li>
         <li><b>Dark Souls: Prepare to Die</b> — full, same as Remastered.</li>
         <li><b>Dark Souls II: Scholar of the First Sin</b> — the deepest read: attributes, class, covenant, gender, hollowing, deaths, play time, full inventory with infusions and reinforcement, plus bonfires discovered and bosses defeated from the world block.</li>
+        <li><b>Dark Souls II (vanilla, pre-Scholar)</b> — the same depth as Scholar. The two releases differ only by encryption key; everything inside is laid out identically.</li>
         <li><b>Dark Souls III</b> — full: attributes, souls, inventory, held boss souls, bosses defeated.</li>
         <li><b>Elden Ring</b> — identity, attributes and runes in full; owned weapons, armour and ashes named; held remembrances and the bosses they prove. The rest of the held inventory (talismans, spells, goods) is not read yet, so the item list is partial.</li>
       </ul>
       <p>Every game degrades a slot to "inventory only" rather than print a stat it cannot verify.</p>
-      <p><b>Not supported:</b> vanilla Dark Souls II (pre-SOTFS) — its encryption key is not public.</p>
+
     </div>
   </details>
   <details class="how frame" open>
@@ -259,7 +260,7 @@
       <p>A <code>.sl2</code> is a FromSoftware save: one packed archive of blocks, most of them encrypted, one per character plus a few for the world. This tool unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off known positions. The save is never uploaded — it is parsed in your browser and forgotten the moment you close the tab. The one exception: DS2 item thumbnails are fetched from fextralife.com as you view them, so those requests do reveal which items a save holds.</p>
       <p>Every game hides its data differently, so each is read differently.</p>
       <ul>
-        <li><b>Dark Souls II (SOTFS):</b> unlocked with its AES key, then read at fixed offsets. Bonfires lit and bosses killed come from a second world block the game keeps apart from the character.</li>
+        <li><b>Dark Souls II (both releases):</b> unlocked with its AES key — vanilla and Scholar use different keys but the same layout, so the tool tries both and reads whichever opens. Bonfires lit and bosses killed come from a second world block the game keeps apart from the character.</li>
         <li><b>Dark Souls Remastered / Prepare to Die:</b> the character block moves as the save grows, so it is found by a marker that always sits beside it (Remastered) or by the name text itself (PtDE).</li>
         <li><b>Dark Souls III:</b> the stats shift between patches, so the block is not read from a fixed spot. It is found by content: the nine numbers that add up to your level. The game follows that rule, so a wrong match is close to impossible.</li>
         <li><b>Elden Ring:</b> the same trick with eight numbers, and every owned item read straight from the game's item array.</li>
@@ -276,7 +277,6 @@
   <div id="out"></div>
 </main>
 <footer>
-  Vanilla Dark Souls II (pre-SOTFS) is unsupported — its encryption key is not public.
   Stats degrade to “inventory only” rather than show a wrong number.
   · <a href="https://github.com/darthdemono/sl2-analyzer">Source</a>
 </footer>

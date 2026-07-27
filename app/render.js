@@ -4,7 +4,7 @@
 // the save proves are shown — fields the screen has but we can't verify (weapon AR,
 // resistances, bonuses) are omitted, never faked. Names via textContent, never innerHTML.
 
-import { STAT_ABBR, statGovernsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, DS2_GAMES, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
 
 function el(tag, props, ...kids) {
@@ -92,7 +92,7 @@ function leftColumn(slot, ch) {
   if (ch.soul_memory != null) rows.push(statRow("mem", "Soul Memory", ch.soul_memory));
   if (ch.humanity != null) rows.push(statRow("hp", "Humanity", ch.humanity));
   // Max HP/FP live in the DS2 derived panel for DS2; every other game shows them here.
-  if (ch.game !== "ds2sotfs") {
+  if (!DS2_GAMES.has(ch.game)) {
     if (ch.hp != null) rows.push(statRow("hp", "Max HP", ch.hp));
     if (ch.fp != null) rows.push(statRow("mag", "Max FP", ch.fp));
   }
@@ -146,6 +146,17 @@ function ds3DerivedPanel(ch) {
     el("p", { class: "lp-note", text: "Base values from attributes — before rings, covenant and equipment. HP/FP/stamina are read from the save above; poise, defences and attack power are gear-scaled, so they're left off." }));
 }
 
+/** DS1's derived panel: the two values that are pure attribute functions. */
+function ds1DerivedPanel(ch) {
+  const d = ds1DerivedStats(ch.stats);
+  return el("div", { class: "lp" },
+    el("div", { class: "lp-h", text: "Derived (base)" }),
+    el("div", { class: "lp-rows" },
+      statRow("load", "Attunement Slots", d.slots),
+      statRow("load", "Equip Load", d.equip_load.toFixed(1))),
+    el("p", { class: "lp-note", text: "Base values from attributes — before rings and equipment. Stamina and Max HP are read from the save above; poise is armour-only and item discovery needs covenant/gear, so both are left off." }));
+}
+
 /** Character panel: identity + counters that aren't in the left column. */
 function characterPanel(ch) {
   const rows = [];
@@ -162,8 +173,9 @@ function characterPanel(ch) {
 
 function levelUpScreen(slot, ch) {
   const rightPanels = [];
-  if (ch.game === "ds2sotfs" && Object.keys(ch.stats).length) rightPanels.push(ds2DerivedPanel(ch));
+  if (DS2_GAMES.has(ch.game) && Object.keys(ch.stats).length) rightPanels.push(ds2DerivedPanel(ch));
   if (ch.game === "ds3" && Object.keys(ch.stats).length) rightPanels.push(ds3DerivedPanel(ch));
+  if ((ch.game === "dsr" || ch.game === "ptde") && Object.keys(ch.stats).length) rightPanels.push(ds1DerivedPanel(ch));
   const cp = characterPanel(ch);
   if (cp) rightPanels.push(cp);
 
@@ -191,7 +203,9 @@ function characterCard(slot, ch) {
   }
   if (ch.key_items && ch.key_items.length) card.append(section("Key Items", [el("p", { class: "hint", text: "Progress. The keys and items that open up the world." }), itemList(ch.key_items)]));
 
-  if (ch.bonfires && ch.bonfires.length) {
+  // DS2 keeps the flat list for the boss-gate logic; the grouped view wins when the
+  // area table resolved it.
+  if (ch.bonfires && ch.bonfires.length && !(ch.bonfire_areas && ch.bonfire_areas.length)) {
     card.append(section(`Bonfires Discovered (${ch.bonfires.length})`, [
       el("p", { class: "hint", text: "Every bonfire you have lit. A floor on how far you got." }),
       el("ul", { class: "items cols" }, ...ch.bonfires.map((b) => el("li", { text: b })))]));
@@ -199,7 +213,7 @@ function characterCard(slot, ch) {
   if (ch.bonfire_areas && ch.bonfire_areas.length) {
     const total = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0), n = ch.bonfire_areas.length;
     card.append(section(`Bonfires Discovered (${total} across ${n} area${n !== 1 ? "s" : ""})`, [
-      el("p", { class: "hint", text: ch.game === "dsr" || ch.game === "ptde" ? "Each bonfire's own record, with how far it is kindled. A floor on how far you got." : "Bonfires lit, inferred from each area's flag bits. A floor on how far you got." }),
+      el("p", { class: "hint", text: ch.game === "dsr" || ch.game === "ptde" ? "Each bonfire's own record, with how far it is kindled. A floor on how far you got." : DS2_GAMES.has(ch.game) ? "Every bonfire the save records as discovered, by area. A floor on how far you got." : "Bonfires lit, inferred from each area's flag bits. A floor on how far you got." }),
       el("ul", { class: "items cols" }, ...ch.bonfire_areas.map(([name, c, named]) => {
         if (named && named.length) {
           const extra = c - named.length;

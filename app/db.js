@@ -42,6 +42,8 @@ export async function loadAllDbs(getJSON) {
   const toMap16 = (j) => { const m = new Map(); if (j) for (const [k, v] of Object.entries(j)) m.set(parseInt(k, 16), v); return m; };
   const ds2Bonfires = toMap16(await jget(getJSON, "db_ds2/bonfires.json"));
   const ds2BossFlags = toMap16(await jget(getJSON, "db_ds2/boss_flags.json"));
+  // Bonfire id -> area, so DS2 groups its discovered bonfires the way DS1/DS3 do.
+  const ds2BonfireAreas = toMap16(await jget(getJSON, "db_ds2/bonfire_areas.json"));
 
   // DS1 items: name-keyed decimal, per-category, last-wins.
   const ds1Items = {};
@@ -75,7 +77,8 @@ export async function loadAllDbs(getJSON) {
   }
 
   return {
-    ds2: { items: ds2Items, bonfires: ds2Bonfires, bossFlags: ds2BossFlags,
+    ds2: { items: ds2Items, bonfires: ds2Bonfires, bonfireAreas: ds2BonfireAreas,
+           bossFlags: ds2BossFlags,
            bossSouls: (await jget(getJSON, "db_ds2/boss_souls.json")) || {},
            images: (await jget(getJSON, "db_ds2/images.json")) || {} },
     ds1: { items: ds1Items, bossSouls: (await jget(getJSON, "db_ds1/boss_souls.json")) || {},

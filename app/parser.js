@@ -7,6 +7,10 @@ import { u8, u16, u32, u64, readUtf16, isValidName, indexOf } from "./reader.js"
 import { aesCbcDecrypt, hexToBytes } from "./aes.js";
 
 const DS2_KEY = hexToBytes("599F9B699640A55236EE2D70835EC744");
+// Vanilla DS2 (the DX9 original, DARKSII0000.sl2) uses a different key from Scholar's
+// but the identical save layout. From TKGP's SoulsFormats SFUtil.GetDS2SaveKey().
+const DS2_VANILLA_KEY = hexToBytes("B7FD463E4A9C1102DF1739E5F3B2A50F");
+const DS2_GAMES = new Set(["ds2sotfs", "ds2vanilla"]);
 const DSR_KEY = hexToBytes("0123456789ABCDEFFEDCBA9876543210");
 const DS3_KEY = hexToBytes("FD464D695E69A39A10E319A7ACE8B7FA");
 
@@ -45,10 +49,15 @@ function aesCbc(key, iv, ct) {
   const n = Math.floor(ct.length / 16) * 16;
   return aesCbcDecrypt(key, iv, ct.subarray(0, n));
 }
-function decryptDs2(blob) {
-  const pt = aesCbc(DS2_KEY, blob.subarray(16, 32), blob.subarray(32));
+function decryptDs2(blob, key = DS2_KEY) {
+  const pt = aesCbc(key, blob.subarray(16, 32), blob.subarray(32));
   const dlen = u32(pt, 0);
-  return dlen == null ? null : pt.subarray(4, 4 + dlen);
+  // The length must fit the block. A wrong key decrypts to noise whose "length" is a
+  // random uint32, so rejecting it here doubles as a key check: a mismatched key
+  // yields null (feature off) rather than noise the world-block readers would treat
+  // as set event flags. See sl2_to_md.py decrypt_ds2.
+  if (dlen == null || dlen <= 0 || dlen > pt.length - 4) return null;
+  return pt.subarray(4, 4 + dlen);
 }
 function decryptIvPrefixed(blob, key) {
   const dec = aesCbc(key, blob.subarray(16, 32), blob.subarray(16));
@@ -66,11 +75,15 @@ function sigMatch(data, bytes) {
 function detectGame(data, entries) {
   const n = entries.length;
   if (sigMatch(data, DS2_SIGNATURE)) {
+    // Both DS2 releases share the signature, so they are told apart by which key
+    // decrypts: the length prefix at plaintext +0 must fit the block.
     const blob = blobOf(data, entries[1]);
-    const pt = aesCbc(DS2_KEY, blob.subarray(16, 32), blob.subarray(32));
-    const dlen = u32(pt, 0);
-    if (dlen != null && dlen > 0 && dlen <= pt.length - 4) return "ds2sotfs";
-    throw new ParseError("Vanilla Dark Souls II is not supported — its AES key is not public. Re-save in Scholar of the First Sin.");
+    for (const [key, id] of [[DS2_KEY, "ds2sotfs"], [DS2_VANILLA_KEY, "ds2vanilla"]]) {
+      const pt = aesCbc(key, blob.subarray(16, 32), blob.subarray(32));
+      const dlen = u32(pt, 0);
+      if (dlen != null && dlen > 0 && dlen <= pt.length - 4) return id;
+    }
+    throw new ParseError("Dark Souls II save found, but neither the Scholar nor the vanilla key decrypts it.");
   }
   if (n === 11) {
     let allZero = true;
@@ -249,7 +262,7 @@ function ds2Covenants(buf) {
   }
   return any ? out : null;
 }
-function ds2Parse(buf, itemDb) {
+function ds2Parse(buf, itemDb, game = "ds2sotfs") {
   if (ds2Name(buf) === null) return null;
   const stats = {};
   for (const [k, o] of DS2_STAT_OFF) stats[k] = u16(buf, o) || 0;
@@ -259,7 +272,7 @@ function ds2Parse(buf, itemDb) {
   for (const c in buckets) inv[c] = mergeQty(buckets[c]);
   const keyItems = inv["keys"] || []; delete inv["keys"];
   return {
-    tier: "full", game: "ds2sotfs", name: ds2Name(buf),
+    tier: "full", game, name: ds2Name(buf),
     klass: DS2_CLASS[u8(buf, DS2_CLASS_OFF)] ?? null,
     covenant: DS2_COVENANT[u8(buf, DS2_COVENANT_OFF)] ?? null,
     covenants: ds2Covenants(buf),
@@ -330,15 +343,30 @@ function ds2VisitedBonfires(world, bfDb) {
   const flagBase = bestStart + DS2_BONFIRE_FLAG_DELTA;
   const visited = [];
   ids.forEach((bid, idx) => {
-    if (u8(world, flagBase + idx)) visited.push(bfDb.get(bid) ?? `(bonfire 0x${bid.toString(16).padStart(4, "0")})`);
+    if (u8(world, flagBase + idx)) visited.push([bid, bfDb.get(bid) ?? `(bonfire 0x${bid.toString(16).padStart(4, "0")})`]);
   });
   return visited;
 }
-function ds2Augment(ch, data, entries, i, dbs) {
+// Group discovered bonfires by area, in the (area, count, names) shape DS1 and DS3
+// already emit, so all three render through one section. See sl2_to_md.py
+// ds2_bonfire_areas.
+function ds2BonfireAreas(visited, areaDb) {
+  if (!visited || !visited.length || !areaDb || areaDb.size === 0) return null;
+  const areas = new Map();
+  for (const [bid, name] of visited) {
+    const area = areaDb.get(bid);
+    if (area == null) continue;
+    if (!areas.has(area)) areas.set(area, []);
+    areas.get(area).push(name);
+  }
+  const out = [...areas].map(([a, v]) => [a, v.length, v]);
+  return out.length ? out : null;
+}
+function ds2Augment(ch, data, entries, i, dbs, dec = decryptDs2) {
   // Play time lives in the header title record (one per slot), not the character
   // block. Title index for block entry i is i - slots.start, and DS2 starts at 1.
   if (entries.length) {
-    const hdr = decryptDs2(blobOf(data, entries[0]));
+    const hdr = dec(blobOf(data, entries[0]));
     if (hdr !== null) {
       const base = DS2_TITLE_NAME_OFF + DS2_TITLE_STRIDE * (i - 1);
       ch.play_time = u32(hdr, base + DS2_TITLE_PLAYTIME_OFF);
@@ -346,13 +374,18 @@ function ds2Augment(ch, data, entries, i, dbs) {
   }
   const w = i + DS2_WORLD_ENTRY_DELTA;
   if (w >= entries.length) return;
-  const world = decryptDs2(blobOf(data, entries[w]));
-  ch.bonfires = ds2VisitedBonfires(world, dbs.ds2.bonfires);
+  const world = dec(blobOf(data, entries[w]));
+  const visited = ds2VisitedBonfires(world, dbs.ds2.bonfires);
+  // The flat name list stays: DS2_BOSS_GATE is keyed by bonfire name, so the boss
+  // inference below reads it. The grouped view is what gets rendered.
+  ch.bonfires = visited ? visited.map(([, name]) => name) : visited;
+  const areas = ds2BonfireAreas(visited, dbs.ds2.bonfireAreas);
+  if (areas) ch.bonfire_areas = areas;
   ch.bosses = ds2InferBosses(world, ch, dbs);
 }
-function ds2ActiveSlots(data, entries, slots) {
+function ds2ActiveSlots(data, entries, slots, dec = decryptDs2) {
   if (!entries.length) return null;
-  const hdr = decryptDs2(blobOf(data, entries[0]));
+  const hdr = dec(blobOf(data, entries[0]));
   if (hdr === null) return null;
   const active = new Set();
   for (let i = slots[0]; i < slots[1]; i++) {
@@ -434,6 +467,44 @@ function ds1Inventory(buf, itemDb) {
   }
   return { buckets, unknown };
 }
+// DS1 gender: two independent sources agree (alfizari's DSR editor at magic-237, and
+// tarvitz/dsfp's boolean `male` 34 bytes past the name, which is the same byte). Both
+// call 1 Male, so the polarity is inverted against DS2. See sl2_to_md.py DSR_GENDER_D.
+const DSR_GENDER_D = -237;
+const DS1_GENDER = { 0: "Female", 1: "Male" };
+// Deaths sit in a fixed struct near the event-flag region, not in the moving character
+// block, so the offset is slot-absolute per release; DSR shifts it by the same 448
+// bytes its flag region moves. Guarded by the 0xFFFFFFFF sentinel that follows the
+// counter in both releases. See sl2_to_md.py DS1_DEATHS_OFF.
+const DS1_DEATHS_OFF = { ptde: 0x1F118, dsr: 0x1F2D8 };
+const DS1_DEATHS_SENTINEL = 0xFFFFFFFF, DS1_DEATHS_SENTINEL_D = 4;
+// DS1's load-screen roster (BND4 entry 10): name at +0, soul level at +36, play time
+// as a uint32 of SECONDS at +40. Located by the character's own name and accepted only
+// when the level beside it matches. See sl2_to_md.py DS1_MENU_ENTRY.
+const DS1_MENU_ENTRY = 10, DS1_MENU_LEVEL_D = 36, DS1_MENU_PLAYTIME_D = 40;
+
+function ds1Deaths(buf, game) {
+  const off = DS1_DEATHS_OFF[game];
+  if (off == null) return null;
+  if (u32(buf, off + DS1_DEATHS_SENTINEL_D) !== DS1_DEATHS_SENTINEL) return null;
+  return u32(buf, off);
+}
+function ds1AttachPlaytime(ch, menu) {
+  if (!menu || !ch.name || ch.level == null) return;
+  const want = new Uint8Array(ch.name.length * 2);
+  for (let i = 0; i < ch.name.length; i++) {
+    const c = ch.name.charCodeAt(i);
+    want[i * 2] = c & 0xFF; want[i * 2 + 1] = (c >> 8) & 0xFF;
+  }
+  let pos = indexOf(menu, want, 0);
+  while (pos !== -1) {
+    if (u32(menu, pos + DS1_MENU_LEVEL_D) === ch.level) {
+      ch.play_time = u32(menu, pos + DS1_MENU_PLAYTIME_D);
+      return;
+    }
+    pos = indexOf(menu, want, pos + 2);
+  }
+}
 function ds1Character(buf, itemDb, m, game, ng, bossSouls) {
   const stats = {};
   for (const [k, d] of DSR_STAT_D) stats[k] = u8(buf, m + d);
@@ -445,6 +516,8 @@ function ds1Character(buf, itemDb, m, game, ng, bossSouls) {
   return {
     tier: "full", game, name: isValidName(name) ? name : "(unnamed slot)",
     klass: DS1_CLASS[u8(buf, m + DSR_CLASS_D)] ?? null,
+    gender: DS1_GENDER[u8(buf, m + DSR_GENDER_D)] ?? null,
+    deaths: ds1Deaths(buf, game),
     level: u16(buf, m + DSR_LEVEL_D), stats,
     souls: u32(buf, m + DSR_SOULS_D), soul_memory: null,
     humanity: u8(buf, m + DSR_HUM_D), stamina: u32(buf, m + DSR_STAM_D),
@@ -923,6 +996,7 @@ function erParse(buf, iddb, name, level) {
 // ── Game table + driver ──────────────────────────────────────────────────
 export const GAMES = {
   ds2sotfs: { title: "Dark Souls II: Scholar of the First Sin", slots: [1, 11] },
+  ds2vanilla: { title: "Dark Souls II", slots: [1, 11] },
   dsr: { title: "Dark Souls Remastered", slots: [0, 10] },
   ptde: { title: "Dark Souls: Prepare to Die Edition", slots: [0, 10] },
   ds3: { title: "Dark Souls III", slots: [0, 10] },
@@ -973,10 +1047,16 @@ export function parseSave(data, dbs) {
     }
   } else {
     // DS2 (full, encrypted + augment + active-filter) and DS1 (dsr/ptde).
-    const decrypt = game === "ds2sotfs" ? decryptDs2 : game === "dsr" ? (b) => decryptIvPrefixed(b, DSR_KEY) : decryptNone;
-    const parse = game === "ds2sotfs" ? ds2Parse : game === "dsr" ? dsrParse : ptdeParse;
-    const itemDb = game === "ds2sotfs" ? dbs.ds2.items : dbs.ds1.items;
-    const active = game === "ds2sotfs" ? ds2ActiveSlots(data, entries, meta.slots) : null;
+    // The header and world blocks use the same key as the slot, so the vanilla key
+    // has to reach ds2ActiveSlots/ds2Augment too — reading them with the Scholar key
+    // yields noise, not an empty result.
+    const isDs2 = DS2_GAMES.has(game);
+    const ds2Key = game === "ds2vanilla" ? DS2_VANILLA_KEY : DS2_KEY;
+    const ds2Dec = (b) => decryptDs2(b, ds2Key);
+    const decrypt = isDs2 ? ds2Dec : game === "dsr" ? (b) => decryptIvPrefixed(b, DSR_KEY) : decryptNone;
+    const parse = isDs2 ? (b, d) => ds2Parse(b, d, game) : game === "dsr" ? dsrParse : ptdeParse;
+    const itemDb = isDs2 ? dbs.ds2.items : dbs.ds1.items;
+    const active = isDs2 ? ds2ActiveSlots(data, entries, meta.slots, ds2Dec) : null;
     for (let i = meta.slots[0]; i < meta.slots[1]; i++) {
       if (i >= entries.length) continue;
       if (active !== null && !active.has(i)) continue;
@@ -984,21 +1064,22 @@ export function parseSave(data, dbs) {
       if (slot === null) continue;
       const ch = parse(slot, itemDb);
       if (ch) {
-        if (game === "ds2sotfs") ds2Augment(ch, data, entries, i, dbs);
+        if (isDs2) ds2Augment(ch, data, entries, i, dbs, ds2Dec);
         else {
+          ds1AttachPlaytime(ch, decrypt(blobOf(data, entries[DS1_MENU_ENTRY])));
           const areas = ds1Bonfires(slot, dbs.ds1.bonfires);
           if (areas) ch.bonfire_areas = areas;
         }
         // Soul/NG+ floor first: attachDefeatedBosses refuses to run once `bosses`
         // exists, so the flags must be merged on top of it, not before it.
         attachDefeatedBosses(ch, dbs);
-        if (game !== "ds2sotfs") ds1AttachFlags(ch, slot, dbs.ds1.bossFlags, game);
+        if (!isDs2) ds1AttachFlags(ch, slot, dbs.ds1.bossFlags, game);
         characters.push({ slot: label(i), ch });
       }
     }
   }
   // DS2 carries a name→image-filename map (fextralife thumbnails) for the renderer.
-  const images = game === "ds2sotfs" ? dbs.ds2.images : null;
+  const images = DS2_GAMES.has(game) ? dbs.ds2.images : null;
   return { game, title: meta.title, characters, images };
 }
 

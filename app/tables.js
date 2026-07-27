@@ -55,7 +55,7 @@ export const STAT_GOVERNS = {
 
 /** Attribute→governs map for a per-slot game id (DSR and PtDE share DS1). */
 export function statGovernsFor(game) {
-  const m = STAT_GOVERNS[game === "dsr" || game === "ptde" ? "ds1" : game] || [];
+  const m = STAT_GOVERNS[statFamily(game)] || [];
   return new Map(m);
 }
 
@@ -65,12 +65,16 @@ export function statGovernsFor(game) {
  * this to lay a slot's attributes out the way the game itself does.
  */
 export function attrOrderFor(game) {
-  const fam = game === "dsr" || game === "ptde" ? "ds1" : game;
-  return (STAT_GOVERNS[fam] || []).map(([n]) => n);
+  return (STAT_GOVERNS[statFamily(game)] || []).map(([n]) => n);
 }
 
+/** The two DS2 releases share every table; DS1's two already did. Mirrors DS2_FAMILY. */
+export const DS2_GAMES = new Set(["ds2sotfs", "ds2vanilla"]);
+const FAMILY = { dsr: "ds1", ptde: "ds1", ds2vanilla: "ds2sotfs" };
+export const statFamily = (game) => FAMILY[game] || game;
+
 /** Detected per-slot game id → visual theme family (dsr/ptde collapse to ds1). */
-export const GAME_THEME = { dsr: "ds1", ptde: "ds1", ds2sotfs: "ds2", ds3: "ds3", er: "er" };
+export const GAME_THEME = { dsr: "ds1", ptde: "ds1", ds2sotfs: "ds2", ds2vanilla: "ds2", ds3: "ds3", er: "er" };
 
 // Soft-cap / per-level breakpoint reference per attribute, per game. Documented
 // scaling RATES and soft-cap levels — a game-mechanics fact, NOT a per-character
@@ -123,7 +127,7 @@ export const STAT_CAPS = {
 
 /** Soft-cap reference map for a per-slot game id (DSR and PtDE share DS1). */
 export function statCapsFor(game) {
-  const m = STAT_CAPS[game === "dsr" || game === "ptde" ? "ds1" : game] || [];
+  const m = STAT_CAPS[statFamily(game)] || [];
   return new Map(m);
 }
 
@@ -226,6 +230,18 @@ export function ds3DerivedStats(stats) {
     slots: DS3_SLOT_BREAKS.filter((b) => atn >= b).length,
     equip_load: 40 + vit,
     item_discovery: Math.min(199, 100 + lck),
+  };
+}
+
+/** DS1 base derived stats from attributes only — attunement slots and base equip load
+ *  (40 + END, fextralife's linear table). Stamina and Max HP are read from the save,
+ *  so they are not recomputed. See sl2_to_md.py ds1_derived_stats. */
+const DS1_SLOT_BREAKS = [10, 12, 14, 16, 19, 23, 28, 34, 41, 50];
+export function ds1DerivedStats(stats) {
+  const end = stats.Endurance || 0, atn = stats.Attunement || 0;
+  return {
+    slots: DS1_SLOT_BREAKS.filter((b) => atn >= b).length,
+    equip_load: 40 + end,
   };
 }
 
