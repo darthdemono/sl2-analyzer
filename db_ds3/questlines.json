@@ -64,16 +64,7 @@
    86650,
    1,
    "Heavy Gem"
-  ]
- ],
- "Archdragon Peak": [
-  [
-   86650,
-   0,
-   "Twinkling Dragon Torso Stone - Pray at Altar"
-  ]
- ],
- "Hawkwood": [
+  ],
   [
    86649,
    7,
@@ -88,6 +79,13 @@
    86649,
    5,
    "Hawkwood's Shield"
+  ]
+ ],
+ "Archdragon Peak": [
+  [
+   86650,
+   0,
+   "Twinkling Dragon Torso Stone - Pray at Altar"
   ]
  ],
  "Sirris of the Sunless Realms": [

@@ -200,6 +200,12 @@ function characterPanel(ch) {
   if (ch.play_time) rows.push(statRow(null, "Play Time", fmtPlaytime(ch.play_time)));
   if (ch.deaths != null) rows.push(statRow(null, "Deaths", ch.deaths));
   if (ch.hollow_lvl) rows.push(statRow(null, "Hollowing", ch.hollow_lvl));
+  if (ch.lords) {
+    // "N of 4" — a closed set, so the denominator is real. See lords_line / lordsLine.
+    const named = ch.lords.named && ch.lords.named.length ? ` (${ch.lords.named.join(", ")})` : "";
+    const n = ch.lords.placed == null ? (ch.lords.named || []).length : ch.lords.placed;
+    rows.push(statRow(null, "Cinders Placed", `${n} of ${ch.lords.total}${named}`));
+  }
   return rows.length ? el("div", { class: "lp" }, el("div", { class: "lp-h", text: "Character" }), ...rows) : null;
 }
 
@@ -252,7 +258,9 @@ function characterCard(slot, ch, bonfireTotal) {
   const card = el("article", { class: "status" });
   card.append(levelUpScreen(slot, ch));
 
-  if (ch.boss_souls && ch.boss_souls.length) {
+  // Boss souls get their own panel only where the inventory has no boss-souls
+  // category (DS2 and DS3 do) — otherwise the same list would render twice.
+  if (ch.boss_souls && ch.boss_souls.length && !(ch.inv.bosssouls || []).length) {
     card.append(section(ch.game === "er" ? "Remembrances Held" : "Boss Souls Held", [
       el("p", { class: "hint", text: ch.game === "er" ? "Major bosses dead. The remembrance is still unspent." : "Bosses dead. The soul is still in your pack, so the kill is certain." }),
       itemList(ch.boss_souls)]));
@@ -269,17 +277,21 @@ function characterCard(slot, ch, bonfireTotal) {
       el("ul", { class: "items cols" }, ...ch.bonfires.map((b) => el("li", { text: b })))]));
   }
   if (ch.bonfire_areas && ch.bonfire_areas.length) {
-    const lit = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0), n = ch.bonfire_areas.length;
-    const [title, bar] = bonfireProgress(lit, bonfireTotal, ` across ${n} area${n !== 1 ? "s" : ""}`);
+    const lit = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0);
+    const n = ch.bonfire_areas.filter(([, c]) => c).length, areas = ch.bonfire_areas.length;
+    const [title, bar] = bonfireProgress(lit, bonfireTotal, `, in ${n} of ${areas} areas`);
     card.append(section(title, [
       el("p", { class: "hint", text: ch.game === "dsr" || ch.game === "ptde" ? "Each bonfire's own record, with how far it is kindled. A floor on how far you got." : DS2_GAMES.has(ch.game) ? "Every bonfire the save records as discovered, by area. A floor on how far you got." : "Bonfires lit, inferred from each area's flag bits. A floor on how far you got." }),
       bar,
-      el("ul", { class: "items cols" }, ...ch.bonfire_areas.map(([name, c, named]) => {
+      el("ul", { class: "items cols" }, ...ch.bonfire_areas.map(([name, c, named, tot, missing]) => {
+        const li = el("li", null, el("span", { class: "slot", text: `${name}: ${c}/${tot} ` }));
         if (named && named.length) {
-          const extra = c - named.length;
-          return el("li", { text: `${name}: ${named.join(", ")}${extra ? ` (+${extra} more)` : ""}` });
+          li.append(named.join(", "));
+          // Only a started area lists what is left; an untouched one would print
+          // the whole game back at you.
+          if (missing && missing.length) li.append(el("span", { class: "hint", text: ` missing: ${missing.join(" · ")}` }));
         }
-        return el("li", { text: `${name} (${c})` });
+        return li;
       }))]));
   }
   if (ch.covenants && Object.keys(ch.covenants).length) {
@@ -287,24 +299,37 @@ function characterCard(slot, ch, bonfireTotal) {
     for (const [cov, w] of Object.entries(ch.covenants)) {
       list.append(el("li", null, el("span", { class: "slot", text: `${cov}: ` }), w.join(", ")));
     }
-    card.append(section(`Covenants Found (${Object.keys(ch.covenants).length})`, [
-      el("p", { class: "hint", text: "Covenants discovered — a floor. The covenant currently worn is in the Character panel." }), list]));
+    const covN = Object.keys(ch.covenants).length;
+    const covBits = [el("p", { class: "hint", text: "Covenants discovered — a floor. The covenant currently worn is in the Character panel." }), list];
+    if (ch.covenants_missing && ch.covenants_missing.length) {
+      covBits.push(el("p", { class: "hint", text: `Not found yet: ${ch.covenants_missing.join(" · ")}.` }));
+    }
+    card.append(section(`Covenants Found (${ch.covenant_total ? `${covN} of ${ch.covenant_total}` : covN})`, covBits));
   }
   if (ch.questlines && Object.keys(ch.questlines).length) {
     const list = el("ul", { class: "items" });
     for (const [src, rw] of Object.entries(ch.questlines)) {
       list.append(el("li", null, el("span", { class: "slot", text: `${src}: ` }), rw.join(", ")));
     }
-    card.append(section("NPC Questlines", [
-      el("p", { class: "hint", text: "Rewards received from NPCs — a progress floor for each questline." }), list]));
+    card.append(section("Rewards Obtained", [
+      el("p", { class: "hint", text: "One-off rewards from NPCs, invaders and landmark pickups — a progress floor." }), list]));
   }
   if (ch.bosses && Object.keys(ch.bosses).length) {
     const list = el("ul", { class: "items bosses" });
     for (const [boss, srcs] of Object.entries(ch.bosses)) {
       list.append(el("li", null, boss, " ", ...srcs.map((s) => el("span", { class: `tag ${s}`, text: SRC[s] }))));
     }
-    card.append(section(`Bosses Defeated (${Object.keys(ch.bosses).length})`, [
-      el("p", { class: "hint", text: "A floor. Read from held souls, defeat flags, points you could not have passed otherwise, and NG+ clears (reaching NG+ proves every mandatory boss dead). A soul you already spent, with no flag, can still be missing." }), list]));
+    const bossN = Object.keys(ch.bosses).length;
+    const bossBits = [el("p", { class: "hint", text: "A floor. Read from held souls, defeat flags, points you could not have passed otherwise, and NG+ clears (reaching NG+ proves every mandatory boss dead). A soul you already spent, with no flag, can still be missing." }), list];
+    const avail = ch.bosses_available || [];
+    const rest = (ch.bosses_missing || []).filter((b) => !avail.includes(b));
+    if (avail.length) {
+      bossBits.push(el("p", { class: "hint", text: `Available now — every prerequisite dead and the area already reached (the game's fixed route, not this save): ${avail.join(" · ")}.` }));
+    }
+    if (rest.length) {
+      bossBits.push(el("p", { class: "hint", text: `No evidence yet${avail.length ? ", and behind something else" : ""}: ${rest.join(" · ")}.` }));
+    }
+    card.append(section(`Bosses Defeated (${ch.boss_total ? `${bossN} of ${ch.boss_total} tracked` : bossN})`, bossBits));
   }
 
   const eqWeapons = ch.equipped_weapons || {}, eqArmor = ch.equipped_armor || {},
@@ -324,7 +349,7 @@ function characterCard(slot, ch, bonfireTotal) {
       list.append(el("li", null, el("span", { class: "slot", text: "Ammo: " }), eqAmmo.join(", ")));
     }
     card.append(section("Equipped", [
-      el("p", { class: "hint", text: "Worn gear from the equip slots. The covenant slot is not read yet; a weapon's +N reinforcement is not read (its infusion is)." }), list]));
+      el("p", { class: "hint", text: "Worn gear read from the equip slots." }), list]));
   }
 
   const invCard = el("div", { class: "inv" });

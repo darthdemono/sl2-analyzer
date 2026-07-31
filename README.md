@@ -112,6 +112,8 @@ These are the interesting ones, and they took a lot more work than the item list
 | `db_ds2/images.json` | `{item_name: filename}` | 600 | Verified fextralife image filenames, for a UI |
 | `db_ds3/bonfires.json` | `{area: [[dist, bit, name]]}` | 77 in 14 areas | Every DS3 and DLC bonfire, as a save byte-offset and bit |
 | `db_ds3/boss_flags.json` | `{boss: [dist, bit]}` | 25 | Boss-defeat flags, same addressing |
+| `db_ds3/boss_victory.json` | `{boss: [dist, bit]}` | 26 | The `63xx` boss-victory flags — a second kill signal that, unlike the per-map flags, survives an NG+ reset |
+| `db_ds3/lord_cinders.json` | `{lord: [dist, bit]}` | 1 | The flag set when a Lord's Cinders go on the Firelink throne. Only Abyss Watchers is pinned; the other three need their own differentials |
 | `db_ds3/boss_souls.json` | `{soul_item: boss}` | 22 | Boss soul → boss |
 | `db_ds3/covenants.json` | `{covenant: [[dist, bit, what it proves]]}` | 8 / 20 flags | Join and rank-reward flags per covenant |
 | `db_ds3/questlines.json` | `{npc: [[dist, bit, reward]]}` | 58 / 101 flags | NPC quest reward flags |
@@ -279,6 +281,8 @@ Every game gets the baseline: **boss souls and remembrances still held.** You ca
 
 - **Bonfires, all 77 named.** Not counted, named. Every base-game and DLC bonfire resolves to its own name, grouped by area. A real early save reads Cleansing Chapel, Deacons of the Deep and Cathedral of the Deep under Cathedral, Firelink Shrine, Cemetery of Ash and Iudex Gundyr under Cemetery, and so on.
 - **Bosses defeated, from 25 defeat flags,** computed from the authoritative flag list rather than hand-checked. Every computed offset independently reproduced the older hand-verified table, which is mutual confirmation, and the rebuild added Ancient Wyvern, which the old one missed. This is what catches bosses that drop no soul, like Iudex Gundyr, which the soul floor could never see.
+- **Bosses defeated again, from a second and independent set of 26 victory flags.** The per-map defeat flags reset when you start NG+; these do not, which is why a finished character reads a full roster where the map flags read nothing. They also cover Stray Demon, which the map table has no entry for. Every one of them was checked against a 36-save ladder and first appears in exactly the snapshot the boss died in.
+- **Cinders of a Lord placed on the throne.** One lord so far — Abyss Watchers — pinned by a 46-second save pair either side of the offering. The other three are not guessed at; each needs its own pair.
 - **NPC questlines.** 58 NPCs, 101 reward flags — what Hawkwood, Greirat, Siegward, Leonhard, Yuria and the rest have actually handed over. On a real early save this reads eleven coherent NPCs and zero late-game or DLC false positives.
 - **Covenants found**, with join and rank-reward flags, alongside the covenant currently worn.
 - **Equipped gear** — both hands' weapons with their reinforcement level, all four armour slots, all four rings, and ammo. Every slot is gated on the resolved ID landing in the right category, so a stray handle drops out instead of printing a weapon in a helmet slot.
@@ -374,26 +378,12 @@ The no-argument auto-detect already searches all of these, so on most setups you
 
 ## What the Markdown looks like
 
-One `.md` per save. A header naming the game and the tier, the generation note, then one section per character. Below is a real file, cut only where the inventory ran long. The `>` note under the header is what makes an old summary self-documenting: it names the repo and states, in plain English, how that specific game was read. It is one long line in the real output; it is wrapped here so it fits on the page.
+One `.md` per save. A short header naming the source, one section per character, and a closing block that says what the tool is and how far to trust it — the boilerplate sits at the end, out of the way of the save's own numbers. Below is a real file, cut only where the inventory ran long. The `>` note in the closing block is what makes an old summary self-documenting: it names the repo and states, in plain English, how that specific game was read. It is one long line in the real output; it is wrapped here so it fits on the page.
 
 ````markdown
 # Dark Souls III — Playthrough Save Summary
 
-_Source: `JoyDS3.sl2` · generated 2026-07-27 22:37 · sl2_to_md_
-
-- **Game:** Dark Souls III
-- **Support tier:** full
-
-- **Characters found:** 1
-
-> Automated dump of the save. Code Repo: https://github.com/darthdemono/sl2-analyzer .
-> How it works for Dark Souls III: the save is locked with AES-128 encryption, key
-> shipped in the game, so the tool unlocks it first. The stats do not sit at a fixed
-> position, and that position moves between game patches, so instead of trusting a
-> location the tool searches for the stat block by its content: it looks for the run of
-> nine numbers that, added together, equal the character's stored level — a rule the
-> game itself follows, which makes a wrong match almost impossible. Items are found by
-> scanning the slot for known IDs and matched to names.
+_Source: `JoyDS3.sl2` · generated 2026-07-31 04:21 · sl2_to_md_
 
 ---
 
@@ -416,49 +406,49 @@ _Source: `JoyDS3.sl2` · generated 2026-07-27 22:37 · sl2_to_md_
 |----|----|----|----|----|----|----|----|----|
 | 22 | 6 | 18 | 18 | 26 | 9 | 8 | 9 | 11 |
 
-### Attribute Scaling  _(what each stat scales, its soft caps, and your current value — game-mechanics reference, not a value read from this save)_
+<details>
+<summary><b>Attribute Scaling</b> — what each stat scales and its soft caps (game-mechanics reference, not read from this save)</summary>
 
 - **Vigor** (22) — Max HP. Soft caps ~27 & 50; ~1,300 HP at 50, only ~100 more to 99.
 - **Endurance** (18) — Stamina. Stamina soft cap 40.
 - **Strength** (26) — Physical attack, strength-weapon scaling. Scaling soft caps 40 & 60.
 - **Luck** (11) — Item discovery, bleed/poison buildup, hollow-weapon scaling. +1 item discovery/pt (base 100); bleed/poison speed soft cap 50.
 
+</details>
+
 ### Derived Stats  _(computed from attributes — base values before rings, covenant & equipment)_
 
 - **Attunement Slots:** 0
-- **Equip Load:** 58.0
+- **Equip Load (max capacity):** 58.0
 - **Item Discovery:** 111
-
-### Boss Souls Held  _(bosses defeated, soul not yet consumed)_
-
-- Soul of Boreal Valley Vordt
-- Soul of a Stray Demon
-- Soul of a Crystal Sage
-- Soul of the Deacons of the Deep
 
 ### Key Items  _(progress / areas & shortcuts unlocked)_
 
 - Cell Key
+- Small Lothric Banner
 - Grave Key
 - Tower Key
+- Deep Braille Divine Tome
 
-### Bonfires Discovered (22 across 6 areas)  _(bonfires lit, inferred from each area's flag bits — a floor)_
+### Bonfires Discovered (22 of 77, in 6 of 14 areas)  _(bonfires lit, inferred from each area's flag bits — a floor)_
 
-- High Wall of Lothric: Vordt of the Boreal Valley, Tower on the Wall, High Wall of Lothric
-- Undead Settlement: Undead Settlement, Dilapidated Bridge, Foot of the High Wall
-- Road of Sacrifices: Halfway Fortress, Crystal Sage, Farron Keep, Keep Ruins, Old Wolf of Farron, Road of Sacrifices, Crucifixion Woods, Farron Keep Perimeter
-- Cathedral of the Deep: Cleansing Chapel, Deacons of the Deep, Rosaria's Bed Chamber, Cathedral of the Deep
-- Cemetery of Ash: Firelink Shrine, Cemetery of Ash, Iudex Gundyr
-- The Painted World of Ariandel: Snowfield
+- High Wall of Lothric: 3/5 — Vordt of the Boreal Valley, Tower on the Wall, High Wall of Lothric  _(missing: Oceiros, the Consumed King · Dancer of the Boreal Valley)_
+- Lothric Castle: 0/5
+- Undead Settlement: 3/5 — Undead Settlement, Dilapidated Bridge, Foot of the High Wall  _(missing: Pit of Hollows · Cliff Underside)_
+- Cathedral of the Deep: 4/4 — Cleansing Chapel, Deacons of the Deep, Rosaria's Bed Chamber, Cathedral of the Deep
+- Catacombs of Carthus: 0/6
+- Cemetery of Ash: 3/5 — Firelink Shrine, Cemetery of Ash, Iudex Gundyr  _(missing: Untended Graves · Champion Gundyr)_
 
-### Covenants Found (4)  _(discovered — a floor; the one currently worn is the Covenant field above)_
+### Covenants Found (4 of 9)  _(discovered — a floor; the one currently worn is the Covenant field above)_
 
 - **Warrior of Sunlight:** joined (emblem found)
 - **Blue Sentinels:** joined (emblem found)
 - **Rosaria's Fingers:** joined (emblem found)
 - **Way of Blue:** joined (emblem found)
 
-### NPC Questlines  _(rewards received from NPCs — a progress floor)_
+_Not found yet: Aldrich Faithful · Blade of the Darkmoon · Mound-makers · Spears of the Church · Watchdogs of Farron._
+
+### Rewards Obtained  _(one-off rewards from NPCs, invaders and landmark pickups — a progress floor)_
 
 - **Yuria of Londor:** Londor Braille Divine Tome
 - **Hawkwood the Deserter:** Heavy Gem
@@ -468,15 +458,17 @@ _Source: `JoyDS3.sl2` · generated 2026-07-27 22:37 · sl2_to_md_
 - **High Priestess Emma:** Small Lothric Banner
 - **Sword Master:** Uchigatana
 
-### Bosses Defeated (5)  _(a floor — from defeat flags, held boss souls, progression, and NG+ clears; a boss whose soul was consumed and isn't gated may still be missing)_
+### Bosses Defeated (5 of 26 tracked)  _(a floor — from defeat flags, held boss souls, progression, and NG+ clears; a boss whose soul was consumed and isn't gated may still be missing)_
 
 - Vordt of the Boreal Valley  _(confirmed, soul held)_
-- Stray Demon  _(soul held)_
+- Stray Demon  _(confirmed, soul held)_
 - Crystal Sage  _(confirmed, soul held)_
 - Deacons of the Deep  _(confirmed, soul held)_
 - Iudex Gundyr  _(confirmed, progression)_
 
-### Equipped  _(worn gear read from the equip slots — covenant not yet read)_
+_No evidence yet: Abyss Watchers · Aldrich, Devourer of Gods · Ancient Wyvern · Champion Gundyr · Curse-Rotted Greatwood · Dancer of the Boreal Valley · High Lord Wolnir · Lothric, Younger Prince · Nameless King · Old Demon King · Pontiff Sulyvahn · Soul of Cinder · Yhorm the Giant._
+
+### Equipped  _(worn gear read from the equip slots)_
 
 - **Right Hand:** Greataxe +1
 - **Head:** Northern Helm
@@ -495,7 +487,36 @@ _Source: `JoyDS3.sl2` · generated 2026-07-27 22:37 · sl2_to_md_
 - Lucerne
 - Astora Straight Sword
 - Uchigatana
+
+#### Boss Souls
+
+- Soul of Boreal Valley Vordt
+- Soul of a Stray Demon
+- Soul of a Crystal Sage
+- Soul of the Deacons of the Deep
+
+---
+
+<details>
+<summary>About this file — how it was produced, and how far to trust it</summary>
+
+- **Game:** Dark Souls III
+- **Support tier:** full
+- **Character slots read:** 1
+
+> Automated dump of the save. Code Repo: https://github.com/darthdemono/sl2-analyzer .
+> How it works for Dark Souls III: the save is locked with AES-128 encryption, key
+> shipped in the game, so the tool unlocks it first. The stats do not sit at a fixed
+> position, and that position moves between game patches, so instead of trusting a
+> location the tool searches for the stat block by its content: it looks for the run of
+> nine numbers that, added together, equal the character's stored level — a rule the
+> game itself follows, which makes a wrong match almost impossible. Items are found by
+> scanning the slot for known IDs and matched to names.
+
+</details>
 ````
+
+Every progress section carries its denominator and the names still missing — that negative space is half the report. An area sitting at `0/6`, and the two bonfires you walked past in one at `3/5`, are the things a list of what you *found* can never tell you.
 
 The other games slot their own fields into the same shape. DS2 adds Class, Gender, Soul Memory, Hollowing, Deaths, and a full derived-stats panel, and its inventory carries reinforcement and infusion in the name:
 
@@ -507,13 +528,13 @@ The other games slot their own fields into the same shape. DS2 adds Class, Gende
 - **Soul Memory:** 675,393  _(total souls earned — main progress metric)_
 - **Deaths:** 122
 
-### Bonfires Discovered (33 across 17 areas)  _(each bonfire the save records as discovered, by area — a floor)_
+### Bonfires Discovered (33 of 77, in 17 of 34 areas)  _(each bonfire the save records as discovered, by area — a floor)_
 
-- Things Betwixt: Fire Keepers' Dwelling
-- Majula: The Far Fire
-- Forest of Fallen Giants: Cardinal Tower, Soldiers' Rest, The Crestfallen's Retreat
+- Things Betwixt: 1/1 — Fire Keepers' Dwelling
+- Majula: 1/1 — The Far Fire
+- Forest of Fallen Giants: 3/4 — Cardinal Tower, Soldiers' Rest, The Crestfallen's Retreat  _(missing: The Place Unbeknownst)_
 
-### Covenants Found (1)  _(discovered — a floor; the one currently worn is the Covenant field above)_
+### Covenants Found (1 of 9)  _(discovered — a floor; the one currently worn is the Covenant field above)_
 
 - **Way of Blue:** rank 3 of 3
 
@@ -525,12 +546,12 @@ The other games slot their own fields into the same shape. DS2 adds Class, Gende
 DS1 is the only one that reports how far each bonfire is kindled, because it is the only one that stores it:
 
 ```markdown
-### Bonfires Discovered (38 across 22 areas)  _(each bonfire's own record, with how far it is kindled — a floor)_
+### Bonfires Discovered (38 of 43, in 22 of 24 areas)  _(each bonfire's own record, with how far it is kindled — a floor)_
 
-- Firelink Altar: Firelink Altar - Lordvessel (kindled +3)
-- Firelink Shrine: Firelink Shrine (kindled +1)
-- The Abyss: The Abyss (discovered)
-- Catacombs: Catacombs 2 (illusory wall) (lit), Catacombs 1 (necromancer) (lit)
+- Firelink Altar: 1/1 — Firelink Altar - Lordvessel (kindled +3)
+- Firelink Shrine: 1/1 — Firelink Shrine (kindled +1)
+- The Abyss: 1/1 — The Abyss (discovered)
+- Catacombs: 2/2 — Catacombs 2 (illusory wall) (lit), Catacombs 1 (necromancer) (lit)
 ```
 
 Where a field cannot be trusted, the file says so instead of dropping it silently. An Elden Ring slot whose stat block fails the level identity prints this and carries on with what it *can* read:
@@ -556,7 +577,7 @@ Said out loud rather than papered over:
 - **Progress is a floor, not a ceiling.** Covered above. A spent soul with no flag and no gate is a kill the save can no longer prove, so it is not listed.
 - **Boss-defeat flags for Elden Ring are not read.** ER keeps them in a runtime structure and no public editor maps them into the save. DS1's, DS2's and DS3's flags *are* read, so only ER falls back to the soul-and-gate floor for kills.
 - **DS2 has only 6 of ~41 boss flags mapped.** Not for lack of effort — the available save set produces no differential for the other thirty-five, and three separate scanning approaches came back empty. Soul and gate inference covers most real cases; a mid-game boss whose soul you consumed can still be missing.
-- **Upgraded gear in DS1 and DS3's scanned inventory is not named with its level.** Those games bake the reinforcement into the item ID, and the scan-based inventory only carries base IDs. DS3's *equipped* weapons do resolve their `+N`, because the equip slots reference the exact ID. DS2 has no such problem: its tables are built from the full SOTFS ID list, so reinforced and infused variants all resolve by name. Elden Ring is the reverse, where reinforced-weapon IDs fall back to the base name.
+- **Upgraded gear in DS1's scanned inventory is not named with its level.** DS1 bakes the reinforcement into the item ID and its scan-based inventory carries base IDs. **DS3 no longer has this problem in either place** — the held inventory turned out to store the exact `base + infusion*100 + level` ID, same as the equip slots, so a held `Greataxe +6` reads as such rather than dropping out. DS2 never had it: its tables are built from the full SOTFS ID list, so reinforced and infused variants all resolve by name. Elden Ring is the reverse, where reinforced-weapon IDs fall back to the base name.
 - **DS3 has no starting class, gender, or Dark Sigil level,** and no published editor reads them either, so there is nothing to port. Each needs its own differential save.
 - **Scholar-only content is absent from a vanilla DS2 save,** which is the game's doing, not the tool's. The two releases share one ID table, so a vanilla save simply never carries the items and bonfires Scholar added.
 

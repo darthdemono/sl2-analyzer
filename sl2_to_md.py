@@ -539,6 +539,97 @@ def attach_defeated_bosses(ch, base_dir):
         ch["bosses"] = {b: sorted(bosses[b]) for b in bosses}
 
 
+##
+# @brief Every boss this tool can name for a game — the denominator behind
+#        "Bosses Defeated (8 of 26)".
+# @details Assembled from the game's own tables (defeat flags + boss-soul map), so it
+# is what the tool TRACKS, not a claim about how many bosses the game ships. That
+# distinction is the point: a name in here that is not in @c ch["bosses"] is a boss
+# the save shows no evidence for, which is worth printing; a boss no table knows
+# cannot be reported either way and must not inflate the denominator.
+def boss_roster(game, base_dir):
+    if game in DS2_GAMES:
+        return (set(load_ds2_bosses(base_dir).values())
+                | set(load_ds2_boss_souls(base_dir).values()))
+    subdir = BOSS_SOUL_DB_DIR.get(game)
+    names = set(load_boss_soul_map(base_dir, subdir).values()) if subdir else set()
+    names |= set(MANDATORY_BOSSES.get(game, ()))
+    if game == "ds3":
+        names |= set(load_ds3_boss_flags(base_dir)) | set(load_ds3_boss_victory(base_dir))
+    if game in ("dsr", "ptde"):
+        names |= set(load_ds1_boss_flags(base_dir))
+    return names
+
+
+## @brief Every covenant a game has, as the denominator for "Covenants Found". These
+#  are the in-game rosters (the id→name tables), so the count is the real total.
+def covenant_roster(game, base_dir):
+    if game in DS2_GAMES:
+        return set(DS2_COVENANT.values())
+    if game == "ds3":
+        return set(DS3_COVENANT.values()) | set(load_ds3_covenants(base_dir))
+    return set()
+
+
+## @brief The four Lords of Cinder, boss name → the name on the Firelink throne.
+#  A closed set: all four must be placed before the Kiln opens, so "N of 4" is a real
+#  denominator rather than an open-ended list.
+DS3_LORDS = OrderedDict([
+    ("Abyss Watchers", "Abyss Watchers"), ("Yhorm the Giant", "Yhorm the Giant"),
+    ("Aldrich, Devourer of Gods", "Aldrich"), ("Lothric, Younger Prince", "Twin Princes")])
+## @brief The one item id (any lord's) that sits in the inventory between killing a
+#  Lord of Cinder and offering the ashes at the throne.
+DS3_CINDER_ITEM = "Cinders of a Lord"
+
+
+##
+# @brief Attach the denominators the progress sections print against: how many bosses
+#        and covenants the tool tracks, which of them this save shows nothing for, and
+#        (DS3) how many Lords of Cinder are on the throne.
+# @details The Lords count is ARITHMETIC on two reads that are already verified, not a
+# new offset: a lord's cinders are in the inventory from the kill until they are
+# offered, so @c placed = lords defeated − cinders still held. It matches the mapped
+# throne flag on the one save that has one (the offering differential reads 1 defeated,
+# 0 held, 1 placed; the before-save reads 1 defeated, 1 held, 0 placed). Skipped on
+# NG+, where the thrones reset but the defeat flags do not, so the subtraction would
+# over-report. @param base_dir Repo root holding the db_* folders.
+def attach_progress_totals(ch, base_dir):
+    game = ch.get("game")
+    roster = boss_roster(game, base_dir)
+    if roster and ch.get("bosses"):
+        ch["boss_total"] = len(roster | set(ch["bosses"]))
+        ch["bosses_missing"] = sorted(n for n in roster if n not in ch["bosses"])
+    covs = covenant_roster(game, base_dir)
+    if covs and ch.get("covenants"):
+        ch["covenant_total"] = len(covs | set(ch["covenants"]))
+        ch["covenants_missing"] = sorted(n for n in covs if n not in ch["covenants"])
+    if game != "ds3":
+        return
+    ch_bosses = ch.get("bosses") or {}
+    # Which of the missing bosses you could walk to RIGHT NOW: every hard predecessor
+    # dead, and at least one bonfire lit in its gate area (so a DLC boss cannot be
+    # "available" before you own/enter the DLC). Reached-area is the conservative half
+    # — it under-reports the very next area rather than sending you somewhere you
+    # cannot get to. Route structure only; nothing here is read from the save.
+    reached = {a for a, c, _n, _t, _m in (ch.get("bonfire_areas") or []) if c}
+    if reached:
+        avail = [b for b, (area, after) in load_ds3_boss_route(base_dir).items()
+                 if b not in ch_bosses and area in reached
+                 and all(p in ch_bosses for p in after)]
+        if avail:
+            ch["bosses_available"] = avail
+    dead = [lord for boss, lord in DS3_LORDS.items() if boss in ch_bosses]
+    held = sum(q for n, q in (ch.get("key_items") or []) if n == DS3_CINDER_ITEM)
+    named = ch.get("cinders") or []
+    if dead or named:
+        lords = {"total": len(DS3_LORDS), "named": named, "dead": len(dead), "held": held}
+        # The subtraction only holds on a first journey; otherwise report just what the
+        # mapped throne flags prove, and say the count is a floor.
+        lords["placed"] = (max(len(dead) - held, len(named))
+                           if (ch.get("ng_plus") or 0) == 0 else None)
+        ch["lords"] = lords
+
+
 ## @brief Pull key / progression items out of a goods list (DS1 keeps keys here).
 def find_key_goods(goods):
     return [(n, q) for n, q in goods if "Key" in n or n in DS1_PROGRESSION]
@@ -970,11 +1061,16 @@ def ds1_bonfires(buf, db):
             o += 1
     if len(best) < DS1_BONFIRE_MIN_RUN:
         return None
+    found = {bid: state for bid, state in best}
     areas = OrderedDict()
-    for bid, state in best:
-        name, area = db[bid]
-        areas.setdefault(area, []).append(f"{name} ({DS1_BONFIRE_STATE[state]})")
-    return [(a, len(v), v) for a, v in areas.items()]
+    for bid, (name, area) in db.items():
+        got, miss = areas.setdefault(area, ([], []))
+        if bid in found:
+            got.append(f"{name} ({DS1_BONFIRE_STATE[found[bid]]})")
+        else:
+            miss.append(name)
+    return [(a, len(got), got, len(got) + len(miss), miss)
+            for a, (got, miss) in areas.items()]
 
 
 ## @brief Parse one DS2 slot into the unified character dict, or None if empty.
@@ -1073,6 +1169,62 @@ def load_ds3_boss_flags(base_dir):
         except (OSError, ValueError):
             _DS3_BOSS_CACHE[base_dir] = {}
     return _DS3_BOSS_CACHE[base_dir]
+
+
+## @brief Load the DS3 boss-victory flag table (db_ds3/boss_victory.json): boss name →
+#  @c [distance, bit] of its @c 63xx "boss victory" event flag, a SECOND independent
+#  kill signal that survives the soul being consumed. These live in common group 6,
+#  whose save base (879) was derived from the Rosaria join differential and is
+#  confirmed here by fifteen more flags: walking the whole ladder, every one first
+#  turns on in exactly the snapshot the boss died in. Covers Stray Demon, which the
+#  per-map table does not. Cached. Returns {} if absent.
+_DS3_VICTORY_CACHE = {}
+def load_ds3_boss_victory(base_dir):
+    if base_dir not in _DS3_VICTORY_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "boss_victory.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_VICTORY_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_VICTORY_CACHE[base_dir] = {}
+    return _DS3_VICTORY_CACHE[base_dir]
+
+
+## @brief Load the DS3 Lords-of-Cinder table (db_ds3/lord_cinders.json): lord name →
+#  @c [distance, bit] of the flag set when that lord's Cinders are placed on the
+#  Firelink throne. Only the ONE flag a real differential pinned is listed
+#  (14000125, Abyss Watchers — the only flag gained anywhere in the m40 group across a
+#  46-second offering window, and 0 in all 34 earlier saves). The other three lords'
+#  flags are NOT guessed; they need their own offering windows. Cached. Returns {}.
+_DS3_CINDER_CACHE = {}
+def load_ds3_lord_cinders(base_dir):
+    if base_dir not in _DS3_CINDER_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "lord_cinders.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_CINDER_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_CINDER_CACHE[base_dir] = {}
+    return _DS3_CINDER_CACHE[base_dir]
+
+
+## @brief Load the DS3 route graph (db_ds3/boss_route.json): boss name →
+#  @c [gate area, [bosses that must die first]]. This is GAME STRUCTURE, not a save
+#  read — the fixed route from fextralife's Game Progress Route — and it exists to
+#  answer "what can I fight now", which no flag can. The area name is a key of
+#  db_ds3/bonfires.json, so "the area was reached" is decided by that area's own lit
+#  bonfires; the predecessor list is only the HARD gates (the arena or key you cannot
+#  get past otherwise), never a suggested order. Cached. Returns {} if absent.
+_DS3_ROUTE_CACHE = {}
+def load_ds3_boss_route(base_dir):
+    if base_dir not in _DS3_ROUTE_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "boss_route.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_ROUTE_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_ROUTE_CACHE[base_dir] = {}
+    return _DS3_ROUTE_CACHE[base_dir]
 
 
 ## @brief Load the DS3 NPC-questline table (db_ds3/questlines.json): NPC/source →
@@ -1283,15 +1435,23 @@ def ds2_visited_bonfires(world, bf_db):
 # @param area_db Bonfire id → area, from load_ds2_bonfire_areas.
 # @return The grouped list, or None when no id has a known area (the caller then
 #         keeps the flat list rather than inventing an "Unknown" bucket).
-def ds2_bonfire_areas(visited, area_db):
+def ds2_bonfire_areas(visited, area_db, bf_db):
     if not visited or not area_db:
         return None
-    areas = OrderedDict()
-    for bid, name in visited:
-        area = area_db.get(bid)
-        if area is not None:
-            areas.setdefault(area, []).append(name)
-    return [(a, len(v), v) for a, v in areas.items()] or None
+    seen = {bid for bid, _n in visited}
+    order = [area_db[bid] for bid, _n in visited if bid in area_db]
+    areas = OrderedDict((a, ([], [])) for a in order)
+    # Walk the whole area table, not just what was visited, so an area the character
+    # has not reached still prints as 0/N rather than vanishing.
+    for bid, area in area_db.items():
+        got, miss = areas.setdefault(area, ([], []))
+        name = bf_db.get(bid)
+        if name is None:
+            continue
+        (got if bid in seen else miss).append(name)
+    out = [(a, len(got), got, len(got) + len(miss), miss)
+           for a, (got, miss) in areas.items()]
+    return out if any(c for _a, c, _n, _t, _m in out) else None
 
 
 ## @brief DS2-only augment: attach world-block progression (bonfires, bosses) to a
@@ -1314,7 +1474,8 @@ def ds2_augment(ch, data, entries, i, base_dir, dec=decrypt_ds2):
     # The flat name list stays: DS2_BOSS_GATE is keyed by bonfire name, so the boss
     # inference below reads it. The grouped view is what gets rendered.
     ch["bonfires"] = [name for _, name in visited] if visited else visited
-    areas = ds2_bonfire_areas(visited, load_ds2_bonfire_areas(base_dir))
+    areas = ds2_bonfire_areas(visited, load_ds2_bonfire_areas(base_dir),
+                              load_ds2_bonfires(base_dir))
     if areas:
         ch["bonfire_areas"] = areas
     ch["bosses"] = ds2_infer_bosses(world, ch, base_dir)
@@ -1702,13 +1863,45 @@ SCAN_MIN_RUN = 3
 DS3_MAX_RUN_GAP = 48
 
 
+## @brief DS3 goods ids carry a type prefix (0x40000000); the real id is what the
+#  game's own EquipParamGoods table uses, and it blocks out cleanly by kind. Splitting
+#  `goods` on those blocks gives DS3 the same finer categories DS2 already renders
+#  (upgrade / consumables / online / keys / boss souls) instead of one 100-row dump.
+#  Ranges read off the table itself (`db_ds3/goods.json`, sorted by id), not guessed:
+#  100..119 soapstones+orbs+Darksign, 240..519 the whole consumable block, 520..524
+#  the multiplayer carvings, 700..799 boss souls, 1000..1030 titanite, 1100..1250
+#  infusion gems, 2001..2014 door keys, 2101..2159 tomes/coals/ashes/banners.
+DS3_GOODS_ID_BASE = 0x40000000
+DS3_GOODS_RANGES = ((100, 149, "online"), (150, 519, "consumables"),
+                    (520, 599, "online"), (600, 699, "consumables"),
+                    (700, 799, "bosssouls"), (1000, 1299, "upgrade"),
+                    (2000, 2199, "keys"))
+## @brief The two flask upgrades that sit in the key-item block but are materials.
+DS3_GOODS_OVERRIDE = {117: "consumables",                 # Darksign (not a summon item)
+                      2141: "upgrade", 2143: "upgrade"}   # Estus Shard, Bone Shard
+
+
+## @brief Refine a DS3 `goods` id to its finer category (see @ref DS3_GOODS_RANGES).
+#  An id outside every block keeps `goods`, so an unmapped one is still printed.
+def ds3_goods_cat(iid):
+    real = iid - DS3_GOODS_ID_BASE
+    if real in DS3_GOODS_OVERRIDE:
+        return DS3_GOODS_OVERRIDE[real]
+    for lo, hi, cat in DS3_GOODS_RANGES:
+        if lo <= real <= hi:
+            return cat
+    return "goods"
+
+
 ##
 # @brief Load an id-scan database: per-category JSON of @c {name: id}, flattened
 #        to @c {id: (name, category)}.
 # @param db_dir Folder of category JSON files.
 # @param files  Filename-stem to category mapping.
+# @param refine Optional @c (id, cat) -> cat hook, used to split DS3's one goods
+#               file into the finer categories the render prints.
 # @return The flat lookup, or {} if the folder is absent.
-def load_scan_db(db_dir, files):
+def load_scan_db(db_dir, files, refine=None):
     if not os.path.isdir(db_dir):
         return {}
     db = {}
@@ -1716,7 +1909,8 @@ def load_scan_db(db_dir, files):
         path = os.path.join(db_dir, stem + ".json")
         if os.path.exists(path):
             for name, iid in json.load(open(path, encoding="utf-8")).items():
-                db.setdefault(int(iid), (name, cat))
+                iid = int(iid)
+                db.setdefault(iid, (name, refine(iid, cat) if refine else cat))
     return db
 
 
@@ -1745,17 +1939,31 @@ def scan_inventory(buf, iddb):
             else:
                 break
         if j - i + 1 >= SCAN_MIN_RUN:
-            for k in range(i, j + 1):
-                o = positions[k]
+            # Walk the run's whole record grid, not just the positions that matched
+            # the table — the holes between them are real records too, and a held
+            # weapon sits in one whenever it is reinforced (the inventory stores the
+            # exact base+infusion*100+level id, so only a +0 weapon is a direct hit).
+            # The run itself is still built from direct hits alone, so this can only
+            # ADD items, never move a run boundary and drop one.
+            for o in range(positions[i], positions[j] + 1, DS3_RECORD):
                 if o in seen:
                     continue
                 seen.add(o)
                 iid = int.from_bytes(buf[o:o + 4], "little")
                 qty = u32(buf, o + DS3_QTY_OFF) or 0
-                if 1 <= qty <= 9999:
-                    name, cat = iddb[iid]
-                    bucket = buckets[cat]
-                    bucket[name] = bucket.get(name, 0) + qty
+                if not 1 <= qty <= 9999:
+                    continue
+                entry = iddb.get(iid)
+                if entry is None:
+                    reinf = ds3_resolve_weapon(iddb, iid)
+                    estus = None if reinf else ds3_resolve_estus(iid)
+                    if reinf is None and estus is None:
+                        unknown += 1
+                        continue
+                    entry = (reinf, "weapons") if reinf else (estus, "consumables")
+                name, cat = entry
+                bucket = buckets[cat]
+                bucket[name] = bucket.get(name, 0) + qty
         i = j + 1
     return {c: list(v.items()) for c, v in buckets.items()}, unknown
 
@@ -1863,6 +2071,35 @@ def ds3_resolve_weapon(iddb, iid):
         return None
     base = iddb.get(iid - level)
     return f"{base[0]} +{level}" if base and base[1] == "weapons" else None
+
+
+## @brief The two Estus flasks' base goods ids, and the reinforcement ceiling.
+#  Like weapons, a flask's level is baked into its id, but it takes TWO consecutive
+#  ids per level (150/151 = Estus +0, 152/153 = +1 … 170/171 = +10; 190/191 = Ashen
+#  +0 … 210/211 = +10), so the flask is resolved arithmetically rather than listed —
+#  a name-keyed db cannot hold one name under two ids. Verified across Joy's 38-save
+#  ladder, where the id steps 151 → 153 → 155 → 157 → 159 (and the Ashen id 190 → 192
+#  → 194 → 196 → 198 in lockstep), each step inside a 12-15 second window — one visit
+#  to Andre. Both members of a pair really occur: the all-items mule holds 171/211
+#  (both +10) and 151/191, which is what pins the pairing and the endpoints.
+DS3_GOODS_TYPE = 0x40000000
+DS3_ESTUS = ((150, "Estus Flask"), (190, "Ashen Estus Flask"))
+DS3_ESTUS_MAX = 10
+
+
+##
+# @brief Resolve a DS3 goods id to an Estus flask name with its @c +N, or None.
+# @details Only consulted after the id-scan table misses, so it can never shadow a
+# real listed good. @param iid The exact goods id. @return The name, or None.
+def ds3_resolve_estus(iid):
+    raw = iid - DS3_GOODS_TYPE
+    for base, name in DS3_ESTUS:
+        level = (raw - base) // 2
+        if raw >= base and 0 <= level <= DS3_ESTUS_MAX:
+            return name if level == 0 else f"{name} +{level}"
+    return None
+
+
 ## @brief A ring's equip handle encodes its own id: the low 28 bits are shared
 #  and the type nibble is 0xA where the goods/ring id's is 0x2 — so the id is
 #  the handle with its top nibble rewritten to 2 (verified 4/4 on the Joy ring
@@ -2025,7 +2262,11 @@ def ds3_parse(buf, iddb, name):
     inv = scan_inventory(buf, iddb)[0]
     if not inv:
         return None
-    goods = inv.get("goods", [])
+    # Boss souls stay in the inventory (their own category, as in DS2) but are also
+    # handed to the kill inference; key items follow DS2 and move out of the
+    # inventory entirely, since the Key Items section already prints them.
+    goods = inv.get("bosssouls", []) + inv.get("goods", [])
+    key_items = inv.pop("keys", [])
     v = ds3_find_stats(buf)
     stats = OrderedDict((k, u32(buf, v + d)) for k, d in DS3_STAT_D.items()) \
         if v is not None else OrderedDict()
@@ -2045,7 +2286,7 @@ def ds3_parse(buf, iddb, name):
         "equipped_armor": ds3_equipped_armor(buf, iddb, v),
         "equipped_rings": ds3_equipped_rings(buf, iddb, v),
         "equipped_ammo": ds3_equipped_ammo(buf, iddb, v),
-        "boss_souls": find_boss_souls(goods), "key_items": find_key_goods(goods),
+        "boss_souls": find_boss_souls(goods), "key_items": key_items,
         "inv": inv, "unknown_count": 0,
     }
 
@@ -2321,11 +2562,26 @@ DS3_GAITEM_SLOTS = 6144
 DS3_GAITEM_BIG = 60                                 # weapon/armour record; all else 8
 DS3_GAITEM_TYPES_BIG = (0x80000000, 0x90000000)     # weapon, armour top nibbles
 
+# Event flags are sparse: even a 100%-complete NG+ character sets only ~0.2% of the
+# region's bits (the all-items mule's finished slot measures 0.0022, a real mid-game
+# save 0.0023). Ordinary save data is far denser, so a base that lands off the region
+# gives itself away — the mule's OTHER slot walks to a wrong base and measures 0.0285,
+# where the flag reads degenerate into solid runs of consecutive "set" flags. Without
+# this gate that slot invented four covenants and a Stray Demon kill. The threshold is
+# ~4x the highest real reading and ~3x below the bad one, so it is a wide separation,
+# not a fitted one. Same defence as DS1's DS1_FLAG_MAX_DENSITY.
+DS3_FLAG_MAX_DENSITY = 0.01
+DS3_FLAG_SAMPLE = 0x8000
+
+
 ##
 # @brief Locate the DS3 event-flag region base in a decrypted slot, or None.
 # @details Walks the same block chain the alfizari editor uses. Every read is
 # bounds-checked (u32 returns None past the buffer), so a short or edited save turns
-# the feature off rather than reading garbage. @return The base offset, or None.
+# the feature off rather than reading garbage. The located base is then sanity-checked
+# on bit density (see @ref DS3_FLAG_MAX_DENSITY) — a mislocated base reads dense and is
+# rejected, turning every flag feature off for that slot rather than inventing progress.
+# @return The base offset, or None.
 def ds3_event_flag_base(buf):
     off = DS3_GAITEM_START
     for _ in range(DS3_GAITEM_SLOTS):
@@ -2343,37 +2599,51 @@ def ds3_event_flag_base(buf):
     if table2_size is None:
         return None
     base = gesture_end + 4 + table2_size * 4 + 0x92 + 0xBCC - 0x12
-    return base if 0 <= base < len(buf) else None
+    if not 0 <= base < len(buf):
+        return None
+    sample = buf[base:base + DS3_FLAG_SAMPLE]
+    if not sample:
+        return None
+    density = sum(bin(b).count("1") for b in sample) / (len(sample) * 8)
+    return base if density <= DS3_FLAG_MAX_DENSITY else None
 
 
 ##
 # @brief Read DS3 bonfires + boss-defeat flags off the event-flag region and attach
 #        them to @p ch: @c bonfire_areas as [(area, count, [names])] — every lit
 #        bonfire named from @ref load_ds3_bonfires — and merge @c flag boss evidence
-#        into @c ch["bosses"] (deduping with any soul/gate evidence already there).
+#        into @c ch["bosses"] (deduping with any soul/gate evidence already there,
+#        from both the per-map and the group-6 victory tables), and @c cinders as the
+#        Lords of Cinder whose ashes are on the throne.
 #        No-op if @p base is None (region not located). @param base The event-flag
 #        base from @ref ds3_event_flag_base. @param base_dir Repo root for the db.
 def ds3_attach_flags(ch, buf, base, base_dir):
     if base is None:
         return
-    areas = []
+    areas, any_lit = [], False
     for area, bonfires in load_ds3_bonfires(base_dir).items():
-        named = []
+        named, missing = [], []
         for dist, bit, name in bonfires:
             val = u8(buf, base + dist)
-            if val is not None and val & (1 << bit):
-                named.append(name)
-        if named:
-            areas.append((area, len(named), named))
-    if areas:
+            (named if val is not None and val & (1 << bit) else missing).append(name)
+        any_lit = any_lit or bool(named)
+        areas.append((area, len(named), named, len(bonfires), missing))
+    # Every area is kept, lit or not — an area reading 0/5 is the useful half of the
+    # report. Only a slot with nothing lit anywhere gets no section at all.
+    if any_lit:
         ch["bonfire_areas"] = areas
     bosses = {b: set(s) for b, s in (ch.get("bosses") or {}).items()}
-    for name, (dist, bit) in load_ds3_boss_flags(base_dir).items():
-        val = u8(buf, base + dist)
-        if val is not None and val & (1 << bit):
-            bosses.setdefault(name, set()).add("flag")
+    for table in (load_ds3_boss_flags(base_dir), load_ds3_boss_victory(base_dir)):
+        for name, (dist, bit) in table.items():
+            val = u8(buf, base + dist)
+            if val is not None and val & (1 << bit):
+                bosses.setdefault(name, set()).add("flag")
     if bosses:
         ch["bosses"] = {b: sorted(bosses[b]) for b in bosses}
+    cinders = [lord for lord, (dist, bit) in load_ds3_lord_cinders(base_dir).items()
+               if (u8(buf, base + dist) or 0) & (1 << bit)]
+    if cinders:
+        ch["cinders"] = cinders
     quests = OrderedDict()
     for src, rewards in load_ds3_questlines(base_dir).items():
         got = [rw for dist, bit, rw in rewards
@@ -2568,6 +2838,28 @@ DS3_BONFIRE_NOTE = "bonfires lit, inferred from each area's flag bits — a floo
 DS2_BONFIRE_NOTE = "each bonfire the save records as discovered, by area — a floor"
 
 
+##
+# @brief The Lords-of-Cinder line: how many of the four are on the throne, which ones
+#        the mapped flags name, and the two counts the number came from.
+# @param lords The @c ch["lords"] dict from @ref attach_progress_totals.
+def lords_line(lords):
+    named = f" — {', '.join(lords['named'])}" if lords["named"] else ""
+    if lords["placed"] is None:      # NG+: the thrones reset, the defeat flags do not
+        return (f"{len(lords['named'])} of {lords['total']}{named}"
+                "  _(NG+ — only the mapped throne flags are read, so this is a floor)_")
+    return (f"{lords['placed']} of {lords['total']}{named}"
+            f"  _({lords['dead']} of the four lords defeated, {lords['held']} set"
+            f"{'' if lords['held'] == 1 else 's'} of cinders still held)_")
+
+
+##
+# @brief Render "N of M" plus the names still missing, for a progress section.
+# @param missing The names with no evidence. Long lists stay one italic line so the
+#        section keeps its shape.
+def missing_note(label, missing):
+    return f"_{label}: {' · '.join(missing)}._" if missing else None
+
+
 def md_for_character(ch, slot_no):
     L = [f"## Slot {slot_no}: {ch['name']}", ""]
     if ch["level"] is not None:
@@ -2603,6 +2895,8 @@ def md_for_character(ch, slot_no):
         L.append(f"- **Deaths:** {fmt(ch['deaths'])}")
     if ch["stamina"] is not None:
         L.append(f"- **Stamina:** {fmt(ch['stamina'])}")
+    if ch.get("lords"):
+        L.append(f"- **Cinders of a Lord Placed:** {lords_line(ch['lords'])}")
     build = guess_build(ch["stats"])
     if build:
         L.append(f"- **Build:** {build}")
@@ -2618,13 +2912,16 @@ def md_for_character(ch, slot_no):
         cap = stat_caps_for(ch["game"])
         rows = [k for k in keys if k in gov]
         if rows:
-            L += ["### Attribute Scaling  _(what each stat scales, its soft caps, and "
-                  "your current value — game-mechanics reference, not a value read from "
-                  "this save)_", ""]
+            # Fixed game-mechanics reference, identical in every export bar the
+            # current values — folded away so it does not sit between the save's own
+            # numbers and its progress (and so two exports diff cleanly).
+            L += ["<details>", "<summary><b>Attribute Scaling</b> — what each stat "
+                  "scales and its soft caps (game-mechanics reference, not read from "
+                  "this save)</summary>", ""]
             for k in rows:
                 caps = f" {cap[k][:1].upper() + cap[k][1:]}." if cap.get(k) else ""
                 L.append(f"- **{k}** ({ch['stats'][k]}) — {gov[k]}.{caps}")
-            L.append("")
+            L += ["", "</details>", ""]
         if ch["game"] in DS2_GAMES:
             d = ds2_derived_stats(ch["stats"])
             agl = f"{d['agility']}" + (f"  _({d['iframes']} roll i-frames)_"
@@ -2633,7 +2930,7 @@ def md_for_character(ch, slot_no):
                   "rings & equipment; the in-game screen adds ring/gear bonuses on top)_",
                   "",
                   f"- **Stamina:** {d['stamina']}",
-                  f"- **Equip Load:** {d['equip_load']:.1f}",
+                  f"- **Equip Load (max capacity):** {d['equip_load']:.1f}",
                   f"- **Attunement Slots:** {d['slots']}",
                   f"- **Agility (AGL):** {agl}",
                   f"- **Poise (base):** {d['poise']:.1f}",
@@ -2648,14 +2945,14 @@ def md_for_character(ch, slot_no):
             L += ["### Derived Stats  _(computed from attributes — base values before "
                   "rings, covenant & equipment)_", "",
                   f"- **Attunement Slots:** {d['slots']}",
-                  f"- **Equip Load:** {d['equip_load']:.1f}",
+                  f"- **Equip Load (max capacity):** {d['equip_load']:.1f}",
                   f"- **Item Discovery:** {d['item_discovery']}", ""]
         if ch["game"] in ("dsr", "ptde"):
             d = ds1_derived_stats(ch["stats"])
             L += ["### Derived Stats  _(computed from attributes — base values before "
                   "rings & equipment)_", "",
                   f"- **Attunement Slots:** {d['slots']}",
-                  f"- **Equip Load:** {d['equip_load']:.1f}", ""]
+                  f"- **Equip Load (max capacity):** {d['equip_load']:.1f}", ""]
     elif ch["tier"] == "inventory":
         L += ["_Attributes are not printed for this slot: its stat block did not "
               "validate (an unrecognised patch or an edited save), and a wrong "
@@ -2667,7 +2964,9 @@ def md_for_character(ch, slot_no):
 
     # Boss souls / remembrances that live in their own top section (every game but
     # DS2, whose boss souls are a proper inventory category — see below).
-    if ch["boss_souls"]:
+    # Boss souls get a top section only where the inventory does NOT already have a
+    # boss-souls category (DS2 and DS3 do) — printing both is the same list twice.
+    if ch["boss_souls"] and not ch["inv"].get("bosssouls"):
         header = ("### Remembrances Held  _(major bosses defeated, not yet traded)_"
                   if ch["game"] == "er"
                   else "### Boss Souls Held  _(bosses defeated, soul not yet consumed)_")
@@ -2682,43 +2981,69 @@ def md_for_character(ch, slot_no):
               "floor on progress)_", ""]
         L += [f"- {b}" for b in ch["bonfires"]] + [""]
     if ch.get("bonfire_areas"):
-        total = sum(c for _, c, _ in ch["bonfire_areas"])
-        n = len(ch["bonfire_areas"])
+        lit = sum(c for _a, c, _n, _t, _m in ch["bonfire_areas"])
+        total = sum(t for _a, _c, _n, t, _m in ch["bonfire_areas"])
+        n = sum(1 for _a, c, _n, _t, _m in ch["bonfire_areas"] if c)
+        areas = len(ch["bonfire_areas"])
         # DS1 reads the real bonfire list (so it can say kindle level, and can list a
         # discovered-but-unlit one); DS3 only has flag bits per area. Different note.
         note = (DS1_BONFIRE_NOTE if ch.get("game") in ("dsr", "ptde")
                 else DS2_BONFIRE_NOTE if ch.get("game") in DS2_GAMES
                 else DS3_BONFIRE_NOTE)
-        L += [f"### Bonfires Discovered ({total} across {n} area{'s' if n != 1 else ''})"
+        L += [f"### Bonfires Discovered ({lit} of {total}, in {n} of {areas} areas)"
               f"  _({note})_", ""]
-        for name, c, named in ch["bonfire_areas"]:
+        for name, c, named, tot, missing in ch["bonfire_areas"]:
+            row = f"- {name}: {c}/{tot}"
             if named:
-                extra = c - len(named)
-                tail = f" (+{extra} more)" if extra else ""
-                L.append(f"- {name}: {', '.join(named)}{tail}")
-            else:
-                L.append(f"- {name} ({c})")
+                row += f" — {', '.join(named)}"
+                # Only a STARTED area lists what is left; an untouched area would just
+                # print the whole game back at you.
+                if missing:
+                    row += f"  _(missing: {' · '.join(missing)})_"
+            L.append(row)
         L.append("")
     if ch.get("covenants"):
-        L += [f"### Covenants Found ({len(ch['covenants'])})  _(discovered — a floor; "
+        found, total = len(ch["covenants"]), ch.get("covenant_total")
+        count = f"{found} of {total}" if total else f"{found}"
+        L += [f"### Covenants Found ({count})  _(discovered — a floor; "
               "the one currently worn is the Covenant field above)_", ""]
         L += [f"- **{cov}:** {', '.join(w)}" for cov, w in ch["covenants"].items()] + [""]
+        note = missing_note("Not found yet", ch.get("covenants_missing"))
+        if note:
+            L += [note, ""]
     if ch.get("questlines"):
-        L += ["### NPC Questlines  _(rewards received from NPCs — a progress floor)_", ""]
+        # Not all of these are NPCs — the same reward flags cover a few landmark
+        # pickups and enemy drops, so the heading says rewards, not questlines.
+        L += ["### Rewards Obtained  _(one-off rewards from NPCs, invaders and "
+              "landmark pickups — a progress floor)_", ""]
         L += [f"- **{src}:** {', '.join(rw)}" for src, rw in ch["questlines"].items()] + [""]
     if ch.get("bosses"):
         SRC = {"flag": "confirmed", "soul": "soul held", "gate": "progression", "clear": "cleared (NG+)"}
-        L += [f"### Bosses Defeated ({len(ch['bosses'])})  _(a floor — from defeat "
+        found, total = len(ch["bosses"]), ch.get("boss_total")
+        count = f"{found} of {total} tracked" if total else f"{found}"
+        L += [f"### Bosses Defeated ({count})  _(a floor — from defeat "
               "flags, held boss souls, progression, and NG+ clears; a boss whose soul "
               "was consumed and isn't gated may still be missing)_", ""]
         for boss, srcs in ch["bosses"].items():
             L.append(f"- {boss}  _({', '.join(SRC[s] for s in srcs)})_")
         L.append("")
+        # The missing list splits in two where a route graph exists: what is open to
+        # you now, and what is still behind something. The split is game structure,
+        # not a save read — the note says so.
+        avail = ch.get("bosses_available") or []
+        rest = [b for b in (ch.get("bosses_missing") or []) if b not in avail]
+        if avail:
+            L += [f"_Available now — every prerequisite dead and the area already "
+                  f"reached (from the game's fixed route, not this save): "
+                  f"{' · '.join(avail)}._", ""]
+        note = missing_note("No evidence yet" + (", and behind something else" if avail
+                            else ""), rest)
+        if note:
+            L += [note, ""]
 
     if ch.get("equipped_weapons") or ch.get("equipped_armor") or \
             ch.get("equipped_rings") or ch.get("equipped_ammo"):
-        L += ["### Equipped  _(worn gear read from the equip slots — covenant "
-              "not yet read)_", ""]
+        L += ["### Equipped  _(worn gear read from the equip slots)_", ""]
         L += [f"- **{slot}:** {name}" for slot, name in ch.get("equipped_weapons", {}).items()]
         L += [f"- **{slot}:** {name}" for slot, name in ch.get("equipped_armor", {}).items()]
         if ch.get("equipped_rings"):
@@ -2728,10 +3053,17 @@ def md_for_character(ch, slot_no):
         L.append("")
 
     L += ["### Inventory", ""]
+    # DS1 and ER keep boss souls and key items inside the flat `goods` bucket, which
+    # already has its own section above — list each item once and point at it.
+    listed = {n for n, _q in ch["boss_souls"]} | {n for n, _q in ch["key_items"]}
     for cat in CAT_ORDER:
         items = ch["inv"].get(cat)
         if not items:
             continue
+        if cat == "goods" and listed:
+            items = [it for it in items if it[0] not in listed]
+            if not items:
+                continue
         # Boss souls split into the game's own two grades: the four "Old" great
         # souls, then the ordinary boss souls. Everything else is one heading.
         if cat == "bosssouls":
@@ -2741,7 +3073,10 @@ def md_for_character(ch, slot_no):
                 if group:
                     L += [f"#### {title}", ""] + bullets(group) + [""]
         else:
-            L += [f"#### {CAT_TITLE[cat]}", ""] + bullets(items) + [""]
+            title = CAT_TITLE[cat]
+            if cat == "goods" and listed:
+                title += "  _(boss souls and key items are listed above)_"
+            L += [f"#### {title}", ""] + bullets(items) + [""]
     if ch["unknown_count"]:
         L += [f"_{ch['unknown_count']} inventory item(s) had IDs not in the name "
               "database (upgraded / infused variants) and were omitted._", ""]
@@ -2850,6 +3185,22 @@ def disclaimer_for(cfg):
 
 
 ##
+# @brief The closing "about this file" block: game, tier, slot count and the
+#        how-it-works note.
+# @details These are facts about the TOOL, not about the character, and they are
+# identical in every export — so they sit at the end, out of the way of the save's own
+# numbers, and folded into a @c <details> block so two exports diff cleanly.
+# @param cfg The GAMES entry. @param n Characters rendered.
+def footer_for(cfg, n):
+    return ["<details>", "<summary>About this file — how it was produced, "
+            "and how far to trust it</summary>", "",
+            f"- **Game:** {cfg['title']}",
+            f"- **Support tier:** {cfg['tier']}",
+            f"- **Character slots read:** {n}", "",
+            disclaimer_for(cfg), "", "</details>", ""]
+
+
+##
 # @brief Build the Markdown document for one save file.
 # @param data     The full file bytes.
 # @param filename The source filename, for the header line.
@@ -2859,11 +3210,12 @@ def convert(data, filename, base_dir):
     entries = parse_bnd4(data)
     game = detect_game(data, entries)
     cfg = GAMES[game]
-    disclaimer = disclaimer_for(cfg)
 
+    # Only the save's own identity up top; what the TOOL is and how far to trust it
+    # is the same in every export, so it goes in the closing block (footer_for).
     head = [f"# {cfg['title']} — Playthrough Save Summary", "",
             f"_Source: `{filename}` · generated {datetime.now():%Y-%m-%d %H:%M} · sl2_to_md_",
-            "", f"- **Game:** {cfg['title']}", f"- **Support tier:** {cfg['tier']}", ""]
+            "", "---", ""]
 
     # Elden Ring: identity + stats (content-scan) + owned items (GaItem walk).
     # Item coverage is partial — see the closing note.
@@ -2886,8 +3238,8 @@ def convert(data, filename, base_dir):
             ch = er_parse(slot, iddb, name, level)
             if ch is not None:
                 attach_defeated_bosses(ch, base_dir)
+                attach_progress_totals(ch, base_dir)
                 characters.append((i, ch))
-        head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
         body = ["_No populated character slots found._"] if not characters else []
         for i, ch in characters:
             body.append(md_for_character(ch, i - cfg["slots"].start + 1))
@@ -2899,13 +3251,15 @@ def convert(data, filename, base_dir):
                  "affinity weapons resolve to the base weapon (the upgrade level "
                  "itself is not read). Talismans, spells and consumable goods live in "
                  "a separate held-inventory that shifts between patches and is not "
-                 "parsed, so they are not listed. What is listed is really owned._"]
-        return "\n".join(head + body)
+                 "parsed, so they are not listed. What is listed is really owned._",
+                 ""]
+        return "\n".join(head + body + footer_for(cfg, len(characters)))
 
     # DS3: names from the header, inventory by id-scan, stats by content-scan.
     if game == "ds3":
         db_dir = os.path.join(base_dir, cfg["db"][0])
-        iddb = load_scan_db(db_dir, cfg["db"][1])
+        iddb = load_scan_db(db_dir, cfg["db"][1],
+                            lambda i, c: ds3_goods_cat(i) if c == "goods" else c)
         if not iddb:
             sys.exit(f"No item database found in {db_dir}")
         menu_entry = entries[cfg["menu"]]
@@ -2926,13 +3280,13 @@ def convert(data, filename, base_dir):
                 ch["ng_plus"] = ds3_journey(slot, flag_base)
                 attach_defeated_bosses(ch, base_dir)
                 ds3_attach_flags(ch, slot, flag_base, base_dir)
+                attach_progress_totals(ch, base_dir)
                 characters.append((i, ch))
-        head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
         body = ["_No populated character slots found._"] if not characters else []
         for i, ch in characters:
             body.append(md_for_character(ch, i - cfg["slots"].start + 1))
             body += ["---", ""]
-        return "\n".join(head + body)
+        return "\n".join(head + body + footer_for(cfg, len(characters)))
 
     # Full / inventory tier: decrypt each slot and parse it.
     db_dir = os.path.join(base_dir, cfg["db"][0])
@@ -2959,16 +3313,16 @@ def convert(data, filename, base_dir):
             if "augment" in cfg:
                 cfg["augment"](ch, data, entries, i, base_dir)
             attach_defeated_bosses(ch, base_dir)
+            attach_progress_totals(ch, base_dir)
             characters.append((i, ch))
 
-    head += [f"- **Characters found:** {len(characters)}", "", disclaimer, "", "---", ""]
     body = []
     if not characters:
         body.append("_No populated character slots found._")
     for i, ch in characters:
         body.append(md_for_character(ch, i - cfg["slots"].start + 1))
         body += ["---", ""]
-    return "\n".join(head + body)
+    return "\n".join(head + body + footer_for(cfg, len(characters)))
 
 
 ## @brief Folders a Souls save can live in, per OS. Each game keeps its `.sl2` in

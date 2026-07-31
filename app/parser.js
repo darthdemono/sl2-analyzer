@@ -180,6 +180,77 @@ function attachDefeatedBosses(ch, dbs) {
   if (bosses.size) ch.bosses = mapToSortedEvidence(bosses, false);
 }
 
+// Every boss / covenant the tool can name for a game — the denominators behind
+// "Bosses Defeated (8 of 26)" and "Covenants Found (4 of 9)". Assembled from the
+// game's own tables, so a boss no table knows cannot inflate the denominator.
+// See boss_roster / covenant_roster in sl2_to_md.py.
+function bossRoster(game, dbs) {
+  if (DS2_GAMES.has(game)) {
+    return new Set([...dbs.ds2.bossFlags.values(), ...Object.values(dbs.ds2.bossSouls || {})]);
+  }
+  const family = BOSS_SOUL_DB_DIR[game];
+  const names = new Set(family ? Object.values(dbs[family].bossSouls || {}) : []);
+  for (const b of MANDATORY_BOSSES[game] || []) names.add(b);
+  if (game === "ds3") {
+    for (const b of Object.keys(dbs.ds3.bossFlags || {})) names.add(b);
+    for (const b of Object.keys(dbs.ds3.bossVictory || {})) names.add(b);
+  }
+  if (game === "dsr" || game === "ptde") {
+    for (const b of Object.keys(dbs.ds1.bossFlags || {})) names.add(b);
+  }
+  return names;
+}
+function covenantRoster(game, dbs) {
+  if (DS2_GAMES.has(game)) return new Set(Object.values(DS2_COVENANT));
+  if (game === "ds3") return new Set([...DS3_COVENANT.values(), ...Object.keys(dbs.ds3.covenants || {})]);
+  return new Set();
+}
+
+// The four Lords of Cinder (boss name → throne name) and the item that sits in the
+// inventory between the kill and the offering. A closed set, so "N of 4" is a real
+// denominator. See DS3_LORDS in sl2_to_md.py.
+const DS3_LORDS = [["Abyss Watchers", "Abyss Watchers"], ["Yhorm the Giant", "Yhorm the Giant"],
+  ["Aldrich, Devourer of Gods", "Aldrich"], ["Lothric, Younger Prince", "Twin Princes"]];
+const DS3_CINDER_ITEM = "Cinders of a Lord";
+
+// Denominators + what is still missing. The Lords count is arithmetic on two reads
+// that are already verified (lords defeated − cinders still held), not a new offset,
+// and is skipped on NG+ where the thrones reset but the defeat flags do not.
+function attachProgressTotals(ch, dbs) {
+  const game = ch.game;
+  const roster = bossRoster(game, dbs);
+  if (roster.size && ch.bosses && Object.keys(ch.bosses).length) {
+    ch.boss_total = new Set([...roster, ...Object.keys(ch.bosses)]).size;
+    ch.bosses_missing = [...roster].filter((n) => !(n in ch.bosses)).sort();
+  }
+  const covs = covenantRoster(game, dbs);
+  if (covs.size && ch.covenants && Object.keys(ch.covenants).length) {
+    ch.covenant_total = new Set([...covs, ...Object.keys(ch.covenants)]).size;
+    ch.covenants_missing = [...covs].filter((n) => !(n in ch.covenants)).sort();
+  }
+  if (game !== "ds3") return;
+  const chBosses = ch.bosses || {};
+  // Which of the missing bosses you could walk to right now: every hard predecessor
+  // dead, and a bonfire lit in its gate area (so a DLC boss cannot be "available"
+  // before you enter the DLC). Route structure only — nothing read from the save.
+  const reached = new Set((ch.bonfire_areas || []).filter(([, c]) => c).map(([a]) => a));
+  if (reached.size) {
+    const avail = Object.entries(dbs.ds3.bossRoute || {})
+      .filter(([b, [area, after]]) => !(b in chBosses) && reached.has(area)
+        && after.every((p) => p in chBosses))
+      .map(([b]) => b);
+    if (avail.length) ch.bosses_available = avail;
+  }
+  const dead = DS3_LORDS.filter(([boss]) => chBosses[boss]).map(([, lord]) => lord);
+  let held = 0;
+  for (const [n, q] of ch.key_items || []) if (n === DS3_CINDER_ITEM) held += q;
+  const named = ch.cinders || [];
+  if (dead.length || named.length) {
+    ch.lords = { total: DS3_LORDS.length, named, dead: dead.length, held,
+      placed: (ch.ng_plus || 0) === 0 ? Math.max(dead.length - held, named.length) : null };
+  }
+}
+
 // Evidence sets → {boss: sorted[str]}. sortKeys mirrors ds2_infer_bosses (sorted by
 // boss name); attach keeps insertion order (Python dict), matching the Python paths.
 function mapToSortedEvidence(map, sortKeys) {
@@ -350,17 +421,26 @@ function ds2VisitedBonfires(world, bfDb) {
 // Group discovered bonfires by area, in the (area, count, names) shape DS1 and DS3
 // already emit, so all three render through one section. See sl2_to_md.py
 // ds2_bonfire_areas.
-function ds2BonfireAreas(visited, areaDb) {
+function ds2BonfireAreas(visited, areaDb, bfDb) {
   if (!visited || !visited.length || !areaDb || areaDb.size === 0) return null;
+  const seen = new Set(visited.map(([bid]) => bid));
   const areas = new Map();
-  for (const [bid, name] of visited) {
+  for (const [bid] of visited) {
     const area = areaDb.get(bid);
-    if (area == null) continue;
-    if (!areas.has(area)) areas.set(area, []);
-    areas.get(area).push(name);
+    if (area != null && !areas.has(area)) areas.set(area, [[], []]);
   }
-  const out = [...areas].map(([a, v]) => [a, v.length, v]);
-  return out.length ? out : null;
+  // Walk the whole area table, not just what was visited, so an area the character
+  // has not reached still prints as 0/N rather than vanishing. Sorted by id: the
+  // json is ascending, but JS reorders an object's digit-only keys ("3944") ahead of
+  // the rest, so a plain walk of the Map would not match the Python order.
+  for (const [bid, area] of [...areaDb].sort((a, b) => a[0] - b[0])) {
+    if (!areas.has(area)) areas.set(area, [[], []]);
+    const name = bfDb.get(bid);
+    if (name == null) continue;
+    areas.get(area)[seen.has(bid) ? 0 : 1].push(name);
+  }
+  const out = [...areas].map(([a, [got, miss]]) => [a, got.length, got, got.length + miss.length, miss]);
+  return out.some(([, c]) => c) ? out : null;
 }
 function ds2Augment(ch, data, entries, i, dbs, dec = decryptDs2) {
   // Play time lives in the header title record (one per slot), not the character
@@ -379,7 +459,7 @@ function ds2Augment(ch, data, entries, i, dbs, dec = decryptDs2) {
   // The flat name list stays: DS2_BOSS_GATE is keyed by bonfire name, so the boss
   // inference below reads it. The grouped view is what gets rendered.
   ch.bonfires = visited ? visited.map(([, name]) => name) : visited;
-  const areas = ds2BonfireAreas(visited, dbs.ds2.bonfireAreas);
+  const areas = ds2BonfireAreas(visited, dbs.ds2.bonfireAreas, dbs.ds2.bonfires);
   if (areas) ch.bonfire_areas = areas;
   ch.bosses = ds2InferBosses(world, ch, dbs);
 }
@@ -551,13 +631,15 @@ function ds1Bonfires(buf, db) {
     } else o += 1;
   }
   if (best.length < DS1_BONFIRE_MIN_RUN) return null;
+  const found = new Map(best);
   const areas = new Map();
-  for (const [bid, state] of best) {
-    const [name, area] = db[bid];
-    if (!areas.has(area)) areas.set(area, []);
-    areas.get(area).push(`${name} (${DS1_BONFIRE_STATE[state]})`);
+  for (const [bid, [name, area]] of Object.entries(db).map(([k, v]) => [Number(k), v])) {
+    if (!areas.has(area)) areas.set(area, [[], []]);
+    const [got, miss] = areas.get(area);
+    if (found.has(bid)) got.push(`${name} (${DS1_BONFIRE_STATE[found.get(bid)]})`);
+    else miss.push(name);
   }
-  return [...areas].map(([a, v]) => [a, v.length, v]);
+  return [...areas].map(([a, [got, miss]]) => [a, got.length, got, got.length + miss.length, miss]);
 }
 // DS1 boss-defeat flags. The published DS1 flag addressing gives offsets inside the
 // event-flag region; the region's own start is not published and was searched for —
@@ -634,16 +716,25 @@ function scanInventory(buf, iddb) {
       else break;
     }
     if (j - i + 1 >= SCAN_MIN_RUN) {
-      for (let k = i; k <= j; k++) {
-        const o = positions[k];
+      // Walk the run's whole record grid, not just the table hits: the holes are
+      // real records too, and a reinforced weapon always sits in one (the held
+      // inventory stores the exact base+infusion*100+level id, so only a +0 weapon
+      // is a direct hit). Runs are still built from direct hits, so this only adds.
+      for (let o = positions[i]; o <= positions[j]; o += DS3_RECORD) {
         if (seen.has(o)) continue;
         seen.add(o);
         const iid = u32(buf, o), qty = u32(buf, o + DS3_QTY_OFF) || 0;
-        if (qty >= 1 && qty <= 9999) {
-          const [name, cat] = iddb.get(iid);
-          const b = buckets[cat] || (buckets[cat] = new Map());
-          b.set(name, (b.get(name) || 0) + qty);
+        if (!(qty >= 1 && qty <= 9999)) continue;
+        let entry = iddb.get(iid);
+        if (entry === undefined) {
+          const reinf = ds3ResolveWeapon(iddb, iid);
+          const estus = reinf ? null : ds3ResolveEstus(iid);
+          if (reinf == null && estus == null) continue;
+          entry = reinf ? [reinf, "weapons"] : [estus, "consumables"];
         }
+        const [name, cat] = entry;
+        const b = buckets[cat] || (buckets[cat] = new Map());
+        b.set(name, (b.get(name) || 0) + qty);
       }
     }
     i = j + 1;
@@ -669,7 +760,12 @@ function ds3FindStats(buf) {
 function ds3Parse(buf, iddb, name) {
   const inv = scanInventory(buf, iddb);
   if (Object.keys(inv).length === 0) return null;
-  const goods = inv["goods"] || [];
+  // Boss souls stay in the inventory (their own category, as in DS2) but are also
+  // handed to the kill inference; key items follow DS2 and move out of the
+  // inventory entirely, since the Key Items section already prints them.
+  const goods = (inv["bosssouls"] || []).concat(inv["goods"] || []);
+  const keyItems = inv["keys"] || [];
+  delete inv["keys"];
   const v = ds3FindStats(buf);
   const stats = {};
   if (v != null) for (const [k, d] of DS3_STAT_D) stats[k] = u32(buf, v + d);
@@ -689,7 +785,7 @@ function ds3Parse(buf, iddb, name) {
     equipped_armor: ds3EquippedArmor(buf, iddb, v),
     equipped_rings: ds3EquippedRings(buf, iddb, v),
     equipped_ammo: ds3EquippedAmmo(buf, iddb, v),
-    boss_souls: findBossSouls(goods), key_items: findKeyGoods(goods),
+    boss_souls: findBossSouls(goods), key_items: keyItems,
     inv, unknown_count: 0,
   };
 }
@@ -735,6 +831,21 @@ function ds3ResolveWeapon(iddb, iid) {
   if (level < 1 || level > DS3_REINF_MAX) return null;
   const base = iddb.get(iid - level);
   return base && base[1] === "weapons" ? `${base[0]} +${level}` : null;
+}
+// Estus takes TWO consecutive goods ids per level (150/151 = +0 … 170/171 = +10;
+// 190/191 = Ashen +0 … 210/211 = +10), which a name-keyed db cannot express, so it is
+// resolved arithmetically. Only consulted after the table misses. See Python.
+const DS3_GOODS_TYPE = 0x40000000, DS3_ESTUS_MAX = 10;
+const DS3_ESTUS = [[150, "Estus Flask"], [190, "Ashen Estus Flask"]];
+function ds3ResolveEstus(iid) {
+  const raw = iid - DS3_GOODS_TYPE;
+  for (const [base, name] of DS3_ESTUS) {
+    const level = Math.floor((raw - base) / 2);
+    if (raw >= base && level >= 0 && level <= DS3_ESTUS_MAX) {
+      return level === 0 ? name : `${name} +${level}`;
+    }
+  }
+  return null;
 }
 // GaItem handle -> item id (same walk as the event-flag base). Keep in sync with Python.
 function ds3GaitemMap(buf) {
@@ -822,6 +933,7 @@ function ds3Playtime(menu, i) {
 // real save (Iudex + Cemetery/High Wall, zero false positives). Keep in sync.
 const DS3_GAITEM_START = 0x6C, DS3_GAITEM_SLOTS = 6144, DS3_GAITEM_BIG = 60;
 const DS3_GAITEM_TYPES_BIG = [0x80000000, 0x90000000];
+const DS3_FLAG_MAX_DENSITY = 0.01, DS3_FLAG_SAMPLE = 0x8000;
 // Bonfires + boss flags both come from db_ds3/*.json (bonfires: area -> [[dist,bit,name]];
 // boss_flags: name -> [dist,bit]), generated from the DS3 flag-id list via the flag-id->bit
 // formula. See sl2_to_md.py load_ds3_bonfires / load_ds3_boss_flags.
@@ -842,32 +954,53 @@ function ds3EventFlagBase(buf) {
   const table2Size = u32(buf, gestureEnd);
   if (table2Size == null) return null;
   const base = gestureEnd + 4 + table2Size * 4 + 0x92 + 0xBCC - 0x12;
-  return base >= 0 && base < buf.length ? base : null;
+  if (!(base >= 0 && base < buf.length)) return null;
+  // Event flags are sparse (a 100% NG+ slot measures 0.0022 set bits); ordinary save
+  // data is far denser, so a base that walks off the region gives itself away and is
+  // rejected rather than read as progress. See sl2_to_md.py DS3_FLAG_MAX_DENSITY.
+  const sample = buf.subarray(base, base + DS3_FLAG_SAMPLE);
+  if (!sample.length) return null;
+  let bits = 0;
+  for (let i = 0; i < sample.length; i++) bits += popcount(sample[i]);
+  return bits / (sample.length * 8) <= DS3_FLAG_MAX_DENSITY ? base : null;
 }
 function popcount(x) { let c = 0; while (x) { c += x & 1; x >>>= 1; } return c; }
-function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, covenantDb) {
+function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, covenantDb,
+                        bossVictoryDb, lordCinderDb) {
   if (base == null) return;
   const areas = [];
+  let anyLit = false;
   for (const [area, bonfires] of Object.entries(bonfireDb || {})) {
-    const named = [];
+    const named = [], missing = [];
     for (const [dist, bit, name] of bonfires) {
       const val = u8(buf, base + dist);
-      if (val != null && (val & (1 << bit))) named.push(name);
+      (val != null && (val & (1 << bit)) ? named : missing).push(name);
     }
-    if (named.length) areas.push([area, named.length, named]);
+    anyLit = anyLit || named.length > 0;
+    areas.push([area, named.length, named, bonfires.length, missing]);
   }
-  if (areas.length) ch.bonfire_areas = areas;
+  // Every area is kept, lit or not — an area reading 0/5 is the useful half of the
+  // report. Only a slot with nothing lit anywhere gets no section at all.
+  if (anyLit) ch.bonfire_areas = areas;
   const bosses = {};
   for (const [b, s] of Object.entries(ch.bosses || {})) bosses[b] = new Set(s);
-  for (const [name, [dist, bit]] of Object.entries(bossFlagDb || {})) {
-    const val = u8(buf, base + dist);
-    if (val != null && (val & (1 << bit))) (bosses[name] || (bosses[name] = new Set())).add("flag");
+  for (const table of [bossFlagDb || {}, bossVictoryDb || {}]) {
+    for (const [name, [dist, bit]] of Object.entries(table)) {
+      const val = u8(buf, base + dist);
+      if (val != null && (val & (1 << bit))) (bosses[name] || (bosses[name] = new Set())).add("flag");
+    }
   }
   const keys = Object.keys(bosses);
   if (keys.length) {
     ch.bosses = {};
     for (const b of keys) ch.bosses[b] = [...bosses[b]].sort();
   }
+  const cinders = [];
+  for (const [lord, [dist, bit]] of Object.entries(lordCinderDb || {})) {
+    const val = u8(buf, base + dist);
+    if (val != null && (val & (1 << bit))) cinders.push(lord);
+  }
+  if (cinders.length) ch.cinders = cinders;
   const quests = {};
   for (const [src, rewards] of Object.entries(questlineDb || {})) {
     const got = [];
@@ -1038,7 +1171,11 @@ export function parseSave(data, dbs) {
       if (!active) continue;
       const slot = decryptNone(blobOf(data, entries[i]));
       const ch = erParse(slot, dbs.er.items, name, level);
-      if (ch) { attachDefeatedBosses(ch, dbs); characters.push({ slot: label(i), ch }); }
+      if (ch) {
+        attachDefeatedBosses(ch, dbs);
+        attachProgressTotals(ch, dbs);
+        characters.push({ slot: label(i), ch });
+      }
     }
   } else if (game === "ds3") {
     const menu = decryptIvPrefixed(blobOf(data, entries[10]), DS3_KEY);
@@ -1054,7 +1191,8 @@ export function parseSave(data, dbs) {
         ch.ng_plus = ds3Journey(slot, flagBase);
         attachDefeatedBosses(ch, dbs);
         ds3AttachFlags(ch, slot, flagBase, dbs.ds3.bonfires, dbs.ds3.bossFlags, dbs.ds3.questlines,
-          dbs.ds3.covenants);
+          dbs.ds3.covenants, dbs.ds3.bossVictory, dbs.ds3.lordCinders);
+        attachProgressTotals(ch, dbs);
         characters.push({ slot: label(i), ch });
       }
     }
@@ -1087,6 +1225,7 @@ export function parseSave(data, dbs) {
         // exists, so the flags must be merged on top of it, not before it.
         attachDefeatedBosses(ch, dbs);
         if (!isDs2) ds1AttachFlags(ch, slot, dbs.ds1.bossFlags, game);
+        attachProgressTotals(ch, dbs);
         characters.push({ slot: label(i), ch });
       }
     }

@@ -26,6 +26,24 @@ const HOW = {
 
 const ER_NOTE = "_Elden Ring identity, attributes, and runes are read directly; the **item list is partial**. Owned items come from the GaItem array, which holds weapons, armour and Ashes of War — each named against its own type table (so no cross-type mis-naming) and reinforced/affinity weapons resolve to the base weapon (the upgrade level itself is not read). Talismans, spells and consumable goods live in a separate held-inventory that shifts between patches and is not parsed, so they are not listed. What is listed is really owned._";
 
+// The Lords-of-Cinder line: how many of the four are on the throne, which ones the
+// mapped flags name, and the counts behind the number. See lords_line in sl2_to_md.py.
+function lordsLine(lords) {
+  const named = lords.named && lords.named.length ? ` — ${lords.named.join(", ")}` : "";
+  if (lords.placed == null) {
+    return `${(lords.named || []).length} of ${lords.total}${named}`
+      + "  _(NG+ — only the mapped throne flags are read, so this is a floor)_";
+  }
+  return `${lords.placed} of ${lords.total}${named}`
+    + `  _(${lords.dead} of the four lords defeated, ${lords.held} set${lords.held === 1 ? "" : "s"} of cinders still held)_`;
+}
+
+// "N of M" plus the names still missing. Boss and bonfire names contain commas, so
+// the list is mid-dot separated.
+function missingNote(label, missing) {
+  return missing && missing.length ? `_${label}: ${missing.join(" · ")}._` : null;
+}
+
 function bullets(items) {
   return items.map(([n, q]) => `- ${n}` + (q && q > 1 ? ` ×${q}` : ""));
 }
@@ -49,6 +67,7 @@ function mdCharacter(ch, slot) {
   if (ch.hollow_lvl) L.push(`- **Hollowing:** ${ch.hollow_lvl}  _(higher = more deaths without an effigy)_`);
   if (ch.deaths != null) L.push(`- **Deaths:** ${fmt(ch.deaths)}`);
   if (ch.stamina != null) L.push(`- **Stamina:** ${fmt(ch.stamina)}`);
+  if (ch.lords) L.push(`- **Cinders of a Lord Placed:** ${lordsLine(ch.lords)}`);
   const build = guessBuild(ch.stats);
   if (build) L.push(`- **Build:** ${build}`);
   L.push("");
@@ -62,15 +81,17 @@ function mdCharacter(ch, slot) {
     const gov = statGovernsFor(ch.game), cap = statCapsFor(ch.game);
     const rows = keys.filter((k) => gov.has(k));
     if (rows.length) {
-      L.push("### Attribute Scaling  _(what each stat scales, its soft caps, and your current value — game-mechanics reference, not a value read from this save)_", "");
-      L.push(...rows.map((k) => `- **${k}** (${ch.stats[k]}) — ${gov.get(k)}.${cap.has(k) ? ` ${capFirst(cap.get(k))}.` : ""}`), "");
+      // Fixed game-mechanics reference, identical in every export bar the current
+      // values — folded away so two exports diff cleanly. See sl2_to_md.py.
+      L.push("<details>", "<summary><b>Attribute Scaling</b> — what each stat scales and its soft caps (game-mechanics reference, not read from this save)</summary>", "");
+      L.push(...rows.map((k) => `- **${k}** (${ch.stats[k]}) — ${gov.get(k)}.${cap.has(k) ? ` ${capFirst(cap.get(k))}.` : ""}`), "", "</details>", "");
     }
     if (DS2_GAMES.has(ch.game)) {
       const d = ds2DerivedStats(ch.stats);
       const agl = `${d.agility}` + (d.iframes ? `  _(${d.iframes} roll i-frames)_` : "");
       L.push("### Derived Stats  _(computed from attributes — base values before rings & equipment; the in-game screen adds ring/gear bonuses on top)_", "",
         `- **Stamina:** ${d.stamina}`,
-        `- **Equip Load:** ${d.equip_load.toFixed(1)}`,
+        `- **Equip Load (max capacity):** ${d.equip_load.toFixed(1)}`,
         `- **Attunement Slots:** ${d.slots}`,
         `- **Agility (AGL):** ${agl}`,
         `- **Poise (base):** ${d.poise.toFixed(1)}`,
@@ -85,20 +106,22 @@ function mdCharacter(ch, slot) {
       const d = ds3DerivedStats(ch.stats);
       L.push("### Derived Stats  _(computed from attributes — base values before rings, covenant & equipment)_", "",
         `- **Attunement Slots:** ${d.slots}`,
-        `- **Equip Load:** ${d.equip_load.toFixed(1)}`,
+        `- **Equip Load (max capacity):** ${d.equip_load.toFixed(1)}`,
         `- **Item Discovery:** ${d.item_discovery}`, "");
     }
     if (ch.game === "dsr" || ch.game === "ptde") {
       const d = ds1DerivedStats(ch.stats);
       L.push("### Derived Stats  _(computed from attributes — base values before rings & equipment)_", "",
         `- **Attunement Slots:** ${d.slots}`,
-        `- **Equip Load:** ${d.equip_load.toFixed(1)}`, "");
+        `- **Equip Load (max capacity):** ${d.equip_load.toFixed(1)}`, "");
     }
   } else if (ch.tier === "inventory") {
     L.push("_Attributes are not printed for this slot: its stat block did not validate (an unrecognised patch or an edited save), and a wrong number is worse than none. Inventory and progress below are read directly._", "");
   }
 
-  if (ch.boss_souls && ch.boss_souls.length) {
+  // Boss souls get a top section only where the inventory does NOT already have a
+  // boss-souls category (DS2 and DS3 do) — printing both is the same list twice.
+  if (ch.boss_souls && ch.boss_souls.length && !(ch.inv.bosssouls || []).length) {
     L.push(ch.game === "er"
       ? "### Remembrances Held  _(major bosses defeated, not yet traded)_"
       : "### Boss Souls Held  _(bosses defeated, soul not yet consumed)_", "", ...bullets(ch.boss_souls), "");
@@ -113,36 +136,56 @@ function mdCharacter(ch, slot) {
       ...ch.bonfires.map((b) => `- ${b}`), "");
   }
   if (ch.bonfire_areas && ch.bonfire_areas.length) {
-    const total = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0), n = ch.bonfire_areas.length;
-    L.push(`### Bonfires Discovered (${total} across ${n} area${n !== 1 ? "s" : ""})  _(${ch.game === "dsr" || ch.game === "ptde" ? DS1_BONFIRE_NOTE : DS2_GAMES.has(ch.game) ? DS2_BONFIRE_NOTE : DS3_BONFIRE_NOTE})_`, "",
-      ...ch.bonfire_areas.map(([name, c, named]) => {
+    const lit = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0);
+    const total = ch.bonfire_areas.reduce((s, [, , , t]) => s + t, 0);
+    const n = ch.bonfire_areas.filter(([, c]) => c).length, areas = ch.bonfire_areas.length;
+    L.push(`### Bonfires Discovered (${lit} of ${total}, in ${n} of ${areas} areas)  _(${ch.game === "dsr" || ch.game === "ptde" ? DS1_BONFIRE_NOTE : DS2_GAMES.has(ch.game) ? DS2_BONFIRE_NOTE : DS3_BONFIRE_NOTE})_`, "",
+      ...ch.bonfire_areas.map(([name, c, named, tot, missing]) => {
+        let row = `- ${name}: ${c}/${tot}`;
         if (named && named.length) {
-          const extra = c - named.length;
-          return `- ${name}: ${named.join(", ")}${extra ? ` (+${extra} more)` : ""}`;
+          row += ` — ${named.join(", ")}`;
+          // Only a STARTED area lists what is left; an untouched area would just
+          // print the whole game back at you.
+          if (missing && missing.length) row += `  _(missing: ${missing.join(" · ")})_`;
         }
-        return `- ${name} (${c})`;
+        return row;
       }), "");
   }
   if (ch.covenants && Object.keys(ch.covenants).length) {
-    L.push(`### Covenants Found (${Object.keys(ch.covenants).length})  _(discovered — a floor; the one currently worn is the Covenant field above)_`, "");
+    const found = Object.keys(ch.covenants).length;
+    L.push(`### Covenants Found (${ch.covenant_total ? `${found} of ${ch.covenant_total}` : found})  _(discovered — a floor; the one currently worn is the Covenant field above)_`, "");
     for (const [cov, w] of Object.entries(ch.covenants)) L.push(`- **${cov}:** ${w.join(", ")}`);
     L.push("");
+    const note = missingNote("Not found yet", ch.covenants_missing);
+    if (note) L.push(note, "");
   }
   if (ch.questlines && Object.keys(ch.questlines).length) {
-    L.push("### NPC Questlines  _(rewards received from NPCs — a progress floor)_", "");
+    // Not all of these are NPCs — the same reward flags cover a few landmark
+    // pickups and enemy drops, so the heading says rewards, not questlines.
+    L.push("### Rewards Obtained  _(one-off rewards from NPCs, invaders and landmark pickups — a progress floor)_", "");
     for (const [src, rw] of Object.entries(ch.questlines)) L.push(`- **${src}:** ${rw.join(", ")}`);
     L.push("");
   }
   if (ch.bosses && Object.keys(ch.bosses).length) {
-    L.push(`### Bosses Defeated (${Object.keys(ch.bosses).length})  _(a floor — from defeat flags, held boss souls, progression, and NG+ clears; a boss whose soul was consumed and isn't gated may still be missing)_`, "");
+    const found = Object.keys(ch.bosses).length;
+    L.push(`### Bosses Defeated (${ch.boss_total ? `${found} of ${ch.boss_total} tracked` : found})  _(a floor — from defeat flags, held boss souls, progression, and NG+ clears; a boss whose soul was consumed and isn't gated may still be missing)_`, "");
     for (const [boss, srcs] of Object.entries(ch.bosses)) L.push(`- ${boss}  _(${srcs.map((s) => SRC[s]).join(", ")})_`);
     L.push("");
+    // The missing list splits in two where a route graph exists: what is open now,
+    // and what is still behind something. Game structure, not a save read.
+    const avail = ch.bosses_available || [];
+    const rest = (ch.bosses_missing || []).filter((b) => !avail.includes(b));
+    if (avail.length) {
+      L.push(`_Available now — every prerequisite dead and the area already reached (from the game's fixed route, not this save): ${avail.join(" · ")}._`, "");
+    }
+    const note = missingNote("No evidence yet" + (avail.length ? ", and behind something else" : ""), rest);
+    if (note) L.push(note, "");
   }
 
   const weapons = ch.equipped_weapons || {}, armor = ch.equipped_armor || {},
     rings = ch.equipped_rings || [], ammo = ch.equipped_ammo || [];
   if (Object.keys(weapons).length || Object.keys(armor).length || rings.length || ammo.length) {
-    L.push("### Equipped  _(worn gear read from the equip slots — covenant not yet read)_", "");
+    L.push("### Equipped  _(worn gear read from the equip slots)_", "");
     for (const [slot, name] of Object.entries(weapons)) L.push(`- **${slot}:** ${name}`);
     for (const [slot, name] of Object.entries(armor)) L.push(`- **${slot}:** ${name}`);
     if (rings.length) L.push(`- **Rings:** ${rings.join(", ")}`);
@@ -151,15 +194,25 @@ function mdCharacter(ch, slot) {
   }
 
   L.push("### Inventory", "");
+  // DS1 and ER keep boss souls and key items inside the flat `goods` bucket, which
+  // already has its own section above — list each item once and point at it.
+  const listed = new Set([...(ch.boss_souls || []).map(([n]) => n), ...(ch.key_items || []).map(([n]) => n)]);
   for (const cat of CAT_ORDER) {
-    const items = ch.inv[cat];
+    let items = ch.inv[cat];
     if (!items || !items.length) continue;
+    if (cat === "goods" && listed.size) {
+      items = items.filter(([n]) => !listed.has(n));
+      if (!items.length) continue;
+    }
     if (cat === "bosssouls") {
       for (const [title, group] of [["Great Boss Souls", items.filter((it) => DS2_GREAT_SOULS.has(it[0]))],
                                     ["Boss Souls", items.filter((it) => !DS2_GREAT_SOULS.has(it[0]))]]) {
         if (group.length) L.push(`#### ${title}`, "", ...bullets(group), "");
       }
-    } else L.push(`#### ${CAT_TITLE[cat]}`, "", ...bullets(items), "");
+    } else {
+      const title = CAT_TITLE[cat] + (cat === "goods" && listed.size ? "  _(boss souls and key items are listed above)_" : "");
+      L.push(`#### ${title}`, "", ...bullets(items), "");
+    }
   }
   if (ch.unknown_count) L.push(`_${ch.unknown_count} inventory item(s) had IDs not in the name database (upgraded / infused variants) and were omitted._`, "");
   return L.join("\n");
@@ -170,13 +223,17 @@ export function buildMarkdown(result, filename) {
   const stamp = new Date();
   const ts = `${stamp.getFullYear()}-${String(stamp.getMonth() + 1).padStart(2, "0")}-${String(stamp.getDate()).padStart(2, "0")} ${String(stamp.getHours()).padStart(2, "0")}:${String(stamp.getMinutes()).padStart(2, "0")}`;
   const disclaimer = `> Automated dump of the save. Code Repo: ${REPO_URL} . How it works for ${result.title}: ${HOW[result.game]}.`;
+  // Only the save's own identity up top; what the TOOL is and how far to trust it is
+  // the same in every export, so it goes in the closing block.
   const head = [`# ${result.title} — Playthrough Save Summary`, "",
-    `_Source: \`${filename}\` · generated ${ts} · sl2_to_md_`, "",
-    `- **Game:** ${result.title}`, `- **Support tier:** full`, "",
-    `- **Characters found:** ${result.characters.length}`, "", disclaimer, "", "---", ""];
+    `_Source: \`${filename}\` · generated ${ts} · sl2_to_md_`, "", "---", ""];
   const body = [];
   if (!result.characters.length) body.push("_No populated character slots found._");
   for (const { slot, ch } of result.characters) { body.push(mdCharacter(ch, slot)); body.push("---", ""); }
-  if (result.game === "er") body.push(ER_NOTE);
-  return head.concat(body).join("\n");
+  if (result.game === "er") body.push(ER_NOTE, "");
+  const footer = ["<details>",
+    "<summary>About this file — how it was produced, and how far to trust it</summary>", "",
+    `- **Game:** ${result.title}`, "- **Support tier:** full",
+    `- **Character slots read:** ${result.characters.length}`, "", disclaimer, "", "</details>", ""];
+  return head.concat(body, footer).join("\n");
 }
