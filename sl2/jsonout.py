@@ -19,7 +19,7 @@ from .convert import REPO_URL
 
 ## @brief Where the schema is published. Static file at the site root, so a consumer
 #  can resolve it without cloning anything.
-SCHEMA_URL = "https://darthdemono.github.io/sl2-analyzer/schema.json"
+SCHEMA_URL = "https://sl2-analyzer.darthdemono.com/schema.json"
 
 ## @brief Schema version, semver. MINOR for a new optional field, MAJOR for anything
 #  that would break a reader which trusted the previous shape.

@@ -9,7 +9,7 @@
 import { REPO_URL } from "./markdown.js";
 
 /** Where the schema is published. Static file at the site root. */
-export const SCHEMA_URL = "https://darthdemono.github.io/sl2-analyzer/schema.json";
+export const SCHEMA_URL = "https://sl2-analyzer.darthdemono.com/schema.json";
 
 /** Semver for the document format. MINOR adds an optional field, MAJOR breaks a reader. */
 export const SCHEMA_VERSION = "1.0.0";

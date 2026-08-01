@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://darthdemono.github.io/sl2-analyzer/schema.json",
+  "$id": "https://sl2-analyzer.darthdemono.com/schema.json",
   "title": "sl2-analyzer save export",
   "description": "One FromSoftware .sl2 save, read into plain data: which game it is, what the machine ran it on (if the caller said), and one object per populated character slot. Produced by sl2-analyzer (https://github.com/darthdemono/sl2-analyzer).\n\nThe governing rule of this format is that ABSENCE IS MEANINGFUL. A field is present only when it was read from the save; a game that does not store something simply has no key for it, so a consumer can always tell \"this game has no death counter\" from \"this character has died zero times\". Nothing is filled in with a default, a zero, or a null to make the shape regular. Progress sections are FLOORS: they report what the save proves, never what it rules out.",
   "type": "object",

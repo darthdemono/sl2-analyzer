@@ -4,24 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SL2 Analyzer · FromSoftware save viewer</title>
-<meta name="description" content="Drop a Dark Souls, Dark Souls II, Dark Souls III or Elden Ring .sl2 save and read the whole playthrough — stats, inventory, bonfires, bosses. Parsed in your browser; nothing is uploaded.">
-<link rel="canonical" href="https://darthdemono.github.io/sl2-analyzer/">
+<meta name="description" content="Drop a Dark Souls, Dark Souls II, Dark Souls III or Elden Ring .sl2 save and read the whole playthrough: attributes, souls, every item carried, bonfires lit and bosses the save still proves are dead. Parsed in your browser. Nothing is uploaded.">
+<link rel="canonical" href="https://sl2-analyzer.darthdemono.com/">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#08080a">
 <meta property="og:type" content="website">
 <meta property="og:title" content="SL2 Analyzer · FromSoftware save viewer">
-<meta property="og:description" content="Read a Dark Souls / Dark Souls II / Dark Souls III / Elden Ring .sl2 save in your browser. Stats, inventory, bonfires and bosses — nothing uploaded.">
-<meta property="og:url" content="https://darthdemono.github.io/sl2-analyzer/">
+<meta property="og:description" content="A Souls save is a locked box. Drop one in and read the whole playthrough: attributes, inventory, bonfires, bosses. Parsed in your browser, never uploaded.">
+<meta property="og:url" content="https://sl2-analyzer.darthdemono.com/">
 <!-- Social cards must be raster: no major platform renders an SVG og:image. -->
-<meta property="og:image" content="https://darthdemono.github.io/sl2-analyzer/og.png">
+<meta property="og:image" content="https://sl2-analyzer.darthdemono.com/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="SL2 Analyzer — a bonfire with the coiled sword">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="SL2 Analyzer · FromSoftware save viewer">
-<meta name="twitter:description" content="Read a Souls .sl2 save in your browser. Nothing is uploaded.">
-<meta name="twitter:image" content="https://darthdemono.github.io/sl2-analyzer/og.png">
+<meta name="twitter:description" content="A Souls save is a locked box. Drop one in and read the playthrough. Parsed in your browser, never uploaded.">
+<meta name="twitter:image" content="https://sl2-analyzer.darthdemono.com/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
@@ -300,53 +300,57 @@
 <body>
 <header>
   <h1>SL2<span class="dot"> · </span>Analyzer</h1>
-  <p class="tag-line">Drop a FromSoftware <code>.sl2</code> save and read the whole playthrough as the game itself shows it: who the character is, their level and attributes, their souls, every item they carry, and the bosses and bonfires the save still proves they cleared. It reads the file. It does not guess.</p>
-  <span class="privacy">Your save is read in your browser and never uploaded · DS2 item thumbnails load from fextralife.com</span>
+  <p class="tag-line">A Souls save is a locked box. Encrypted, undocumented, and useless to you as a file. Drop one here and it opens into the screen the game would have shown you: level and attributes, souls held, every item carried, every bonfire lit, and every boss the save can still prove is dead. It reads the file. It never guesses.</p>
+  <span class="privacy">Read in your browser, never uploaded · DS2 thumbnails come from fextralife.com — the only request that leaves your machine</span>
 </header>
 <main>
   <details class="how frame" open>
     <summary>What it supports</summary>
     <div class="how-body">
-      <p>Drop a save from any of these. The game is detected from the file — no need to say which. Each renders in its own status screen.</p>
+      <p>All six <code>.sl2</code> variants, and you never tell it which game it is — that comes out of the bytes. Each one renders in its own status screen, skinned to that game.</p>
       <ul>
-        <li><b>Dark Souls Remastered</b> — full: identity, class, gender, all attributes, souls, humanity, play time, deaths, inventory, held boss souls, boss-defeat flags, and every bonfire with how far it is kindled.</li>
-        <li><b>Dark Souls: Prepare to Die</b> — full, same as Remastered.</li>
-        <li><b>Dark Souls II: Scholar of the First Sin</b> — the deepest read: attributes, class, covenant, gender, hollowing, deaths, play time, full inventory with infusions and reinforcement, plus bonfires discovered and bosses defeated from the world block.</li>
-        <li><b>Dark Souls II (vanilla, pre-Scholar)</b> — the same depth as Scholar. The two releases differ only by encryption key; everything inside is laid out identically.</li>
-        <li><b>Dark Souls III</b> — the deepest read of the lot: attributes, souls, play time, embered state, NG+, full inventory, equipped weapons, armour, rings and ammo, all 77 bonfires by name, 25 boss-defeat flags, covenants joined, and what 58 NPCs have handed over.</li>
-        <li><b>Elden Ring</b> — identity, attributes and runes in full; owned weapons, armour and ashes named; held remembrances and the bosses they prove. The rest of the held inventory (talismans, spells, goods) is not read yet, so the item list is partial.</li>
+        <li><b>Dark Souls Remastered</b> — identity, class, gender, every attribute, souls, humanity, play time, deaths, the full inventory, held boss souls, twelve boss-defeat flags, and all 43 bonfires with how far each one is kindled. Dark Souls is the only game here that records a bonfire you found but never lit, so it is the only one that can tell you.</li>
+        <li><b>Dark Souls: Prepare to Die</b> — the same, at the same depth. The two releases keep the same stat block; only where it sits differs.</li>
+        <li><b>Dark Souls II: Scholar of the First Sin</b> — attributes, class, covenant with rank, gender, hollowing, deaths, play time, and an inventory that names infusions and reinforcement levels. All 77 bonfires by area, and bosses defeated from three separate signals that have to agree.</li>
+        <li><b>Dark Souls II (vanilla, pre-Scholar)</b> — the same depth as Scholar. The two releases differ by one encryption key and nothing else; everything inside sits in the same place.</li>
+        <li><b>Dark Souls III</b> — the deepest read here. Attributes, souls, play time, embered state, NG+, the full inventory, equipped weapons with their infusion and <code>+N</code>, armour, rings and ammo. All 77 bonfires by name. Bosses from two independent flag sets, so a New Game+ character still reads correctly. Covenants joined, rewards from 57 NPCs, which Lords of Cinder are on the throne, 426 world items picked up across six areas — and, of the bosses still alive, which ones you can actually reach right now.</li>
+        <li><b>Elden Ring</b> — identity, attributes and runes in full; owned weapons, armour and ashes named by type, so an armour can never resolve to a weapon; remembrances held and the bosses they prove dead. Talismans, spells and goods live in a part of the save that shifts between patches and is not parsed, so the item list is partial. It says so where the list is.</li>
       </ul>
-      <p>Every game degrades a slot to "inventory only" rather than print a stat it cannot verify. A save holding several characters gets one tab per character, and either button up top writes the whole file — every slot, not just the one on screen.</p>
+      <p>A slot drops to <b>inventory only</b> rather than print an attribute it cannot verify. A save holding several characters gets a tab each, and every export button writes the whole file — every slot, not the one you happen to be looking at.</p>
 
     </div>
   </details>
   <details class="how frame" open>
     <summary>How it works</summary>
     <div class="how-body">
-      <p>A <code>.sl2</code> is a FromSoftware save: one packed archive of blocks, most of them encrypted, one per character plus a few for the world. This tool unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off known positions. The save is never uploaded — it is parsed in your browser and forgotten the moment you close the tab. The one exception: DS2 item thumbnails are fetched from fextralife.com as you view them, so those requests do reveal which items a save holds.</p>
-      <p>The work happens on a background thread, so a big save does not lock the page up, and only the item tables for the game you dropped are fetched rather than all four games' worth. Once you have loaded the page it keeps working <b>offline</b> — the page, its code and the tables it has already used are cached, so you can read a save with no connection at all. The thumbnails are the one thing not cached: they are the only request that leaves your browser, and keeping copies of them would outlive the tab.</p>
-      <p>Three ways to take the reading with you. <b>Copy Markdown</b> puts the whole thing on your clipboard, which is the format to paste into an LLM that cannot open a <code>.sl2</code> but reads Markdown fine. <b>Download .md</b> is the same text as a file. <b>Download .json</b> is the same data for a program rather than a person, against a <a href="schema.json">published schema</a> — and it is byte-for-byte what the command-line tool writes, so it does not matter which one produced the file. In the JSON, a field is present only when it was actually read from your save: Dark Souls III keeps no death counter, so a DS3 character has no <code>deaths</code> key at all rather than a zero.</p>
-      <p>Every game hides its data differently, so each is read differently.</p>
+      <p>A <code>.sl2</code> is one packed archive of blocks — most of them encrypted, one per character, a few more for the world. The page unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off positions the community mapped over years. Where does your save go? Nowhere. It is parsed in this tab and forgotten when you close it. The one exception is the DS2 item thumbnails, which are fetched from fextralife.com as you scroll, so those requests do reveal which items a save holds.</p>
+      <p>The parsing runs on a background thread, so a nine-megabyte save does not freeze the page, and only the tables for the game you dropped get fetched instead of all four games' worth. After the first visit it works <b>offline</b> — the page, its code and the tables it has already used are cached, so you can read a save on a plane. The thumbnails are deliberately not cached. They are the only thing that leaves your browser, and keeping copies of them would outlive the tab they were fetched for.</p>
+      <p>Three ways to take the reading with you. <b>Copy Markdown</b> puts all of it on your clipboard, which is the format to paste into an LLM — it cannot open a <code>.sl2</code>, but it reads Markdown fine. <b>Download .md</b> is that same text as a file. <b>Download .json</b> is the same data written for a program instead of a person, against a <a href="schema.json">published schema</a>, and byte-for-byte identical to what the command-line tool writes. A harness holds those two together on every save, so nothing can tell which one produced a file. One thing to know before you consume it: a field is there only if it was read. Dark Souls III keeps no death counter, so a DS3 character has no <code>deaths</code> key at all — not a zero, not a null. That way you can always tell "the game does not record this" from "it really is none".</p>
+      <p>Every game hides its data somewhere else, so each one is read differently.</p>
       <ul>
-        <li><b>Dark Souls II (both releases):</b> unlocked with its AES key — vanilla and Scholar use different keys but the same layout, so the tool tries both and reads whichever opens. Bonfires lit and bosses killed come from a second world block the game keeps apart from the character.</li>
-        <li><b>Dark Souls Remastered / Prepare to Die:</b> the character block moves as the save grows, so it is found by a marker that always sits beside it (Remastered) or by the name text itself (PtDE).</li>
-        <li><b>Dark Souls III:</b> the stats shift between patches, so the block is not read from a fixed spot. It is found by content: the nine numbers that add up to your level. The game follows that rule, so a wrong match is close to impossible.</li>
-        <li><b>Elden Ring:</b> the same trick with eight numbers, and every owned item read straight from the game's item array.</li>
+        <li><b>Dark Souls II (both releases):</b> vanilla and Scholar use different keys over an identical layout, so the page tries both and reads whichever one opens. Which release you have is decided by which key works, not by a guess. Bonfires and boss kills come from a second world block the game keeps well away from the character.</li>
+        <li><b>Dark Souls Remastered / Prepare to Die:</b> the character block moves as the save grows, so a fixed offset is worthless. Remastered is found by a marker that always sits beside it; Prepare to Die has no such marker, so it is found by your character's own name.</li>
+        <li><b>Dark Souls III:</b> the stats move between patches, so the block is located by content rather than position — the nine numbers that add up to your level. That is the game's own formula, so a false match is close to impossible.</li>
+        <li><b>Elden Ring:</b> the same trick with eight numbers, plus every owned item read straight out of the game's item array.</li>
       </ul>
-      <p>Two rules it never breaks. First, it never prints a number it cannot verify. If a stat block does not check out, the slot drops to "inventory only" and the attributes are simply gone. A missing field beats a wrong one. Second, the progress it shows is a floor, not a ceiling. It counts a boss dead only when the save still proves it: the soul in your pack, a defeat flag, or a point past it you could not have reached otherwise. A boss whose soul you already spent, with no flag and no gate, stays off the list. It under-claims on purpose.</p>
+      <p>Two rules, and neither one bends.</p>
+      <p><b>It never prints a number it cannot verify.</b> If a stat block fails its own check, that slot drops to inventory-only and the attributes are simply gone. A missing field costs you nothing. A wrong one quietly tells you your character is something it is not, and you would have no way of knowing. So the field goes.</p>
+      <p><b>Progress is a floor, not a ceiling.</b> A boss counts as dead only when the save still proves it: the soul sitting in your pack, a defeat flag, or a place past it you could not have reached with the boss alive. Kill a boss and spend the soul, with no flag and no gate behind it, and it stays off the list. The tool under-claims on purpose. Everything it shows you happened. There is simply more that it cannot see.</p>
     </div>
   </details>
   <button type="button" id="drop" class="frame" aria-describedby="drop-note">
     <span class="big">Drop a .sl2 save here, or click to choose</span>
-    <span class="small" id="drop-note">Read locally. Nothing is sent anywhere.</span>
+    <span class="small" id="drop-note">Read on this machine. Nothing is sent anywhere.</span>
   </button>
   <input id="file" type="file" accept=".sl2" hidden>
   <div id="status" role="status" aria-live="polite"></div>
   <div id="out"></div>
 </main>
 <footer>
-  Stats degrade to “inventory only” rather than show a wrong number.
-  · <a href="https://github.com/darthdemono/sl2-analyzer">Source</a>
+  A missing field beats a wrong one.
+  · <a href="https://github.com/darthdemono/sl2-analyzer?tab=readme-ov-file">GitHub</a>
+  · <a href="https://github.com/darthdemono/sl2-analyzer?tab=License-1-ov-file">MIT License</a>
+  · <a href="https://darthdemono.com/">DarthDemono</a>
 </footer>
 <script type="module" src="app/main.js"></script>
 </body>

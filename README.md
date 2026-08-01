@@ -4,7 +4,7 @@ This reads a FromSoftware `.sl2` save and tells you what is in it. That is the w
 
 There are two ways to use it, and they run the exact same reading logic:
 
-- **A web page.** Drop a `.sl2` onto [the site](https://darthdemono.github.io/sl2-analyzer/) and it lays each character out as a replica of that game's own in-game **Level-Up screen** — a framed stat panel skinned to the game, with progress lists and (for DS2) item thumbnails below. It parses the file in your browser. Nothing uploads, nothing hits a server, and the save never leaves your machine. Copy the Markdown, or download it as `.md` or `.json` — the JSON is byte-for-byte what the CLI writes.
+- **A web page.** Drop a `.sl2` onto [the site](https://sl2-analyzer.darthdemono.com/) and it lays each character out as a replica of that game's own in-game **Level-Up screen** — a framed stat panel skinned to the game, with progress lists and (for DS2) item thumbnails below. It parses the file in your browser. Nothing uploads, nothing hits a server, and the save never leaves your machine. Copy the Markdown, or download it as `.md` or `.json` — the JSON is byte-for-byte what the CLI writes.
 - **A Python CLI.** Point `sl2_to_md.py` at a save and it writes one Markdown file describing the run (or JSON, against a [published schema](schema.json), if a program is reading it). That is the format an LLM can actually read. A `.sl2` is an encrypted binary blob; paste it into a chat and you get nothing. Paste the Markdown and the model knows where you are in the run instead of guessing at it.
 
 Both read the save and never write to it. Point either one at your live save if you like. The worst case is a bad output file, not a bricked character.
@@ -375,7 +375,7 @@ Give `-o` a `.json` extension and you get the same data as a machine-readable do
 python3 sl2_to_md.py "/path/to/DS30000.sl2" -o run.json
 ```
 
-The document is described by [`schema.json`](schema.json), published at <https://darthdemono.github.io/sl2-analyzer/schema.json> and referenced from every export's `$schema` key, so a validator picks it up with no configuration. Both formats come out of the same read, so they cannot disagree.
+The document is described by [`schema.json`](schema.json), published at <https://sl2-analyzer.darthdemono.com/schema.json> and referenced from every export's `$schema` key, so a validator picks it up with no configuration. Both formats come out of the same read, so they cannot disagree.
 
 The one rule worth knowing before you consume it: **absence is meaningful.** A field appears only when it was actually read from the save. Dark Souls III stores no death counter, so a DS3 character has no `deaths` key at all — not `0`, and not `null`. That way you can always tell "this game does not record it" from "it really is zero". The same goes for progress: every section is a floor, reporting what the save proves rather than what it rules out.
 

@@ -188,6 +188,14 @@ def er_game_patch(data, entries):
     return f"{v // 10 ** 7}.{v // 10 ** 5 % 100:02d}.{v // 10 ** 4 % 10}"
 
 
+## @brief Display labels for metadata keys whose acronym `capitalize()` would mangle
+#  ("dlc" -> "Dlc", "os" -> "Os"). Any key not listed falls back to capitalising, so a
+#  caller inventing their own key still gets a sane label.
+META_LABEL = {"dlc": "DLC", "os": "OS", "cpu": "CPU", "gpu": "GPU", "ram": "RAM",
+              "mangohud": "MangoHud", "gamemode": "GameMode", "dxvk": "DXVK",
+              "fps": "FPS", "hdr": "HDR", "url": "URL", "id": "ID"}
+
+
 ##
 # @brief The closing "about this file" block: game, tier, slot count and the
 #        how-it-works note.
@@ -208,10 +216,10 @@ def footer_for(cfg, n, version=None, patch=None, meta=None):
         ver.append(f"- **Game patch:** {patch}  _(from the save's own regulation)_")
     env = []
     if meta:
-        env = ["", "**Setup**  _(supplied on the command line — not read from the "
-               "save, which cannot know any of it)_", ""]
+        env = ["", "**Setup**  _(supplied by the caller — not read from the save, "
+               "which cannot know any of it)_", ""]
         for key, value in meta.items():
-            label = key.replace("_", " ").capitalize()
+            label = META_LABEL.get(key) or key.replace("_", " ").capitalize()
             shown = " · ".join(str(v) for v in value) if isinstance(value, list) else value
             env.append(f"- **{label}:** {shown}")
     return ["<details>", "<summary>About this file — how it was produced, "
