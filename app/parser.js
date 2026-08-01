@@ -966,7 +966,7 @@ function ds3EventFlagBase(buf) {
 }
 function popcount(x) { let c = 0; while (x) { c += x & 1; x >>>= 1; } return c; }
 function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, covenantDb,
-                        bossVictoryDb, lordCinderDb) {
+                        bossVictoryDb, lordCinderDb, pickupDb) {
   if (base == null) return;
   const areas = [];
   let anyLit = false;
@@ -1011,6 +1011,20 @@ function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, coven
     if (got.length) quests[src] = got;
   }
   if (Object.keys(quests).length) ch.questlines = quests;
+  // World pickups: only the areas whose flag group has a derived base are in the
+  // table at all, so an area missing here means "not tracked", never "nothing found".
+  const picks = [];
+  let anyFound = false;
+  for (const [area, items] of Object.entries(pickupDb || {})) {
+    const got = [], missing = [];
+    for (const [dist, bit, item] of items) {
+      const val = u8(buf, base + dist);
+      (val != null && (val & (1 << bit)) ? got : missing).push(item);
+    }
+    anyFound = anyFound || got.length > 0;
+    picks.push([area, got.length, items.length, missing]);
+  }
+  if (anyFound) ch.pickups = picks;
   const covs = {};
   for (const [cov, marks] of Object.entries(covenantDb || {})) {
     const got = [];
@@ -1230,7 +1244,7 @@ export function parseSave(data, dbs) {
         ch.ng_plus = ds3Journey(slot, flagBase);
         attachDefeatedBosses(ch, dbs);
         ds3AttachFlags(ch, slot, flagBase, dbs.ds3.bonfires, dbs.ds3.bossFlags, dbs.ds3.questlines,
-          dbs.ds3.covenants, dbs.ds3.bossVictory, dbs.ds3.lordCinders);
+          dbs.ds3.covenants, dbs.ds3.bossVictory, dbs.ds3.lordCinders, dbs.ds3.pickups);
         attachProgressTotals(ch, dbs);
         characters.push({ slot: label(i), ch });
       }

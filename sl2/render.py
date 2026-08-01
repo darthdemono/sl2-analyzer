@@ -1,0 +1,457 @@
+"""Markdown rendering: one section per character, plus the shared tables.
+"""
+from collections import OrderedDict
+from .ds1 import ds1_derived_stats
+from .ds2 import DS2_FAMILY, DS2_GAMES, DS2_GREAT_SOULS, ds2_derived_stats
+from .ds3 import ds3_derived_stats
+
+
+## @brief Short attribute headers for the table.
+STAT_ABBR = {"Vigor": "VGR", "Endurance": "END", "Vitality": "VIT",
+             "Attunement": "ATN", "Strength": "STR", "Dexterity": "DEX",
+             "Adaptability": "ADP", "Intelligence": "INT", "Faith": "FTH",
+             "Resistance": "RES", "Luck": "LCK", "Mind": "MND", "Arcane": "ARC"}
+
+
+## @brief What each attribute governs, per game. Static game-design fact — NOT read
+#  from the save and never a copied stat value, so it is true for any build and can
+#  never be the "wrong field" the core rule forbids. Keyed by game family because the
+#  same attribute name means different things across games (DS1 Vitality is HP;
+#  DS2/DS3 Vitality is equip load) — exactly the nuance the rule cares about. From the
+#  games' own status screens / community wikis.
+STAT_GOVERNS = {
+    "ds1": OrderedDict([
+        ("Vitality", "Max HP"),
+        ("Attunement", "Attunement (spell) slots"),
+        ("Endurance", "Stamina, equip load, physical defense"),
+        ("Strength", "Physical attack, strength-weapon scaling"),
+        ("Dexterity", "Physical attack, dex-weapon scaling, faster casting"),
+        ("Resistance", "Poison/bleed resistance, fire defense"),
+        ("Intelligence", "Magic attack, sorcery scaling"),
+        ("Faith", "Miracle scaling, lightning & magic defense")]),
+    "ds2sotfs": OrderedDict([
+        ("Vigor", "Max HP"),
+        ("Endurance", "Stamina"),
+        ("Vitality", "Equip load, physical defense, petrify resistance"),
+        ("Attunement", "Attunement (spell) slots, casting speed"),
+        ("Strength", "Physical attack, strength-weapon scaling"),
+        ("Dexterity", "Physical attack, dex-weapon scaling, casting speed"),
+        ("Adaptability", "Agility (i-frames), poison/bleed/petrify resistance"),
+        ("Intelligence", "Magic & dark attack, sorcery/hex scaling"),
+        ("Faith", "Lightning & dark attack, miracle/hex scaling")]),
+    "ds3": OrderedDict([
+        ("Vigor", "Max HP"),
+        ("Attunement", "FP, attunement (spell) slots"),
+        ("Endurance", "Stamina"),
+        ("Vitality", "Equip load, physical defense"),
+        ("Strength", "Physical attack, strength-weapon scaling"),
+        ("Dexterity", "Physical attack, dex-weapon scaling, faster casting"),
+        ("Intelligence", "Magic attack, sorcery & pyromancy scaling"),
+        ("Faith", "Lightning & dark attack, miracle & pyromancy scaling"),
+        ("Luck", "Item discovery, bleed/poison buildup, hollow-weapon scaling")]),
+    "er": OrderedDict([
+        ("Vigor", "Max HP, fire defense & immunity"),
+        ("Mind", "FP (skill/spell points), focus resistance"),
+        ("Endurance", "Stamina, equip load, robustness"),
+        ("Strength", "Physical attack, strength-weapon scaling"),
+        ("Dexterity", "Dex-weapon scaling, faster casting, less fall damage"),
+        ("Intelligence", "Sorcery scaling, magic defense"),
+        ("Faith", "Incantation scaling"),
+        ("Arcane", "Item discovery, arcane-weapon scaling, death/holy resistance")]),
+}
+
+
+## @brief Map a per-slot game id to its STAT_GOVERNS family (DSR and PtDE share DS1).
+def stat_governs_for(game):
+    return STAT_GOVERNS.get(DS2_FAMILY.get(game, game), {})
+
+
+## @brief Soft-cap / per-level breakpoint reference per attribute, per game. These are
+#  the documented scaling RATES and soft-cap levels (a game-mechanics fact, true for any
+#  build), NOT a per-character computed value — computing the absolute would be wrong
+#  (DS2 Vigor 36 gives HP 1351 in-save vs 1420 from the flat table, because the real
+#  curve carries base/class offsets the summaries drop). So the tool prints the rate
+#  table and the character's own stat value, and never a derived absolute it cannot
+#  verify. Sourced from the fextralife stat pages (DS1/DS2/DS3/ER), fetched per stat.
+STAT_CAPS = {
+    "ds1": OrderedDict([
+        ("Vitality", "soft caps 30 (~1,100 HP) & 50 (~1,500 HP), rising to ~1,900 at 99"),
+        ("Attunement", "1 slot at 10, then 12/14/16/19/23/28/34/41/50 — 10 slots max at 50"),
+        ("Endurance", "stamina maxes at 40 (160); equip load keeps rising (~+1/lvl) to 99"),
+        ("Strength", "scaling soft cap 40"),
+        ("Dexterity", "scaling soft cap 40; cast speed improves to 45"),
+        ("Resistance", "minor per-level gains — commonly a dump stat"),
+        ("Intelligence", "scaling soft cap 40"),
+        ("Faith", "scaling soft cap 40")]),
+    "ds2sotfs": OrderedDict([
+        ("Vigor", "soft caps 20 & 50; +30 HP/lvl to 20, +20 to 50, +5 after"),
+        ("Endurance", "soft cap 20; +2 stamina/lvl to 20, +1 after"),
+        ("Vitality", "soft caps 29/49/70; +1.5 load/lvl to 29, +1 to 49, +0.5 to 69, +0.25 after"),
+        ("Attunement", "slots at 10/13/16/20/25/30/40/50/60/75/94; cast-speed breakpoints 30/45/60/80"),
+        ("Strength", "scaling soft caps 40 & 50"),
+        ("Dexterity", "scaling soft caps 40 & 50"),
+        ("Adaptability", "raises Agility (with Attunement); gains taper past ~40"),
+        ("Intelligence", "scaling soft caps 40 & 50"),
+        ("Faith", "scaling soft caps 40 & 50")]),
+    "ds3": OrderedDict([
+        ("Vigor", "soft caps ~27 & 50; ~1,300 HP at 50, only ~100 more to 99"),
+        ("Attunement", "FP soft cap 35 (450 max at 99); slots at 10/14/18/24/30/40/50/60/80/99"),
+        ("Endurance", "stamina soft cap 40"),
+        ("Vitality", "roughly linear to 99"),
+        ("Strength", "scaling soft caps 40 & 60"),
+        ("Dexterity", "scaling soft caps 40 & 60"),
+        ("Intelligence", "scaling soft caps 40 & 60"),
+        ("Faith", "scaling soft caps 40 & 60"),
+        ("Luck", "+1 item discovery/pt (base 100); bleed/poison speed soft cap 50")]),
+    "er": OrderedDict([
+        ("Vigor", "soft caps 40 & 60"),
+        ("Mind", "soft caps 50 & 60"),
+        ("Endurance", "stamina soft caps 15/30/50; equip load 25/60"),
+        ("Strength", "scaling soft caps 20/50/80"),
+        ("Dexterity", "scaling soft caps 20/50/80"),
+        ("Intelligence", "scaling soft caps 20/50/80"),
+        ("Faith", "scaling soft caps 20/50/80"),
+        ("Arcane", "scaling soft caps 20/50/80; also raises item discovery")]),
+}
+
+
+## @brief Soft-cap reference for a per-slot game id (DSR and PtDE share DS1).
+def stat_caps_for(game):
+    return STAT_CAPS.get(DS2_FAMILY.get(game, game), {})
+
+
+## @brief Category id to printed heading (covers every id scheme / game).
+CAT_TITLE = {"weapons": "Weapons", "armors": "Armor", "rings": "Rings",
+             "talismans": "Talismans", "spells": "Spells", "bolts": "Ammunition",
+             "upgrade": "Upgrade Materials", "consumables": "Consumables",
+             "online": "Summon & Covenant Items", "goods": "Consumables & Goods",
+             "ashes": "Ashes of War", "emotes": "Gestures",
+             "bosssouls": "Boss Souls", "items": "Items Owned"}
+
+
+## @brief Print order for inventory categories, mirroring the in-game item menu.
+#  (`goods` is the lumped consumables bucket the non-DS2 games still use.)
+CAT_ORDER = ["weapons", "armors", "rings", "talismans", "spells", "bolts", "upgrade",
+             "consumables", "goods", "ashes", "online", "bosssouls", "emotes", "items"]
+
+
+##
+# @brief Guess a build label from the attribute spread. A rough label, not gospel.
+# @param stats The character's attribute dict.
+# @return A short description, or None if there are no stats to judge.
+def guess_build(stats):
+    if not stats:
+        return None
+    g = lambda k: stats.get(k) or 0
+    phys, cast = g("Strength") + g("Dexterity"), g("Intelligence") + g("Faith") + g("Attunement")
+    if cast > phys:
+        return "caster / hybrid (high INT/FTH/ATN)"
+    if g("Strength") >= g("Dexterity") + 6:
+        return "strength-focused melee"
+    if g("Dexterity") >= g("Strength") + 6:
+        return "dexterity-focused melee"
+    return "quality / balanced melee"
+
+
+## @brief Format a value, or "—" when it is unknown (None).
+def fmt(value):
+    return "—" if value is None else f"{value:,}" if isinstance(value, int) else str(value)
+
+
+## @brief Format a play-time count of seconds as H:MM:SS (hours can exceed 24).
+def fmt_playtime(seconds):
+    h, rem = divmod(seconds, 3600)
+    mn, s = divmod(rem, 60)
+    return f"{h}:{mn:02d}:{s:02d}"
+
+
+##
+# @brief Render one full/inventory-tier character as a Markdown section.
+# @param ch      A unified character dict.
+# @param slot_no The 1-based save-slot number.
+# @return The Markdown for this character.
+DS1_BONFIRE_NOTE = "each bonfire's own record, with how far it is kindled — a floor"
+
+
+DS3_BONFIRE_NOTE = "bonfires lit, inferred from each area's flag bits — a floor"
+
+
+# DS2 reads the world block's own discovered-bonfire array, so it names every one it
+# found; the areas are a grouping of that list, not an inference.
+DS2_BONFIRE_NOTE = "each bonfire the save records as discovered, by area — a floor"
+
+
+# Only six areas have a derived flag-group base, so this counts what is TRACKED, not
+# what the game ships. An area absent from the list is unmapped, not empty.
+DS3_PICKUP_NOTE = ("one-off world items picked up, from each area's pickup flags — "
+                   "covers only the areas whose flag group is mapped")
+
+
+##
+# @brief The Lords-of-Cinder line: how many of the four are on the throne, which ones
+#        the mapped flags name, and the two counts the number came from.
+# @param lords The @c ch["lords"] dict from @ref attach_progress_totals.
+def lords_line(lords):
+    # Mid-dot separated: "Aldrich, Devourer of Gods" has a comma of its own.
+    named = f" — {' · '.join(lords['named'])}" if lords["named"] else ""
+    if lords["placed"] is None:      # NG+: the thrones reset, the defeat flags do not
+        return (f"{len(lords['named'])} of {lords['total']}{named}"
+                "  _(NG+ — only the mapped throne flags are read, so this is a floor)_")
+    return (f"{lords['placed']} of {lords['total']}{named}"
+            f"  _({lords['dead']} of the four lords defeated, {lords['held']} set"
+            f"{'' if lords['held'] == 1 else 's'} of cinders still held)_")
+
+
+##
+# @brief Render "N of M" plus the names still missing, for a progress section.
+# @param missing The names with no evidence. Long lists stay one italic line so the
+#        section keeps its shape.
+def missing_note(label, missing):
+    return f"_{label}: {' · '.join(missing)}._" if missing else None
+
+
+##
+# @brief Collapse repeats in a name list to @c "name ×N", keeping first-seen order.
+# @details An area holds seven separate mimics and a dozen Titanite Shards, each with
+# its own flag. Printing the name seven times is faithful but unreadable; the count
+# says the same thing. @param names The list. @return The collapsed list.
+def count_dupes(names):
+    seen = OrderedDict()
+    for n in names:
+        seen[n] = seen.get(n, 0) + 1
+    return [n if c == 1 else f"{n} ×{c}" for n, c in seen.items()]
+
+
+def md_for_character(ch, slot_no):
+    L = [f"## Slot {slot_no}: {ch['name']}", ""]
+    if ch["level"] is not None:
+        L.append(f"- **{'Level' if ch['game'] == 'er' else 'Soul Level'}:** {ch['level']}")
+    if ch["klass"]:
+        L.append(f"- **Class:** {ch['klass']}")
+    if ch.get("covenant"):
+        L.append(f"- **Covenant:** {ch['covenant']}")
+    if ch.get("gender"):
+        L.append(f"- **Gender:** {ch['gender']}")
+    if ch["ng_plus"] is not None:
+        ng = "New Game" if ch["ng_plus"] == 0 else f"New Game +{ch['ng_plus']}"
+        L.append(f"- **Playthrough:** {ng}")
+    if ch["soul_memory"] is not None:
+        L.append(f"- **Soul Memory:** {fmt(ch['soul_memory'])}  _(total souls earned — main progress metric)_")
+    if ch.get("play_time"):
+        L.append(f"- **Play Time:** {fmt_playtime(ch['play_time'])}")
+    if ch["souls"] is not None:
+        L.append(f"- **{'Runes' if ch['game'] == 'er' else 'Souls'} held:** {fmt(ch['souls'])}")
+    if ch["humanity"] is not None:
+        L.append(f"- **Humanity:** {ch['humanity']}")
+    if ch["hp"] is not None:
+        L.append(f"- **Max HP:** {fmt(ch['hp'])}")
+    if ch.get("embered") is not None:
+        L.append("- **Embered:** Yes  _(Max HP above includes the +30% ember bonus)_"
+                 if ch["embered"] else
+                 "- **Embered:** No  _(hollow — Max HP above is the base value)_")
+    if ch.get("fp") is not None:
+        L.append(f"- **Max FP:** {fmt(ch['fp'])}")
+    if ch.get("hollow_lvl"):
+        L.append(f"- **Hollowing:** {ch['hollow_lvl']}  _(higher = more deaths without an effigy)_")
+    if ch.get("deaths") is not None:
+        L.append(f"- **Deaths:** {fmt(ch['deaths'])}")
+    if ch["stamina"] is not None:
+        L.append(f"- **Stamina:** {fmt(ch['stamina'])}")
+    if ch.get("lords"):
+        L.append(f"- **Cinders of a Lord Placed:** {lords_line(ch['lords'])}")
+    build = guess_build(ch["stats"])
+    if build:
+        L.append(f"- **Build:** {build}")
+    L.append("")
+
+    if ch["stats"]:
+        keys = list(ch["stats"].keys())
+        L += ["### Attributes", "",
+              "| " + " | ".join(STAT_ABBR.get(k, k[:3].upper()) for k in keys) + " |",
+              "|" + "----|" * len(keys),
+              "| " + " | ".join(str(ch["stats"][k]) for k in keys) + " |", ""]
+        gov = stat_governs_for(ch["game"])
+        cap = stat_caps_for(ch["game"])
+        rows = [k for k in keys if k in gov]
+        if rows:
+            # Fixed game-mechanics reference, identical in every export bar the
+            # current values — folded away so it does not sit between the save's own
+            # numbers and its progress (and so two exports diff cleanly).
+            L += ["<details>", "<summary><b>Attribute Scaling</b> — what each stat "
+                  "scales and its soft caps (game-mechanics reference, not read from "
+                  "this save)</summary>", ""]
+            for k in rows:
+                caps = f" {cap[k][:1].upper() + cap[k][1:]}." if cap.get(k) else ""
+                L.append(f"- **{k}** ({ch['stats'][k]}) — {gov[k]}.{caps}")
+            L += ["", "</details>", ""]
+        if ch["game"] in DS2_GAMES:
+            d = ds2_derived_stats(ch["stats"])
+            agl = f"{d['agility']}" + (f"  _({d['iframes']} roll i-frames)_"
+                                       if d["iframes"] else "")
+            L += ["### Derived Stats  _(computed from attributes — base values before "
+                  "rings & equipment; the in-game screen adds ring/gear bonuses on top)_",
+                  "",
+                  f"- **Stamina:** {d['stamina']}",
+                  f"- **Equip Load (max capacity):** {d['equip_load']:.1f}",
+                  f"- **Attunement Slots:** {d['slots']}",
+                  f"- **Agility (AGL):** {agl}",
+                  f"- **Poise (base):** {d['poise']:.1f}",
+                  f"- **ATK: Str:** {d['atk_str']}",
+                  f"- **ATK: Dex:** {d['atk_dex']}",
+                  f"- **Magic DEF:** {d['magic_def']}",
+                  f"- **Fire DEF:** {d['fire_def']}",
+                  f"- **Lightning DEF:** {d['lightning_def']}",
+                  f"- **Dark DEF:** {d['dark_def']}", ""]
+        if ch["game"] == "ds3":
+            d = ds3_derived_stats(ch["stats"])
+            L += ["### Derived Stats  _(computed from attributes — base values before "
+                  "rings, covenant & equipment)_", "",
+                  f"- **Attunement Slots:** {d['slots']}",
+                  f"- **Equip Load (max capacity):** {d['equip_load']:.1f}",
+                  f"- **Item Discovery:** {d['item_discovery']}", ""]
+        if ch["game"] in ("dsr", "ptde"):
+            d = ds1_derived_stats(ch["stats"])
+            L += ["### Derived Stats  _(computed from attributes — base values before "
+                  "rings & equipment)_", "",
+                  f"- **Attunement Slots:** {d['slots']}",
+                  f"- **Equip Load (max capacity):** {d['equip_load']:.1f}", ""]
+    elif ch["tier"] == "inventory":
+        L += ["_Attributes are not printed for this slot: its stat block did not "
+              "validate (an unrecognised patch or an edited save), and a wrong "
+              "number is worse than none. Inventory and progress below are read "
+              "directly._", ""]
+
+    def bullets(items):
+        return [f"- {n}" + (f" ×{q}" if q and q > 1 else "") for n, q in items]
+
+    # Boss souls / remembrances that live in their own top section (every game but
+    # DS2, whose boss souls are a proper inventory category — see below).
+    # Boss souls get a top section only where the inventory does NOT already have a
+    # boss-souls category (DS2 and DS3 do) — printing both is the same list twice.
+    if ch["boss_souls"] and not ch["inv"].get("bosssouls"):
+        header = ("### Remembrances Held  _(major bosses defeated, not yet traded)_"
+                  if ch["game"] == "er"
+                  else "### Boss Souls Held  _(bosses defeated, soul not yet consumed)_")
+        L += [header, ""] + bullets(ch["boss_souls"]) + [""]
+    if ch["key_items"]:
+        L += ["### Key Items  _(progress / areas & shortcuts unlocked)_", ""]
+        L += bullets(ch["key_items"]) + [""]
+    # DS2 keeps a flat name list for the boss-gate logic, but renders the grouped
+    # view when the area table resolved it; the flat list is the fallback.
+    if ch.get("bonfires") and not ch.get("bonfire_areas"):
+        L += [f"### Bonfires Discovered ({len(ch['bonfires'])})  _(areas reached — a "
+              "floor on progress)_", ""]
+        L += [f"- {b}" for b in ch["bonfires"]] + [""]
+    if ch.get("bonfire_areas"):
+        lit = sum(c for _a, c, _n, _t, _m in ch["bonfire_areas"])
+        total = sum(t for _a, _c, _n, t, _m in ch["bonfire_areas"])
+        n = sum(1 for _a, c, _n, _t, _m in ch["bonfire_areas"] if c)
+        areas = len(ch["bonfire_areas"])
+        # DS1 reads the real bonfire list (so it can say kindle level, and can list a
+        # discovered-but-unlit one); DS3 only has flag bits per area. Different note.
+        note = (DS1_BONFIRE_NOTE if ch.get("game") in ("dsr", "ptde")
+                else DS2_BONFIRE_NOTE if ch.get("game") in DS2_GAMES
+                else DS3_BONFIRE_NOTE)
+        L += [f"### Bonfires Discovered ({lit} of {total}, in {n} of {areas} areas)"
+              f"  _({note})_", ""]
+        for name, c, named, tot, missing in ch["bonfire_areas"]:
+            row = f"- {name}: {c}/{tot}"
+            if named:
+                row += f" — {', '.join(named)}"
+                # Only a STARTED area lists what is left; an untouched area would just
+                # print the whole game back at you.
+                if missing:
+                    row += f"  _(missing: {' · '.join(missing)})_"
+            L.append(row)
+        L.append("")
+    if ch.get("covenants"):
+        found, total = len(ch["covenants"]), ch.get("covenant_total")
+        count = f"{found} of {total}" if total else f"{found}"
+        L += [f"### Covenants Found ({count})  _(discovered — a floor; "
+              "the one currently worn is the Covenant field above)_", ""]
+        L += [f"- **{cov}:** {', '.join(w)}" for cov, w in ch["covenants"].items()] + [""]
+        note = missing_note("Not found yet", ch.get("covenants_missing"))
+        if note:
+            L += [note, ""]
+    if ch.get("pickups"):
+        got = sum(c for _a, c, _t, _m in ch["pickups"])
+        total = sum(t for _a, _c, t, _m in ch["pickups"])
+        L += [f"### Items Collected ({got} of {total} tracked)  _({DS3_PICKUP_NOTE})_", ""]
+        for area, c, tot, missing in ch["pickups"]:
+            row = f"- {area}: {c}/{tot}"
+            # Same rule as bonfires — an area you have started lists what is left in
+            # it; an untouched one would print a walkthrough back at you.
+            if c and missing:
+                row += f"  _(missing: {' · '.join(count_dupes(missing))})_"
+            L.append(row)
+        L.append("")
+    if ch.get("questlines"):
+        # Not all of these are NPCs — the same reward flags cover a few landmark
+        # pickups and enemy drops, so the heading says rewards, not questlines.
+        L += ["### Rewards Obtained  _(one-off rewards from NPCs, invaders and "
+              "landmark pickups — a progress floor)_", ""]
+        L += [f"- **{src}:** {', '.join(rw)}" for src, rw in ch["questlines"].items()] + [""]
+    if ch.get("bosses"):
+        SRC = {"flag": "confirmed", "soul": "soul held", "gate": "progression", "clear": "cleared (NG+)"}
+        found, total = len(ch["bosses"]), ch.get("boss_total")
+        count = f"{found} of {total} tracked" if total else f"{found}"
+        L += [f"### Bosses Defeated ({count})  _(a floor — from defeat "
+              "flags, held boss souls, progression, and NG+ clears; a boss whose soul "
+              "was consumed and isn't gated may still be missing)_", ""]
+        for boss, srcs in ch["bosses"].items():
+            L.append(f"- {boss}  _({', '.join(SRC[s] for s in srcs)})_")
+        L.append("")
+        # The missing list splits in two where a route graph exists: what is open to
+        # you now, and what is still behind something. The split is game structure,
+        # not a save read — the note says so.
+        avail = ch.get("bosses_available") or []
+        rest = [b for b in (ch.get("bosses_missing") or []) if b not in avail]
+        if avail:
+            L += [f"_Available now — every prerequisite dead and the area already "
+                  f"reached (from the game's fixed route, not this save): "
+                  f"{' · '.join(avail)}._", ""]
+        note = missing_note("No evidence yet" + (", and behind something else" if avail
+                            else ""), rest)
+        if note:
+            L += [note, ""]
+
+    if ch.get("equipped_weapons") or ch.get("equipped_armor") or \
+            ch.get("equipped_rings") or ch.get("equipped_ammo"):
+        L += ["### Equipped  _(worn gear read from the equip slots)_", ""]
+        L += [f"- **{slot}:** {name}" for slot, name in ch.get("equipped_weapons", {}).items()]
+        L += [f"- **{slot}:** {name}" for slot, name in ch.get("equipped_armor", {}).items()]
+        if ch.get("equipped_rings"):
+            L.append(f"- **Rings:** {', '.join(ch['equipped_rings'])}")
+        if ch.get("equipped_ammo"):
+            L.append(f"- **Ammo:** {', '.join(ch['equipped_ammo'])}")
+        L.append("")
+
+    L += ["### Inventory", ""]
+    # DS1 and ER keep boss souls and key items inside the flat `goods` bucket, which
+    # already has its own section above — list each item once and point at it.
+    listed = {n for n, _q in ch["boss_souls"]} | {n for n, _q in ch["key_items"]}
+    for cat in CAT_ORDER:
+        items = ch["inv"].get(cat)
+        if not items:
+            continue
+        if cat == "goods" and listed:
+            items = [it for it in items if it[0] not in listed]
+            if not items:
+                continue
+        # Boss souls split into the game's own two grades: the four "Old" great
+        # souls, then the ordinary boss souls. Everything else is one heading.
+        if cat == "bosssouls":
+            great = [it for it in items if it[0] in DS2_GREAT_SOULS]
+            normal = [it for it in items if it[0] not in DS2_GREAT_SOULS]
+            for title, group in (("Great Boss Souls", great), ("Boss Souls", normal)):
+                if group:
+                    L += [f"#### {title}", ""] + bullets(group) + [""]
+        else:
+            title = CAT_TITLE[cat]
+            if cat == "goods" and listed:
+                title += "  _(boss souls and key items are listed above)_"
+            L += [f"#### {title}", ""] + bullets(items) + [""]
+    if ch["unknown_count"]:
+        L += [f"_{ch['unknown_count']} inventory item(s) had IDs not in the name "
+              "database (upgraded / infused variants) and were omitted._", ""]
+    return "\n".join(L)

@@ -1,0 +1,882 @@
+"""Dark Souls III.
+"""
+import json
+import os
+from collections import defaultdict, OrderedDict
+from .reader import is_valid_name, u16, u32, u8
+from .progress import find_boss_souls
+from .roster import ROSTER_PARAMS
+
+
+## @brief DS3 attunement-slot breakpoints (fextralife Attunement table): the nth
+#  entry is the ATN needed for the nth spell slot. Slots = count of these <= ATN.
+DS3_SLOT_BREAKS = (10, 14, 18, 24, 30, 40, 50, 60, 80, 99)
+
+
+##
+# @brief DS3 base derived stats that are closed-form functions of attributes only.
+# @details Only the three the character screen shows that don't need gear: attunement
+# slots (breakpoint count), base Equip Load (@c 40 + Vitality) and base Item Discovery
+# (@c 100 + Luck, hard cap 199). HP/FP/stamina are read from the save, not recomputed;
+# poise is gear-only in DS3, and defences/resistances/attack power are gear- and
+# level-scaled, so none of those are derived here. Formulas from the fextralife
+# Equipment Load / Attunement / Item Discovery pages. @param stats The attribute dict.
+def ds3_derived_stats(stats):
+    atn = stats.get("Attunement", 0) or 0
+    vit = stats.get("Vitality", 0) or 0
+    lck = stats.get("Luck", 0) or 0
+    return {"slots": sum(1 for b in DS3_SLOT_BREAKS if atn >= b),
+            "equip_load": 40.0 + vit,
+            "item_discovery": min(199, 100 + lck)}
+
+
+## @brief Load the DS3 bonfire table (db_ds3/bonfires.json): area → list of
+#  @c [distance, bit, name], one entry per bonfire. Distance is from the event-flag
+#  base, bit is within that byte. Generated from the SoulSplitter/TGA flag list via
+#  the confirmed flag-id→bit formula (each bonfire flag `f`: group `f//1000`,
+#  `n=f%1000`, byte `= (n>>5)*4 + 3-((n&31)>>3)`, bit `= 7-(n&7)`; save distance =
+#  memory byte + 111, one constant delta verified across all 16 groups against real
+#  saves). Cached. Returns {} if absent.
+_DS3_BONFIRE_CACHE = {}
+
+
+def load_ds3_bonfires(base_dir):
+    if base_dir not in _DS3_BONFIRE_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "bonfires.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_BONFIRE_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_BONFIRE_CACHE[base_dir] = {}
+    return _DS3_BONFIRE_CACHE[base_dir]
+
+
+## @brief Load the DS3 boss-defeat flag table (db_ds3/boss_flags.json): boss name →
+#  @c [distance, bit] of its single "boss dead" event flag (the @c 13xxxx8xx per-map
+#  flag). Generated from the SoulSplitter boss list via the same flag-id→bit formula as
+#  bonfires; every offset independently reproduced the old hand-checked table, so a set
+#  bit is a certain kill. Cached. Returns {} if absent.
+_DS3_BOSS_CACHE = {}
+
+
+def load_ds3_boss_flags(base_dir):
+    if base_dir not in _DS3_BOSS_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "boss_flags.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_BOSS_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_BOSS_CACHE[base_dir] = {}
+    return _DS3_BOSS_CACHE[base_dir]
+
+
+## @brief Load the DS3 boss-victory flag table (db_ds3/boss_victory.json): boss name →
+#  @c [distance, bit] of its @c 63xx "boss victory" event flag, a SECOND independent
+#  kill signal that survives the soul being consumed. These live in common group 6,
+#  whose save base (879) was derived from the Rosaria join differential and is
+#  confirmed here by fifteen more flags: walking the whole ladder, every one first
+#  turns on in exactly the snapshot the boss died in. Covers Stray Demon, which the
+#  per-map table does not. Cached. Returns {} if absent.
+_DS3_VICTORY_CACHE = {}
+
+
+def load_ds3_boss_victory(base_dir):
+    if base_dir not in _DS3_VICTORY_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "boss_victory.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_VICTORY_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_VICTORY_CACHE[base_dir] = {}
+    return _DS3_VICTORY_CACHE[base_dir]
+
+
+## @brief Load the DS3 Lords-of-Cinder table (db_ds3/lord_cinders.json): lord name →
+#  @c [distance, bit] of the flag set when that lord's Cinders are placed on the
+#  Firelink throne. Only the ONE flag a real differential pinned is listed
+#  (14000125, Abyss Watchers — the only flag gained anywhere in the m40 group across a
+#  46-second offering window, and 0 in all 34 earlier saves). The other three lords'
+#  flags are NOT guessed; they need their own offering windows. Cached. Returns {}.
+_DS3_CINDER_CACHE = {}
+
+
+def load_ds3_lord_cinders(base_dir):
+    if base_dir not in _DS3_CINDER_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "lord_cinders.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_CINDER_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_CINDER_CACHE[base_dir] = {}
+    return _DS3_CINDER_CACHE[base_dir]
+
+
+## @brief Load the DS3 route graph (db_ds3/boss_route.json): boss name →
+#  @c [gate area, [bosses that must die first]]. This is GAME STRUCTURE, not a save
+#  read — the fixed route from fextralife's Game Progress Route — and it exists to
+#  answer "what can I fight now", which no flag can. The area name is a key of
+#  db_ds3/bonfires.json, so "the area was reached" is decided by that area's own lit
+#  bonfires; the predecessor list is only the HARD gates (the arena or key you cannot
+#  get past otherwise), never a suggested order. Cached. Returns {} if absent.
+_DS3_ROUTE_CACHE = {}
+
+
+def load_ds3_boss_route(base_dir):
+    if base_dir not in _DS3_ROUTE_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "boss_route.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_ROUTE_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_ROUTE_CACHE[base_dir] = {}
+    return _DS3_ROUTE_CACHE[base_dir]
+
+
+## @brief Load the DS3 NPC-questline table (db_ds3/questlines.json): NPC/source →
+#  list of @c [distance, bit, reward] — one per reward that NPC hands out, each a
+#  "you received this" event flag in the common group 50006. The group-50006 save
+#  base (86639, region-relative) was derived empirically from a Hawkwood Heavy-Gem
+#  differential (the map-flag `k*0x500` bases don't cover the common groups) and
+#  verified against a real save. A set flag means that reward was obtained — a
+#  questline-progress floor. Cached. Returns {} if absent.
+_DS3_QUEST_CACHE = {}
+
+
+def load_ds3_questlines(base_dir):
+    if base_dir not in _DS3_QUEST_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "questlines.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_QUEST_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_QUEST_CACHE[base_dir] = {}
+    return _DS3_QUEST_CACHE[base_dir]
+
+
+## @brief Load the DS3 world item-pickup table (db_ds3/item_pickups.json): area →
+#  list of @c [distance, bit, item] — one per one-off item lying in that area, each a
+#  "you picked this up" event flag in the world groups 533xx–540xx. Only SIX groups
+#  are in the file, the ones whose save base could be derived by windowed ladder
+#  timing (an item's flag must read 0 in every snapshot before the character first
+#  held it and 1 in every snapshot after, plus no flag in the group may ever clear);
+#  all six landed on the published `k*0x500 + 111` grid, which is independent
+#  corroboration. Groups whose base is still unknown are ABSENT rather than guessed —
+#  a wrong base invents pickups. Cached. Returns {} if absent.
+_DS3_PICKUP_CACHE = {}
+
+
+def load_ds3_pickups(base_dir):
+    if base_dir not in _DS3_PICKUP_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "item_pickups.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_PICKUP_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_PICKUP_CACHE[base_dir] = {}
+    return _DS3_PICKUP_CACHE[base_dir]
+
+
+## @brief Load the DS3 covenant table (db_ds3/covenants.json,
+#  {covenant: [[region distance, bit, what it proves]]}). Built from the same
+#  item-pickup flag list as the questlines, on the group-6 base (879) derived from a
+#  real Rosaria's-Fingers join differential and confirmed by the whole ladder reading
+#  chronologically (Way of Blue and Warrior of Sunlight appearing together at the
+#  High Wall → Undead Settlement step, Blue Sentinels at Road of Sacrifices, Rosaria
+#  only in the final save, and no DLC or rank flags anywhere). A set flag means the
+#  covenant was found, or that rank reward collected — a floor, like the questlines.
+#  Cached. Returns {} if absent.
+_DS3_COV_CACHE = {}
+
+
+def load_ds3_covenants(base_dir):
+    if base_dir not in _DS3_COV_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "covenants.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_COV_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_COV_CACHE[base_dir] = {}
+    return _DS3_COV_CACHE[base_dir]
+
+
+## @brief DS3 held-item record size and the offset of the quantity within it.
+DS3_RECORD, DS3_QTY_OFF = 16, 4
+
+
+## @brief DS3 stat block as signed distances from the Vigor field (the anchor).
+#  Storage order is NOT the level-up display order: eight contiguous uint32
+#  (Vigor, Attunement, Endurance, Strength, Dexterity, Intelligence, Faith, Luck),
+#  then Vitality alone after a two-field gap. Listed here in display order pointing
+#  at the true distances. Calibrated against a real lopsided build (Joy, STR 18 /
+#  VIT 14 / LCK 11 read out as VIT 18 / STR 9 / LCK 14 under the old naive mapping,
+#  which the order-independent level-sum identity could not catch).
+DS3_STAT_D = OrderedDict([
+    ("Vigor", 0), ("Attunement", 4), ("Endurance", 8), ("Vitality", 40),
+    ("Strength", 12), ("Dexterity", 16), ("Intelligence", 20), ("Faith", 24),
+    ("Luck", 28)])
+
+
+## @brief DS3 max HP, FP, stamina, soul level and souls, same anchor-relative scheme.
+#  HP/FP/stamina each store a current+max triple; these offsets point at the MAX
+#  copy (a lopsided real save read HP 728 max / 681 current at -40 / -36 — we take
+#  the max). FP at -28 verified 72 at ATN 6 and 450 at a high-attunement char.
+DS3_HP_D, DS3_FP_D, DS3_STAM_D, DS3_LEVEL_D, DS3_SOULS_D = -40, -28, -12, 44, 48
+
+
+## @brief DS3 embered flag: a lone uint8 at +188 in the stat-mirror struct behind the
+#  stat anchor — 1 = embered, 0 = hollow. Embered restores the ~30% Max HP bonus (which
+#  is why the stored Max HP at DS3_HP_D reads base*1.3 while this byte is 1), so reading
+#  it labels whether the Max HP figure is the embered or the base value. Pinned by a real
+#  Joy differential (using an Ember flipped 0->1 and Max HP 817->1062 = *1.30) and
+#  cross-checked on the all-items mule: its two embered slots read 1 with HP = base*1.3
+#  (vig 99, 1400->1819) and its hollow slot reads 0 with base HP (vig 16, 594) — both
+#  polarities, HP corroborating each. Guarded to {0,1}; any other value omits the field.
+DS3_EMBER_D = 188
+
+
+## @brief DS3 covenant: a uint32 EQUIP HANDLE at +3944 from the stat anchor, not a
+#  small enum — the game models the covenant as a worn accessory, so the field holds
+#  0xA00027xx and the covenant's own item id is the low 28 bits (Rosaria's Fingers
+#  0xA0002760 -> 10080). Ids and names come from the TGA Cheat Engine table's
+#  "Current Covenant" dropdown. Pinned by a real Joy join differential: the two saves
+#  are 37 seconds apart with the same level, bonfires and souls, and joining Rosaria's
+#  Fingers is the only thing that happened — the handle appears EXACTLY ONCE in the
+#  after save and NOT AT ALL in the before one. Cross-checked across the whole ladder
+#  (all 27 earlier saves read 0 = no covenant) and against the all-items mule, whose
+#  two cheated slots hold values that are not covenant ids at all and are dropped by
+#  the table lookup rather than printed.
+DS3_COVENANT_D = 3944
+
+
+DS3_COVENANT = {10000: "Blade of the Darkmoon", 10020: "Watchdogs of Farron",
+                10030: "Aldrich Faithful", 10040: "Warrior of Sunlight",
+                10050: "Mound-makers", 10060: "Way of Blue",
+                10070: "Blue Sentinels", 10080: "Rosaria's Fingers",
+                10090: "Spears of the Church"}
+
+
+## @brief DS3's soul-level identity: level == (sum of all nine attributes) - 89.
+#  Deprived (all 10, sum 90) is level 1, and it holds at every level. This is the
+#  content check that pins the stat block without a per-patch offset table.
+DS3_LEVEL_BASE = 89
+
+
+## @brief Shortest run of consecutive records that counts as real inventory. Long
+#         enough to shrug off a stray id landing in unrelated data.
+SCAN_MIN_RUN = 3
+
+
+## @brief Largest gap (bytes) a run may bridge. The inventory is a 16-byte record
+#  grid, but records holding an UNTABLED id (not in our db) leave holes, so two
+#  known records can sit 32/48 bytes apart with the hole(s) between them. Bridging
+#  a gap that is a multiple of @c DS3_RECORD up to this bound keeps such a run
+#  whole, so an item flanked by unknowns on both sides (an island the strict
+#  stride-16 rule dropped) is still read. Observed holes are single-record (gap
+#  32); the extra record of slack tolerates a rare double hole. Kept small so the
+#  run can't leap to unrelated on-grid coincidences. (Found via a Soul of a Stray
+#  Demon that read out present in the buffer but vanished from the list, wedged
+#  between two untabled items.)
+DS3_MAX_RUN_GAP = 48
+
+
+## @brief DS3 goods ids carry a type prefix (0x40000000); the real id is what the
+#  game's own EquipParamGoods table uses, and it blocks out cleanly by kind. Splitting
+#  `goods` on those blocks gives DS3 the same finer categories DS2 already renders
+#  (upgrade / consumables / online / keys / boss souls) instead of one 100-row dump.
+#  Ranges read off the table itself (`db_ds3/goods.json`, sorted by id), not guessed:
+#  100..119 soapstones+orbs+Darksign, 240..519 the whole consumable block, 520..524
+#  the multiplayer carvings, 700..799 boss souls, 1000..1030 titanite, 1100..1250
+#  infusion gems, 2001..2014 door keys, 2101..2159 tomes/coals/ashes/banners.
+DS3_GOODS_ID_BASE = 0x40000000
+
+
+DS3_GOODS_RANGES = ((100, 149, "online"), (150, 519, "consumables"),
+                    (520, 599, "online"), (600, 699, "consumables"),
+                    (700, 799, "bosssouls"), (1000, 1299, "upgrade"),
+                    (2000, 2199, "keys"))
+
+
+## @brief The two flask upgrades that sit in the key-item block but are materials.
+DS3_GOODS_OVERRIDE = {117: "consumables",                 # Darksign (not a summon item)
+                      2141: "upgrade", 2143: "upgrade"}   # Estus Shard, Bone Shard
+
+
+## @brief Refine a DS3 `goods` id to its finer category (see @ref DS3_GOODS_RANGES).
+#  An id outside every block keeps `goods`, so an unmapped one is still printed.
+def ds3_goods_cat(iid):
+    real = iid - DS3_GOODS_ID_BASE
+    if real in DS3_GOODS_OVERRIDE:
+        return DS3_GOODS_OVERRIDE[real]
+    for lo, hi, cat in DS3_GOODS_RANGES:
+        if lo <= real <= hi:
+            return cat
+    return "goods"
+
+
+##
+# @brief Find inventory by scanning for known item ids in fixed-size records.
+# @details Collects every offset whose uint32 is a known id, groups those on the
+# same 16-byte record grid into runs (bridging holes left by untabled items, up to
+# @ref DS3_MAX_RUN_GAP), and keeps runs of at least @c SCAN_MIN_RUN. Each surviving
+# record contributes its id and quantity. Duplicate ids are summed. A quantity
+# outside a sane range drops the record — a cheap guard against a false run of
+# look-alike bytes.
+# @param buf  The decrypted slot data.
+# @param iddb The flat id lookup from @ref load_scan_db.
+# @return @c (buckets, unknown_count), buckets mapping category to @c (name, qty).
+def scan_inventory(buf, iddb):
+    positions = [o for o in range(0, len(buf) - 8)
+                 if int.from_bytes(buf[o:o + 4], "little") in iddb]
+    buckets, seen, unknown = defaultdict(dict), set(), 0
+    i, n = 0, len(positions)
+    while i < n:
+        j = i
+        while j + 1 < n:
+            d = positions[j + 1] - positions[j]
+            if d % DS3_RECORD == 0 and d <= DS3_MAX_RUN_GAP:
+                j += 1
+            else:
+                break
+        if j - i + 1 >= SCAN_MIN_RUN:
+            # Walk the run's whole record grid, not just the positions that matched
+            # the table — the holes between them are real records too, and a held
+            # weapon sits in one whenever it is reinforced (the inventory stores the
+            # exact base+infusion*100+level id, so only a +0 weapon is a direct hit).
+            # The run itself is still built from direct hits alone, so this can only
+            # ADD items, never move a run boundary and drop one.
+            for o in range(positions[i], positions[j] + 1, DS3_RECORD):
+                if o in seen:
+                    continue
+                seen.add(o)
+                iid = int.from_bytes(buf[o:o + 4], "little")
+                qty = u32(buf, o + DS3_QTY_OFF) or 0
+                if not 1 <= qty <= 9999:
+                    continue
+                entry = iddb.get(iid)
+                if entry is None:
+                    reinf = ds3_resolve_weapon(iddb, iid)
+                    estus = None if reinf else ds3_resolve_estus(iid)
+                    if reinf is None and estus is None:
+                        unknown += 1
+                        continue
+                    entry = (reinf, "weapons") if reinf else (estus, "consumables")
+                name, cat = entry
+                bucket = buckets[cat]
+                bucket[name] = bucket.get(name, 0) + qty
+        i = j + 1
+    return {c: list(v.items()) for c, v in buckets.items()}, unknown
+
+
+##
+# @brief Locate the DS3 stat block by content, or None if none validates.
+# @details DS3's stat offsets move between patches, so the block is not read from
+# a fixed offset — it is found. For each 4-aligned position, treat the next nine
+# uint32 as the attributes and accept only where each is 1..99 *and* their sum
+# minus @ref DS3_LEVEL_BASE equals the stored soul level. That identity is DS3's
+# own level formula, so a coincidental match on unrelated bytes is not credible.
+# @param buf The decrypted slot data.
+# @return The Vigor-field offset (the anchor), or None.
+def ds3_find_stats(buf):
+    dists = list(DS3_STAT_D.values())
+    v, end = 0, len(buf) - DS3_SOULS_D - 4
+    while v < end:
+        first = u32(buf, v)
+        if first is not None and 1 <= first <= 99:
+            vals = [u32(buf, v + d) for d in dists]
+            lvl = u32(buf, v + DS3_LEVEL_D)
+            if (all(x is not None and 1 <= x <= 99 for x in vals)
+                    and lvl is not None and 1 <= lvl <= 802
+                    and sum(vals) - DS3_LEVEL_BASE == lvl):
+                return v
+        v += 4
+    return None
+
+
+## @brief DS3 embered state for a slot, or None. @param v The stat anchor from
+#  @ref ds3_find_stats (None → feature off). Reads the @ref DS3_EMBER_D byte and only
+#  trusts a clean boolean: 1 → True (embered), 0 → False (hollow), anything else → None
+#  (never guess). @return True/False, or None when unlocated or out of range.
+def ds3_embered(buf, v):
+    if v is None:
+        return None
+    e = u8(buf, v + DS3_EMBER_D)
+    return True if e == 1 else False if e == 0 else None
+
+
+## @brief DS3 covenant name for a slot, or None. @param v The stat anchor from
+#  @ref ds3_find_stats (None → feature off). The field is an equip handle, so the
+#  covenant id is its low 28 bits and only ids in @ref DS3_COVENANT are named —
+#  0 means no covenant, and a cheated slot's junk handle resolves to nothing and is
+#  omitted rather than guessed. @return The covenant name, or None.
+def ds3_covenant(buf, v):
+    if v is None:
+        return None
+    h = u32(buf, v + DS3_COVENANT_D)
+    return DS3_COVENANT.get(h & 0x0FFFFFFF) if h else None
+
+
+## @brief EquipGameData sits a fixed 664 bytes past the stat (Vigor) anchor —
+#  invariant across saves whose anchor itself moves (56124..75156 on the Joy
+#  ladder), so it is read at a fixed anchor-relative offset, not searched for.
+DS3_EQUIP_D = 664
+
+
+## @brief Armour sub-offsets inside EquipGameData (base +0x20..+0x2C), in the
+#  game's own head-to-toe order. Each holds a GaItem *handle*, not an id.
+DS3_ARMOR_SLOTS = OrderedDict(
+    [("Head", 0x20), ("Chest", 0x24), ("Hands", 0x28), ("Legs", 0x2C)])
+
+
+## @brief The four ring sub-offsets inside EquipGameData (base +0x34..+0x40).
+DS3_RING_SLOTS = (0x34, 0x38, 0x3C, 0x40)
+
+
+## @brief The ammo sub-offsets (Arrow 1 / Bolt 1 / Arrow 2 / Bolt 2) at base
+#  +0x08..+0x14 — GaItem handles like weapons/armour (arrows and bolts share the
+#  db's `bolts` category).
+DS3_AMMO_SLOTS = (0x08, 0x0C, 0x10, 0x14)
+
+
+## @brief The six weapon sub-offsets, in the game's own two-hand-by-slot order.
+#  The struct interleaves the hands (LH1, RH1, LH2, RH2, LH3, RH3) starting
+#  0x10 BEFORE the armour base — so relative to @ref DS3_EQUIP_D the right hand
+#  is -0x0C/-0x04/+0x04 and the left is -0x10/-0x08/+0x00. Each holds a GaItem
+#  *handle*, resolved through the same map as armour/ammo. Pinned by a real
+#  weapon-swap differential (a Deep Battle Axe moved right→left read out at
+#  RH1 then LH1, everything else unchanged), retiring the old "hand slots
+#  unverifiable" blocker. The id carries the infusion (Deep = base+900), so an
+#  infused weapon names itself; the +N reinforcement lives in the 52-byte
+#  weapon record and is still not read.
+DS3_WEAPON_SLOTS = OrderedDict(
+    [("Right Hand", -0x0C), ("Right Hand 2", -0x04), ("Right Hand 3", 0x04),
+     ("Left Hand", -0x10), ("Left Hand 2", -0x08), ("Left Hand 3", 0x00)])
+
+
+## @brief Item id of the default bare fist (an empty weapon slot reads this, not
+#  a null handle), so a slot resolving to it is skipped as "unarmed".
+DS3_FISTS = 110000
+
+
+## @brief Max reinforcement level, a sanity bound on the id-baked "+N".
+DS3_REINF_MAX = 10
+
+
+##
+# @brief Resolve an equipped DS3 weapon id to a name, unwrapping the baked "+N".
+# @details The GaItem array stores a weapon at its EXACT id, and reinforcement is
+# folded into that id as @c base+infusion*100+level (the same scheme DS1 uses; a
+# Deep Battle Axe +0/+1 read out as 7010900/7010901). Unlike DS1, the DS3 db keys
+# every infusion by name (7010900 → "Deep Battle Axe"), so only the LEVEL (the
+# units) is stripped — the base-infusion id already carries the infusion name. A
+# direct hit wins; otherwise the level is peeled off and a " +N" suffix appended.
+# The infusion itself is thus named for free; the level shows when > 0.
+# @param iddb The flat DS3 id lookup.
+# @param iid  The exact equipped-weapon id.
+# @return The display name, or None if it is not a (base) weapon.
+def ds3_resolve_weapon(iddb, iid):
+    entry = iddb.get(iid)
+    if entry and entry[1] == "weapons":
+        return entry[0]
+    level = iid % 100
+    if not 1 <= level <= DS3_REINF_MAX:
+        return None
+    base = iddb.get(iid - level)
+    return f"{base[0]} +{level}" if base and base[1] == "weapons" else None
+
+
+## @brief The two Estus flasks' base goods ids, and the reinforcement ceiling.
+#  Like weapons, a flask's level is baked into its id, but it takes TWO consecutive
+#  ids per level (150/151 = Estus +0, 152/153 = +1 … 170/171 = +10; 190/191 = Ashen
+#  +0 … 210/211 = +10), so the flask is resolved arithmetically rather than listed —
+#  a name-keyed db cannot hold one name under two ids. Verified across Joy's 38-save
+#  ladder, where the id steps 151 → 153 → 155 → 157 → 159 (and the Ashen id 190 → 192
+#  → 194 → 196 → 198 in lockstep), each step inside a 12-15 second window — one visit
+#  to Andre. Both members of a pair really occur: the all-items mule holds 171/211
+#  (both +10) and 151/191, which is what pins the pairing and the endpoints.
+DS3_GOODS_TYPE = 0x40000000
+
+
+DS3_ESTUS = ((150, "Estus Flask"), (190, "Ashen Estus Flask"))
+
+
+DS3_ESTUS_MAX = 10
+
+
+##
+# @brief Resolve a DS3 goods id to an Estus flask name with its @c +N, or None.
+# @details Only consulted after the id-scan table misses, so it can never shadow a
+# real listed good. @param iid The exact goods id. @return The name, or None.
+def ds3_resolve_estus(iid):
+    raw = iid - DS3_GOODS_TYPE
+    for base, name in DS3_ESTUS:
+        level = (raw - base) // 2
+        if raw >= base and 0 <= level <= DS3_ESTUS_MAX:
+            return name if level == 0 else f"{name} +{level}"
+    return None
+
+
+## @brief A ring's equip handle encodes its own id: the low 28 bits are shared
+#  and the type nibble is 0xA where the goods/ring id's is 0x2 — so the id is
+#  the handle with its top nibble rewritten to 2 (verified 4/4 on the Joy ring
+#  set: 0xa0004e20 → 0x20004e20 = Life Ring, etc.). Rings are NOT in the GaItem
+#  array (that array is weapons/armour only), which is why they need this direct
+#  transform instead of a handle lookup.
+DS3_RING_ID_MASK = 0x0FFFFFFF
+
+
+DS3_RING_ID_TYPE = 0x20000000
+
+
+##
+# @brief Map every GaItem *handle* to its item id by walking the GaItem array.
+# @details Equip slots reference items by handle; the array (same walk the
+# event-flag base uses) is the handle→id table. Big records (weapon/armour
+# types) are 60 bytes, everything else 8. Stops at the first unreadable slot.
+# @param buf The decrypted slot.
+# @return { handle: item_id } for every populated entry.
+def ds3_gaitem_map(buf):
+    out, off = {}, DS3_GAITEM_START
+    for _ in range(DS3_GAITEM_SLOTS):
+        handle = u32(buf, off)
+        if handle is None:
+            break
+        iid = u32(buf, off + 4)
+        if handle and iid:
+            out[handle] = iid
+        big = handle and (handle & 0xF0000000) in DS3_GAITEM_TYPES_BIG
+        off += DS3_GAITEM_BIG if big else 8
+    return out
+
+
+##
+# @brief Equipped weapons (up to three per hand) from EquipGameData.
+# @details Reads the six handles at @ref DS3_WEAPON_SLOTS, resolves each through
+# the GaItem map, and keeps a slot only when it lands on a real *weapons* item
+# that is not the bare @ref DS3_FISTS (an empty hand reads Fists, not a null
+# handle). Right/left labelling is verified by a weapon-swap differential; the
+# resolved id carries both the infusion (a Deep weapon names itself) and the
+# reinforcement, which @ref ds3_resolve_weapon peels off as a " +N" suffix
+# (verified by a Deep Battle Axe +0→+1 differential: id 7010900 → 7010901).
+# @param buf  The decrypted slot.
+# @param iddb The flat DS3 id lookup.
+# @param v    The stat anchor (None → feature off).
+# @return { slot label: weapon name } for each occupied, resolvable slot.
+def ds3_equipped_weapons(buf, iddb, v):
+    if v is None:
+        return {}
+    hmap = ds3_gaitem_map(buf)
+    base = v + DS3_EQUIP_D
+    out = OrderedDict()
+    for slot, d in DS3_WEAPON_SLOTS.items():
+        handle = u32(buf, base + d)
+        iid = hmap.get(handle) if handle else None
+        if not iid or iid == DS3_FISTS:
+            continue
+        name = ds3_resolve_weapon(iddb, iid)
+        if name:
+            out[slot] = name
+    return out
+
+
+##
+# @brief Equipped armour (the four protection slots) from EquipGameData.
+# @details Reads the four handles at @ref DS3_ARMOR_SLOTS, resolves each
+# through the GaItem map, and keeps it only when it lands on a real *armour*
+# item — a self-consistency gate: an equipped piece is one you own, and the
+# category proves the slot read a protector and not a stray weapon/ring
+# handle. Verified across the Joy ladder, including a Northern→Fallen Knight
+# set change and a lone gauntlet swap, so the slots track real gear. Weapons,
+# rings and the covenant slot are NOT read: their save layout does not match
+# the runtime editor tables (the +0x50 slot holds a left-hand weapon, not the
+# covenant), and pinning them needs a swap differential — omitted, not guessed.
+# @param buf  The decrypted slot.
+# @param iddb The flat DS3 id lookup.
+# @param v    The stat anchor (None → feature off).
+# @return { slot: armour name } for each occupied, resolvable slot (may be empty).
+def ds3_equipped_armor(buf, iddb, v):
+    if v is None:
+        return {}
+    hmap = ds3_gaitem_map(buf)
+    base = v + DS3_EQUIP_D
+    out = OrderedDict()
+    for slot, d in DS3_ARMOR_SLOTS.items():
+        handle = u32(buf, base + d)
+        iid = hmap.get(handle) if handle else None
+        entry = iddb.get(iid) if iid else None
+        if entry and entry[1] == "armors":
+            out[slot] = entry[0]
+    return out
+
+
+##
+# @brief Equipped rings (up to four) from EquipGameData.
+# @details Each ring slot holds an accessory *handle* whose id is the handle
+# with its type nibble rewritten from 0xA to 0x2 (@ref DS3_RING_ID_TYPE) — rings
+# are not in the GaItem array, so this direct transform stands in for a lookup.
+# A slot is kept only when the derived id is a real *rings* item (self-consistency
+# gate). The transform also carries a ring's reinforcement, so a +N ring names
+# itself (the all-items mule reads "Ring of Steel Protection +3"). Verified across
+# the Joy ladder, tracking her 2→4 ring growth.
+# @param buf  The decrypted slot.
+# @param iddb The flat DS3 id lookup.
+# @param v    The stat anchor (None → feature off).
+# @return An ordered list of ring names (may be empty).
+def ds3_equipped_rings(buf, iddb, v):
+    if v is None:
+        return []
+    base = v + DS3_EQUIP_D
+    out = []
+    for d in DS3_RING_SLOTS:
+        handle = u32(buf, base + d)
+        if not handle:
+            continue
+        iid = (handle & DS3_RING_ID_MASK) | DS3_RING_ID_TYPE
+        entry = iddb.get(iid)
+        if entry and entry[1] == "rings":
+            out.append(entry[0])
+    return out
+
+
+##
+# @brief Equipped ammunition (the arrow/bolt quiver slots) from EquipGameData.
+# @details The four slots at @ref DS3_AMMO_SLOTS hold GaItem handles resolved
+# through the same handle→id map as armour; a slot is kept only when it lands on
+# a `bolts` item (the db's shared arrow/bolt category), which gates out an empty
+# or non-ammo slot. Verified on the Joy ladder (Standard Arrow/Bolt) and the
+# all-items mule (Millwood Greatarrow, Exploding Bolt, …).
+# @param buf  The decrypted slot.
+# @param iddb The flat DS3 id lookup.
+# @param v    The stat anchor (None → feature off).
+# @return An ordered list of ammo names (may be empty).
+def ds3_equipped_ammo(buf, iddb, v):
+    if v is None:
+        return []
+    hmap = ds3_gaitem_map(buf)
+    base = v + DS3_EQUIP_D
+    out = []
+    for d in DS3_AMMO_SLOTS:
+        handle = u32(buf, base + d)
+        iid = hmap.get(handle) if handle else None
+        entry = iddb.get(iid) if iid else None
+        if entry and entry[1] == "bolts":
+            out.append(entry[0])
+    return out
+
+
+##
+# @brief Parse one DS3 slot into the unified dict (full tier where stats validate).
+# @details Inventory comes from the id-scan; the name is supplied by the caller
+# from the load-screen roster. Stats are located by content (@ref ds3_find_stats)
+# and, when the level identity confirms them, promote the slot to full tier. When
+# it does not (an unrecognised patch), stats are dropped and the slot stays
+# inventory tier — a missing number beats a wrong one. Origin class and NG+ are
+# not calibrated and are omitted. Returns None when the slot has no inventory.
+# @param buf  The decrypted slot data.
+# @param iddb The flat DS3 id lookup.
+# @param name The character name from the roster, or None.
+# @return A unified character dict, or None if the slot is empty.
+def ds3_parse(buf, iddb, name):
+    inv = scan_inventory(buf, iddb)[0]
+    if not inv:
+        return None
+    # Boss souls stay in the inventory (their own category, as in DS2) but are also
+    # handed to the kill inference; key items follow DS2 and move out of the
+    # inventory entirely, since the Key Items section already prints them.
+    goods = inv.get("bosssouls", []) + inv.get("goods", [])
+    key_items = inv.pop("keys", [])
+    v = ds3_find_stats(buf)
+    stats = OrderedDict((k, u32(buf, v + d)) for k, d in DS3_STAT_D.items()) \
+        if v is not None else OrderedDict()
+    return {
+        "tier": "full" if stats else "inventory", "game": "ds3",
+        "name": name if (name and is_valid_name(name)) else "(unnamed slot)",
+        "klass": None, "stats": stats, "soul_memory": None, "humanity": None,
+        "ng_plus": None,
+        "level": u32(buf, v + DS3_LEVEL_D) if v is not None else None,
+        "souls": u32(buf, v + DS3_SOULS_D) if v is not None else None,
+        "stamina": u32(buf, v + DS3_STAM_D) if v is not None else None,
+        "hp": u32(buf, v + DS3_HP_D) if v is not None else None,
+        "fp": u32(buf, v + DS3_FP_D) if v is not None else None,
+        "embered": ds3_embered(buf, v),
+        "covenant": ds3_covenant(buf, v),
+        "equipped_weapons": ds3_equipped_weapons(buf, iddb, v),
+        "equipped_armor": ds3_equipped_armor(buf, iddb, v),
+        "equipped_rings": ds3_equipped_rings(buf, iddb, v),
+        "equipped_ammo": ds3_equipped_ammo(buf, iddb, v),
+        "boss_souls": find_boss_souls(goods), "key_items": key_items,
+        "inv": inv, "unknown_count": 0,
+    }
+
+
+## @brief DS3 id-scan tables: filename stem to category.
+DS3_DB_FILES = {"weapons": "weapons", "armors": "armors", "rings": "rings",
+                "goods": "goods", "bolts": "bolts", "spells": "spells"}
+
+
+## @brief Play time (seconds, uint32) inside slot @p i's DS3 roster descriptor.
+#  The status block does not carry it — it lives in the header menu block, at the
+#  same per-slot descriptor as the name, @c +38 past the descriptor start. Pinned
+#  by a ~17-minute differential (a real Joy save, 7573 s -> 8603 s, matching an
+#  on-screen 2:23:24). Per-character (one descriptor per slot).
+DS3_ROSTER_PLAYTIME_OFF = 38
+
+
+def ds3_playtime(menu_data, i):
+    p = ROSTER_PARAMS["ds3"]
+    return u32(menu_data, p["desc"] + p["stride"] * i + DS3_ROSTER_PLAYTIME_OFF)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  DS3 event flags — bonfires discovered + bosses defeated (read from the save)
+# ─────────────────────────────────────────────────────────────────────────────
+# DS3 serialises event flags in a large region inside each character slot, located
+# by walking the variable-length blocks that precede it (the GaItem array, then
+# inventory / storage / gesture / NG+ headers). Offsets/constants come from the
+# alfizari DS3 save editor (main_ds3.py parse_save) and were verified against a real
+# save: Joy reads Iudex Gundyr defeated + Cemetery-of-Ash / High-Wall bonfires and
+# NOTHING else — zero false positives across 25 bosses and 12 areas on two backups.
+# This retires the old "DS3 flags aren't in the save" blocker.
+#
+# Our decrypted slot drops the 4-byte length prefix alfizari's buffer keeps, so every
+# absolute offset is theirs minus 4: the GaItem walk starts at 0x6C (their 0x70); the
+# rest is block-relative and self-corrects.
+DS3_GAITEM_START = 0x6C
+
+
+DS3_GAITEM_SLOTS = 6144
+
+
+DS3_GAITEM_BIG = 60                                 # weapon/armour record; all else 8
+
+
+DS3_GAITEM_TYPES_BIG = (0x80000000, 0x90000000)     # weapon, armour top nibbles
+
+
+# Event flags are sparse: even a 100%-complete NG+ character sets only ~0.2% of the
+# region's bits (the all-items mule's finished slot measures 0.0022, a real mid-game
+# save 0.0023). Ordinary save data is far denser, so a base that lands off the region
+# gives itself away — the mule's OTHER slot walks to a wrong base and measures 0.0285,
+# where the flag reads degenerate into solid runs of consecutive "set" flags. Without
+# this gate that slot invented four covenants and a Stray Demon kill. The threshold is
+# ~4x the highest real reading and ~3x below the bad one, so it is a wide separation,
+# not a fitted one. Same defence as DS1's DS1_FLAG_MAX_DENSITY.
+DS3_FLAG_MAX_DENSITY = 0.01
+
+
+DS3_FLAG_SAMPLE = 0x8000
+
+
+##
+# @brief Locate the DS3 event-flag region base in a decrypted slot, or None.
+# @details Walks the same block chain the alfizari editor uses. Every read is
+# bounds-checked (u32 returns None past the buffer), so a short or edited save turns
+# the feature off rather than reading garbage. The located base is then sanity-checked
+# on bit density (see @ref DS3_FLAG_MAX_DENSITY) — a mislocated base reads dense and is
+# rejected, turning every flag feature off for that slot rather than inventing progress.
+# @return The base offset, or None.
+def ds3_event_flag_base(buf):
+    off = DS3_GAITEM_START
+    for _ in range(DS3_GAITEM_SLOTS):
+        handle = u32(buf, off)
+        if handle is None:
+            return None
+        big = handle and (handle & 0xF0000000) in DS3_GAITEM_TYPES_BIG
+        off += DS3_GAITEM_BIG if big else 8
+    above_counter = off + 0x13F + 0x1DD + 0x8808 + 0x11C
+    above_size = u32(buf, above_counter)
+    if above_size is None:
+        return None
+    gesture_end = above_counter + 4 + above_size * 8 + 0x18C + 0x4 + 0x8800 + 0xC + 0xA4
+    table2_size = u32(buf, gesture_end)
+    if table2_size is None:
+        return None
+    base = gesture_end + 4 + table2_size * 4 + 0x92 + 0xBCC - 0x12
+    if not 0 <= base < len(buf):
+        return None
+    sample = buf[base:base + DS3_FLAG_SAMPLE]
+    if not sample:
+        return None
+    density = sum(bin(b).count("1") for b in sample) / (len(sample) * 8)
+    return base if density <= DS3_FLAG_MAX_DENSITY else None
+
+
+##
+# @brief Read DS3 bonfires + boss-defeat flags off the event-flag region and attach
+#        them to @p ch: @c bonfire_areas as [(area, count, [names])] — every lit
+#        bonfire named from @ref load_ds3_bonfires — and merge @c flag boss evidence
+#        into @c ch["bosses"] (deduping with any soul/gate evidence already there,
+#        from both the per-map and the group-6 victory tables), and @c cinders as the
+#        Lords of Cinder whose ashes are on the throne.
+#        No-op if @p base is None (region not located). @param base The event-flag
+#        base from @ref ds3_event_flag_base. @param base_dir Repo root for the db.
+def ds3_attach_flags(ch, buf, base, base_dir):
+    if base is None:
+        return
+    areas, any_lit = [], False
+    for area, bonfires in load_ds3_bonfires(base_dir).items():
+        named, missing = [], []
+        for dist, bit, name in bonfires:
+            val = u8(buf, base + dist)
+            (named if val is not None and val & (1 << bit) else missing).append(name)
+        any_lit = any_lit or bool(named)
+        areas.append((area, len(named), named, len(bonfires), missing))
+    # Every area is kept, lit or not — an area reading 0/5 is the useful half of the
+    # report. Only a slot with nothing lit anywhere gets no section at all.
+    if any_lit:
+        ch["bonfire_areas"] = areas
+    bosses = {b: set(s) for b, s in (ch.get("bosses") or {}).items()}
+    for table in (load_ds3_boss_flags(base_dir), load_ds3_boss_victory(base_dir)):
+        for name, (dist, bit) in table.items():
+            val = u8(buf, base + dist)
+            if val is not None and val & (1 << bit):
+                bosses.setdefault(name, set()).add("flag")
+    if bosses:
+        ch["bosses"] = {b: sorted(bosses[b]) for b in bosses}
+    cinders = [lord for lord, (dist, bit) in load_ds3_lord_cinders(base_dir).items()
+               if (u8(buf, base + dist) or 0) & (1 << bit)]
+    if cinders:
+        ch["cinders"] = cinders
+    quests = OrderedDict()
+    for src, rewards in load_ds3_questlines(base_dir).items():
+        got = [rw for dist, bit, rw in rewards
+               if (u8(buf, base + dist) or 0) & (1 << bit)]
+        if got:
+            quests[src] = got
+    if quests:
+        ch["questlines"] = quests
+    # World pickups: only the areas whose flag group has a derived base are in the
+    # table at all, so an area missing here means "not tracked", never "nothing found".
+    picks, any_found = [], False
+    for area, items in load_ds3_pickups(base_dir).items():
+        got, missing = [], []
+        for dist, bit, item in items:
+            val = u8(buf, base + dist)
+            (got if val is not None and val & (1 << bit) else missing).append(item)
+        any_found = any_found or bool(got)
+        picks.append((area, len(got), len(items), missing))
+    if any_found:
+        ch["pickups"] = picks
+
+    covs = OrderedDict()
+    for cov, marks in load_ds3_covenants(base_dir).items():
+        got = [what for dist, bit, what in marks
+               if (u8(buf, base + dist) or 0) & (1 << bit)]
+        if got:
+            covs[cov] = got
+    if covs:
+        ch["covenants"] = covs
+
+
+## @brief DS3 New Game+ cycle (journey count), a uint16 just before the event-flag
+#  region, or None. new_game_plus sits at @c base + 0x12 - 0xBCC (base is that region
+#  less 0x12 — see @ref ds3_event_flag_base). Guarded to a sane range: a cheated mule
+#  read 0xFFFF here, so an out-of-range value is omitted rather than printed wrong.
+#  Verified: Joy = 0 (New Game), a real NG+1 char = 1. @return The cycle, or None.
+DS3_NG_MAX = 99
+
+
+def ds3_journey(buf, base):
+    if base is None:
+        return None
+    ng = u16(buf, base + 0x12 - 0xBCC)
+    return ng if ng is not None and 0 <= ng <= DS3_NG_MAX else None

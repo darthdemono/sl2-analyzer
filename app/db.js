@@ -116,7 +116,7 @@ async function loadDs3(getJSON) {
     jgetAll(getJSON, ["db_ds3/boss_souls.json", "db_ds3/bonfires.json", "db_ds3/boss_flags.json",
                       "db_ds3/questlines.json", "db_ds3/covenants.json",
                       "db_ds3/boss_victory.json", "db_ds3/lord_cinders.json",
-                      "db_ds3/boss_route.json"]),
+                      "db_ds3/boss_route.json", "db_ds3/item_pickups.json"]),
   ]);
   // name-keyed decimal, flat id→[name,cat], first-wins.
   const table = new Map();
@@ -132,7 +132,7 @@ async function loadDs3(getJSON) {
   return { items: table, bossSouls: extra[0] || {}, bonfires, bossFlags: extra[2] || {},
            questlines: extra[3] || {}, covenants: extra[4] || {},
            bossVictory: extra[5] || {}, lordCinders: extra[6] || {},
-           bossRoute: extra[7] || {},
+           bossRoute: extra[7] || {}, pickups: extra[8] || {},
            // DS3 groups bonfires by area, so the total is the sum of the area lists.
            bonfireTotal: Object.values(bonfires).reduce((s, a) => s + a.length, 0) };
 }
@@ -160,7 +160,7 @@ const EMPTY = {
                 bossFlags: new Map(), bossSouls: {}, images: {}, bonfireTotal: 0 }),
   ds3: () => ({ items: new Map(), bossSouls: {}, bonfires: {}, bossFlags: {},
                 questlines: {}, covenants: {}, bossVictory: {}, lordCinders: {},
-                bossRoute: {}, bonfireTotal: 0 }),
+                bossRoute: {}, pickups: {}, bonfireTotal: 0 }),
   er: () => ({ items: {}, bossSouls: {} }),
 };
 
@@ -198,7 +198,7 @@ export function dbPathsFor(family) {
     return [...Object.keys(DS3_FILES).map((s) => `db_ds3/${s}.json`),
       "db_ds3/boss_souls.json", "db_ds3/bonfires.json", "db_ds3/boss_flags.json",
       "db_ds3/questlines.json", "db_ds3/covenants.json", "db_ds3/boss_victory.json",
-      "db_ds3/lord_cinders.json", "db_ds3/boss_route.json"];
+      "db_ds3/lord_cinders.json", "db_ds3/boss_route.json", "db_ds3/item_pickups.json"];
   }
   return [...ER_FILES.map((c) => `db_er/${c}.json`), "db_er/boss_souls.json"];
 }

@@ -3,7 +3,7 @@
 // md_for_character + convert's header; verified against the Python .md output by
 // scratch/md_harness.mjs (timestamp line excluded).
 
-import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, DS2_GAMES, fmt, fmtPlaytime } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, DS2_GAMES, fmt, fmtPlaytime, countDupes } from "./tables.js";
 
 const REPO_URL = "https://github.com/darthdemono/sl2-analyzer";
 // DS1 reads each bonfire's own record (so it knows the kindle level and can list a
@@ -13,6 +13,9 @@ const DS3_BONFIRE_NOTE = "bonfires lit, inferred from each area's flag bits — 
 // DS2 reads the world block's own discovered-bonfire array, so it names every one it
 // found; the areas are a grouping of that list, not an inference.
 const DS2_BONFIRE_NOTE = "each bonfire the save records as discovered, by area — a floor";
+// Only six areas have a derived flag-group base, so this counts what is TRACKED, not
+// what the game ships. An area absent from the list is unmapped, not empty.
+const DS3_PICKUP_NOTE = "one-off world items picked up, from each area's pickup flags — covers only the areas whose flag group is mapped";
 
 // Per-game "how it works" note (verbatim from GAMES[...]["how"]) and the header tier.
 const HOW = {
@@ -159,6 +162,18 @@ function mdCharacter(ch, slot) {
     L.push("");
     const note = missingNote("Not found yet", ch.covenants_missing);
     if (note) L.push(note, "");
+  }
+  if (ch.pickups && ch.pickups.length) {
+    const got = ch.pickups.reduce((s2, [, c]) => s2 + c, 0);
+    const total = ch.pickups.reduce((s2, [, , t]) => s2 + t, 0);
+    L.push(`### Items Collected (${got} of ${total} tracked)  _(${DS3_PICKUP_NOTE})_`, "",
+      ...ch.pickups.map(([area, c, tot, missing]) => {
+        let row = `- ${area}: ${c}/${tot}`;
+        // Same rule as bonfires — an area you have started lists what is left in
+        // it; an untouched one would print a walkthrough back at you.
+        if (c && missing && missing.length) row += `  _(missing: ${countDupes(missing).join(" · ")})_`;
+        return row;
+      }), "");
   }
   if (ch.questlines && Object.keys(ch.questlines).length) {
     // Not all of these are NPCs — the same reward flags cover a few landmark

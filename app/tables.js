@@ -246,6 +246,19 @@ export function ds1DerivedStats(stats) {
 }
 
 /** Format a value, or "—" when null. Integers get thousands separators (Python fmt). */
+/**
+ * Collapse repeats in a name list to `name ×N`, keeping first-seen order. An area
+ * holds seven separate mimics and a dozen Titanite Shards, each with its own flag;
+ * printing the name seven times is faithful but unreadable, and the count says the
+ * same thing. Mirrors count_dupes in sl2_to_md.py.
+ * @param {string[]} names
+ */
+export function countDupes(names) {
+  const seen = new Map();
+  for (const n of names) seen.set(n, (seen.get(n) || 0) + 1);
+  return [...seen].map(([n, c]) => (c === 1 ? n : `${n} ×${c}`));
+}
+
 export const fmt = (v) => (v == null ? "—" : typeof v === "number" ? v.toLocaleString("en-US") : String(v));
 
 /** Format a play-time count of seconds as H:MM:SS (hours can exceed 24). */

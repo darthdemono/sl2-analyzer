@@ -5,7 +5,7 @@ This reads a FromSoftware `.sl2` save and tells you what is in it. That is the w
 There are two ways to use it, and they run the exact same reading logic:
 
 - **A web page.** Drop a `.sl2` onto [the site](https://darthdemono.github.io/sl2-analyzer/) and it lays each character out as a replica of that game's own in-game **Level-Up screen** — a framed stat panel skinned to the game, with progress lists and (for DS2) item thumbnails below. It parses the file in your browser. Nothing uploads, nothing hits a server, and the save never leaves your machine.
-- **A Python CLI.** Point `sl2_to_md.py` at a save and it writes one Markdown file describing the run. That is the format an LLM can actually read. A `.sl2` is an encrypted binary blob; paste it into a chat and you get nothing. Paste the Markdown and the model knows where you are in the run instead of guessing at it.
+- **A Python CLI.** Point `sl2_to_md.py` at a save and it writes one Markdown file describing the run (or JSON, against a [published schema](schema.json), if a program is reading it). That is the format an LLM can actually read. A `.sl2` is an encrypted binary blob; paste it into a chat and you get nothing. Paste the Markdown and the model knows where you are in the run instead of guessing at it.
 
 Both read the save and never write to it. Point either one at your live save if you like. The worst case is a bad output file, not a bricked character.
 
@@ -358,6 +358,34 @@ python3 sl2_to_md.py -o playthrough.md
 
 `-o` is the output path, and its folder is created for you if it does not exist. If you leave `-o` off, it writes `playthrough.md` in the current directory. On an unsupported or malformed file the tool prints why and exits non-zero, so it drops cleanly into a script.
 
+### JSON, if something other than a person is reading it
+
+Give `-o` a `.json` extension and you get the same data as a machine-readable document instead of Markdown. `--format json` forces it if your output path does not end in `.json`.
+
+```bash
+python3 sl2_to_md.py "/path/to/DS30000.sl2" -o run.json
+```
+
+The document is described by [`schema.json`](schema.json), published at <https://darthdemono.github.io/sl2-analyzer/schema.json> and referenced from every export's `$schema` key, so a validator picks it up with no configuration. Both formats come out of the same read, so they cannot disagree.
+
+The one rule worth knowing before you consume it: **absence is meaningful.** A field appears only when it was actually read from the save. Dark Souls III stores no death counter, so a DS3 character has no `deaths` key at all — not `0`, and not `null`. That way you can always tell "this game does not record it" from "it really is zero". The same goes for progress: every section is a floor, reporting what the save proves rather than what it rules out.
+
+### Recording how the game was run
+
+A save knows your character. It does not know which store sold you the game, which patch it ran, or whether it was Proton or Windows — and none of that can be inferred from the bytes. So you can attach it yourself with `--meta key=value`, repeated as often as you like:
+
+```bash
+python3 sl2_to_md.py DS30000.sl2 -o run.json \
+  --meta source=Steam --meta version=1.15.2 \
+  --meta os="Nobara 43" --meta launcher=Heroic \
+  --meta proton="GE-Proton9-20" --meta gamemode=yes --meta mangohud=no \
+  --meta dlc="Ashes of Ariandel" --meta dlc="The Ringed City"
+```
+
+Any key is accepted — the schema names the common ones (`source`, `version`, `dlc`, `os`, `launcher`, `proton`, `gamemode`, `mangohud`, `notes`) but does not restrict you to them. Keys are lowercased with spaces and dashes folded to underscores, so `--meta "Proton version=..."` and `--meta proton_version=...` are the same key. **Repeat a key and it becomes a list** — that is how the two DLCs above end up as an array, with no comma-splitting to get wrong (Souls item names are full of commas). `--meta-json path.json` merges an object from a file underneath anything you pass on the command line.
+
+In JSON this lands under `environment`. In Markdown it becomes a **Setup** block inside the closing details, labelled as supplied rather than read — because it is the one part of the output that did not come out of the save.
+
 To convert a whole folder of saves in one go, loop over them:
 
 ```bash
@@ -586,7 +614,23 @@ Said out loud rather than papered over:
 ## Layout
 
 ```
-sl2_to_md.py      the CLI converter (Doxygen-commented, bounds-checked throughout)
+sl2_to_md.py      the entry point; re-exports the package so `import sl2_to_md` still works
+schema.json       JSON Schema for the --json export, published at the site root
+sl2/              the Python package, one module per layer and one per game
+  reader.py       bounds-checked buffer reads; nothing else touches a raw offset
+  keys.py         the five AES keys (all of them ship inside the games)
+  bnd4.py         the BND4 archive every .sl2 is
+  crypto.py       per-game decryption
+  detect.py       which game a file is, from its signature and entry count
+  itemdb.py       the three item-id schemes
+  progress.py     the shared progress floor: boss souls, key items, NG+ clears
+  roster.py       the header roster: names, and DS3 play time
+  ds1.py ds2.py ds3.py er.py   one module per game family
+  totals.py       the "of N" denominators (needs every game's tables, hence its own file)
+  render.py       Markdown rendering
+  jsonout.py      JSON rendering and the --meta environment block
+  convert.py      the driver: parse_save, then either writer
+  cli.py          argument parsing and main()
 index.html        the web app: markup and styling
 sw.js             service worker: caches the app + used tables so it runs offline
 manifest.webmanifest / icon.svg   installable-app metadata

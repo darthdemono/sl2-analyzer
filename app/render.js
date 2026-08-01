@@ -4,7 +4,7 @@
 // the save proves are shown — fields the screen has but we can't verify (weapon AR,
 // resistances, bonuses) are omitted, never faked. Names via textContent, never innerHTML.
 
-import { STAT_ABBR, statGovernsFor, statCapsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, DS2_GAMES, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, statCapsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, DS2_GAMES, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime, countDupes } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
 
 function el(tag, props, ...kids) {
@@ -305,6 +305,26 @@ function characterCard(slot, ch, bonfireTotal) {
       covBits.push(el("p", { class: "hint", text: `Not found yet: ${ch.covenants_missing.join(" · ")}.` }));
     }
     card.append(section(`Covenants Found (${ch.covenant_total ? `${covN} of ${ch.covenant_total}` : covN})`, covBits));
+  }
+  if (ch.pickups && ch.pickups.length) {
+    const got = ch.pickups.reduce((s2, [, c]) => s2 + c, 0);
+    const total = ch.pickups.reduce((s2, [, , t]) => s2 + t, 0);
+    const pct = total ? Math.round((got / total) * 100) : 0;
+    const bar = el("div", { class: "pbar", role: "progressbar", "aria-valuenow": String(got),
+      "aria-valuemin": "0", "aria-valuemax": String(total),
+      "aria-label": `${got} of ${total} tracked world items picked up` },
+      el("span", { class: "pbar-f", style: `width:${pct}%` }));
+    const list = el("ul", { class: "items cols" }, ...ch.pickups.map(([area, c, tot, missing]) => {
+      const li = el("li", null, el("span", { class: "slot", text: `${area}: ${c}/${tot} ` }));
+      // Same rule as bonfires — a started area lists what is left in it.
+      if (c && missing && missing.length) {
+        li.append(el("span", { class: "hint", text: ` missing: ${countDupes(missing).join(" · ")}` }));
+      }
+      return li;
+    }));
+    card.append(section(`Items Collected (${got} of ${total} tracked)`, [
+      el("p", { class: "hint", text: "One-off world items picked up, from each area's pickup flags. Only the areas whose flag group is mapped are counted — an area not listed is untracked, not empty." }),
+      bar, list]));
   }
   if (ch.questlines && Object.keys(ch.questlines).length) {
     const list = el("ul", { class: "items" });

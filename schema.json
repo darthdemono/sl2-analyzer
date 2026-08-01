@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://darthdemono.github.io/sl2-analyzer/schema.json",
+  "title": "sl2-analyzer save export",
+  "description": "One FromSoftware .sl2 save, read into plain data: which game it is, what the machine ran it on (if the caller said), and one object per populated character slot. Produced by sl2-analyzer (https://github.com/darthdemono/sl2-analyzer).\n\nThe governing rule of this format is that ABSENCE IS MEANINGFUL. A field is present only when it was read from the save; a game that does not store something simply has no key for it, so a consumer can always tell \"this game has no death counter\" from \"this character has died zero times\". Nothing is filled in with a default, a zero, or a null to make the shape regular. Progress sections are FLOORS: they report what the save proves, never what it rules out.",
+  "type": "object",
+  "required": ["schema_version", "generated", "tool", "source", "characters"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "format": "uri", "description": "This schema's URL." },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semver for this document format. MINOR adds an optional field; MAJOR would break a reader that trusted the previous shape."
+    },
+    "generated": { "type": "string", "format": "date-time", "description": "When the export ran, UTC. Not a save timestamp." },
+    "tool": {
+      "type": "object",
+      "required": ["name", "url"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "description": "The save file itself. Everything here is read from the file or decided by which game it turned out to be.",
+      "required": ["filename", "game", "game_title", "support_tier"],
+      "additionalProperties": false,
+      "properties": {
+        "filename": { "type": "string", "description": "Basename of the .sl2 that was read." },
+        "game": {
+          "type": "string",
+          "enum": ["dsr", "ptde", "ds2vanilla", "ds2sotfs", "ds3", "er"],
+          "description": "Game id. dsr = Dark Souls Remastered, ptde = Prepare to Die Edition."
+        },
+        "game_title": { "type": "string", "description": "Human-readable game name." },
+        "support_tier": {
+          "type": "string",
+          "enum": ["full", "inventory"],
+          "description": "How far this build trusts itself for this save. 'full' is identity, stats, souls, inventory and progress; 'inventory' means the stat block failed to validate (an unrecognised patch or an edited save) and stats were dropped rather than printed wrong. The tier is per character too — see character.tier."
+        },
+        "save_format_version": {
+          "type": "integer",
+          "description": "The save's own format version word (DSR 71, DS3 98, ER 220/251). Absent for DS2 and PtDE, which carry no such field. This is NOT the game patch."
+        },
+        "game_patch": {
+          "type": "string",
+          "description": "Elden Ring only: the version of the regulation the save carries, e.g. \"1.16.0\". No other game stores one."
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "description": "How the game was run — SUPPLIED BY THE CALLER, never read from the save, which cannot know any of it. Present only when metadata was passed. Any key is accepted; the ones below are simply the ones this schema names. A key given more than once on the command line arrives here as an array, in the order given.",
+      "additionalProperties": { "$ref": "#/$defs/metaValue" },
+      "properties": {
+        "source": { "$ref": "#/$defs/metaValue", "description": "Where the game came from: Steam, GOG, Epic, a disc, …" },
+        "version": { "$ref": "#/$defs/metaValue", "description": "Game version as the player knows it, e.g. \"1.15.2\"." },
+        "dlc": { "$ref": "#/$defs/metaValue", "description": "DLC installed. Repeat the flag per DLC to get an array." },
+        "os": { "$ref": "#/$defs/metaValue", "description": "Operating system, e.g. \"Nobara 43\" or \"Windows 11\"." },
+        "launcher": { "$ref": "#/$defs/metaValue", "description": "What started the game: Steam, Heroic, Lutris, …" },
+        "proton": { "$ref": "#/$defs/metaValue", "description": "Proton / Wine build, e.g. \"GE-Proton9-20\"." },
+        "gamemode": { "$ref": "#/$defs/metaValue", "description": "Whether Feral GameMode was on." },
+        "mangohud": { "$ref": "#/$defs/metaValue", "description": "Whether MangoHud was on." },
+        "notes": { "$ref": "#/$defs/metaValue", "description": "Anything else worth recording about the run." }
+      }
+    },
+    "characters": {
+      "type": "array",
+      "description": "One per populated slot. An empty array means the file parsed but held no characters.",
+      "items": { "$ref": "#/$defs/character" }
+    }
+  },
+  "$defs": {
+    "metaValue": {
+      "description": "A caller-supplied value. A string, or an array of strings when the key was given more than once. Other JSON types pass through when supplied via a metadata file.",
+      "anyOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" } },
+        { "type": "number" },
+        { "type": "boolean" }
+      ]
+    },
+    "countedItem": {
+      "type": "array",
+      "description": "An item and how many are held: [name, quantity].\n\nThe quantity is NULL in Elden Ring, whose owned-item list comes from the GaItem array and carries no counts — null means \"not read\", not \"none\". It can also legitimately be 0: a Dark Souls II save stores a record whose count field really is zero, and that is reported rather than tidied away.",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "string" },
+        { "type": ["integer", "null"], "minimum": 0 }
+      ]
+    },
+    "character": {
+      "type": "object",
+      "description": "One character. Only `slot`, `game`, `tier`, `name` and `level` are always present; every other key appears only if this game stores it AND this save yielded it.",
+      "required": ["slot", "game", "tier", "name"],
+      "properties": {
+        "slot": { "type": "integer", "minimum": 1, "description": "1-based slot number as shown in game." },
+        "game": { "type": "string", "description": "Same id as source.game, repeated so a character object stands alone." },
+        "tier": {
+          "type": "string",
+          "enum": ["full", "inventory"],
+          "description": "This character's own tier. A single slot can degrade to 'inventory' while its siblings stay 'full' — an edited or unrecognised stat block drops stats for that slot rather than printing wrong ones."
+        },
+        "name": { "type": "string" },
+        "level": { "type": "integer", "description": "Soul level (rune level in Elden Ring)." },
+        "klass": { "type": "string", "description": "Starting class. DS2 and DS1 only — DS3 and ER do not have a calibrated offset for it, so the key is absent rather than guessed." },
+        "gender": { "type": "string", "enum": ["Male", "Female"], "description": "DS1 and DS2 only." },
+        "covenant": { "type": "string", "description": "The covenant currently worn." },
+        "ng_plus": { "type": "integer", "minimum": 0, "description": "Journey / New Game+ cycle; 0 is the first playthrough." },
+        "play_time": { "type": "integer", "minimum": 0, "description": "Total play time in SECONDS." },
+        "deaths": { "type": "integer", "minimum": 0, "description": "Death counter. DS1 and DS2 only; DS3 appears not to store one." },
+        "souls": { "type": "integer", "description": "Souls (runes) currently held." },
+        "soul_memory": { "type": "integer", "description": "DS2 only: total souls ever earned." },
+        "humanity": { "type": "integer", "description": "DS1 only." },
+        "hollow_lvl": { "type": "integer", "description": "DS2 only: hollowing level." },
+        "embered": { "type": "boolean", "description": "DS3 only. When true the max HP below already includes the ~30% ember bonus." },
+        "hp": { "type": "integer", "description": "Max HP as stored." },
+        "fp": { "type": "integer", "description": "DS3 only: max FP." },
+        "stamina": { "type": "integer" },
+        "stats": {
+          "type": "object",
+          "description": "Attributes, keyed by the game's own names (Vigor, Endurance, … / Mind and Arcane in Elden Ring). Absent entirely at inventory tier.",
+          "additionalProperties": { "type": "integer" }
+        },
+        "inv": {
+          "type": "object",
+          "description": "Inventory by category (weapons, armors, rings, spells, bolts, upgrade, consumables, online, emotes, bosssouls, talismans, ashes). Which categories exist depends on the game.",
+          "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/countedItem" } }
+        },
+        "key_items": { "type": "array", "items": { "$ref": "#/$defs/countedItem" }, "description": "Progression items: keys, tomes, coals, ashes." },
+        "boss_souls": { "type": "array", "items": { "$ref": "#/$defs/countedItem" }, "description": "Boss souls / remembrances still held. Each one is proof of a kill; a consumed one is invisible." },
+        "unknown_count": { "type": "integer", "minimum": 0, "description": "Items whose id is in the save but not in the name tables. Reported rather than hidden." },
+        "equipped_weapons": { "type": "object", "additionalProperties": { "type": "string" }, "description": "DS3 only, keyed by slot (\"Right Hand\", \"Left Hand 2\", …). Names carry infusion and +N." },
+        "equipped_armor": { "type": "object", "additionalProperties": { "type": "string" }, "description": "DS3 only: Head / Chest / Hands / Legs." },
+        "equipped_rings": { "type": "array", "items": { "type": "string" }, "description": "DS3 only, up to four." },
+        "equipped_ammo": { "type": "array", "items": { "type": "string" }, "description": "DS3 only: arrows and bolts." },
+        "bosses": {
+          "type": "object",
+          "description": "Bosses proven dead, keyed by boss name; the value lists WHY, which is the point — every entry is auditable. A floor, not a roster.",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["flag", "soul", "gate", "clear"] }
+          }
+        },
+        "boss_total": { "type": "integer", "description": "How many bosses the game's own tables can NAME — the denominator for `bosses`. Not a claim about how many the game ships." },
+        "bosses_missing": { "type": "array", "items": { "type": "string" }, "description": "Tracked bosses with no evidence yet. A boss whose soul was spent can sit here while being long dead." },
+        "bosses_available": { "type": "array", "items": { "type": "string" }, "description": "DS3 only: missing bosses whose prerequisites are all dead and whose area already has a lit bonfire. From the game's fixed route, not from this save." },
+        "bonfires": { "type": "array", "items": { "type": "string" }, "description": "DS2 only: the flat discovered-bonfire list. `bonfire_areas` is the grouped view of the same data." },
+        "bonfire_areas": {
+          "type": "array",
+          "description": "Bonfires by area. EVERY area is listed, including untouched ones, so an area reading 0/6 is visible.",
+          "items": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "prefixItems": [
+              { "type": "string", "description": "Area name." },
+              { "type": "integer", "description": "How many are lit here." },
+              { "type": "array", "items": { "type": "string" }, "description": "Their names." },
+              { "type": "integer", "description": "How many the area holds in total." },
+              { "type": "array", "items": { "type": "string" }, "description": "The ones still unlit." }
+            ]
+          }
+        },
+        "pickups": {
+          "type": "array",
+          "description": "DS3 only: one-off world items picked up, by area, from that area's pickup flags. Only areas whose flag group has a DERIVED base appear — an absent area is untracked, not empty.",
+          "items": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "prefixItems": [
+              { "type": "string", "description": "Area name." },
+              { "type": "integer", "description": "How many were picked up." },
+              { "type": "integer", "description": "How many the area holds." },
+              { "type": "array", "items": { "type": "string" }, "description": "The ones not picked up." }
+            ]
+          }
+        },
+        "covenants": {
+          "type": "object",
+          "description": "Covenants discovered, keyed by name; the value says what proves it. Distinct from the worn `covenant`.",
+          "additionalProperties": { "type": "array", "items": { "type": "string" } }
+        },
+        "covenant_total": { "type": "integer" },
+        "covenants_missing": { "type": "array", "items": { "type": "string" } },
+        "questlines": {
+          "type": "object",
+          "description": "DS3 only: one-off rewards obtained, keyed by the NPC or landmark that gives them.",
+          "additionalProperties": { "type": "array", "items": { "type": "string" } }
+        },
+        "cinders": { "type": "array", "items": { "type": "string" }, "description": "DS3 only: Lords of Cinder whose cinders are confirmed placed on the throne by a mapped flag." },
+        "lords": {
+          "type": "object",
+          "description": "DS3 only: the Lords of Cinder. There are exactly four, so this section has a real denominator.",
+          "properties": {
+            "placed": {
+              "type": ["integer", "null"],
+              "minimum": 0,
+              "maximum": 4,
+              "description": "How many are on the throne, derived arithmetically as (lords defeated - cinder items still held) — which is why it can be known without every throne flag being mapped. NULL on NG+, where the thrones reset but the defeat flags do not, so the subtraction would over-report; there the `named` list from mapped flags is all there is."
+            },
+            "total": { "type": "integer", "const": 4 },
+            "dead": { "type": "integer", "minimum": 0, "maximum": 4, "description": "How many of the four are proven dead." },
+            "held": { "type": "integer", "minimum": 0, "description": "How many sets of Cinders of a Lord are still in the inventory, i.e. killed but not yet offered." },
+            "named": { "type": "array", "items": { "type": "string" }, "description": "The lords whose placement a mapped throne flag confirms. Shorter than `placed` whenever a lord's flag is not pinned yet — three of the four are." }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,2144 @@
+{
+ "Road of Sacrifices": [
+  [
+   96114,
+   7,
+   "Titanite Shard"
+  ],
+  [
+   96113,
+   5,
+   "Titanite Shard"
+  ],
+  [
+   96112,
+   3,
+   "Green Blossom"
+  ],
+  [
+   96111,
+   1,
+   "Estus Shard"
+  ],
+  [
+   96117,
+   7,
+   "Ring of Sacrifice"
+  ],
+  [
+   96116,
+   5,
+   "Soul of an Unknown Traveler"
+  ],
+  [
+   96115,
+   3,
+   "Fallen Knight Helm"
+  ],
+  [
+   96122,
+   1,
+   "Heretic's Staff"
+  ],
+  [
+   96120,
+   7,
+   "Large Soul of an Unknown Traveler"
+  ],
+  [
+   96119,
+   5,
+   "Conjurator Hood"
+  ],
+  [
+   96126,
+   3,
+   "Soul of an Unknown Traveler"
+  ],
+  [
+   96125,
+   1,
+   "Green Blossom"
+  ],
+  [
+   96123,
+   7,
+   "Great Swamp Pyromancy Tome"
+  ],
+  [
+   96130,
+   5,
+   "Homeward Bone"
+  ],
+  [
+   96129,
+   3,
+   "Titanite Shard"
+  ],
+  [
+   96128,
+   1,
+   "Purple Moss Clump"
+  ],
+  [
+   96134,
+   7,
+   "Purple Moss Clump"
+  ],
+  [
+   96133,
+   5,
+   "Greatsword"
+  ],
+  [
+   96132,
+   3,
+   "Twin Dragon Greatshield"
+  ],
+  [
+   96131,
+   1,
+   "Hollow Gem"
+  ],
+  [
+   96136,
+   5,
+   "Fading Soul"
+  ],
+  [
+   96135,
+   3,
+   "Sorcerer Hood"
+  ],
+  [
+   96142,
+   1,
+   "Sage Ring"
+  ],
+  [
+   96140,
+   7,
+   "Purple Moss Clump"
+  ],
+  [
+   96145,
+   1,
+   "Undead Bone Shard"
+  ],
+  [
+   96143,
+   7,
+   "Atonement"
+  ],
+  [
+   96150,
+   5,
+   "Titanite Shard"
+  ],
+  [
+   96149,
+   3,
+   "Iron Flesh"
+  ],
+  [
+   96148,
+   1,
+   "Grass Crest Shield"
+  ],
+  [
+   96154,
+   7,
+   "Stone Parma"
+  ],
+  [
+   96152,
+   3,
+   "Rotten Pine Resin"
+  ],
+  [
+   96151,
+   1,
+   "Titanite Shard"
+  ],
+  [
+   96157,
+   7,
+   "Rusted Gold Coin"
+  ],
+  [
+   96156,
+   5,
+   "Nameless Knight Helm"
+  ],
+  [
+   96155,
+   3,
+   "Shriving Stone"
+  ],
+  [
+   96162,
+   1,
+   "Repair Powder"
+  ],
+  [
+   96160,
+   7,
+   "Golden Scroll"
+  ],
+  [
+   96159,
+   5,
+   "Sage's Scroll"
+  ],
+  [
+   96166,
+   3,
+   "Dreamchaser's Ashes"
+  ],
+  [
+   96165,
+   1,
+   "Titanite Shard"
+  ],
+  [
+   96163,
+   7,
+   "Wolf's Blood Swordgrass"
+  ],
+  [
+   96170,
+   5,
+   "Great Magic Weapon"
+  ],
+  [
+   96169,
+   3,
+   "Ember"
+  ],
+  [
+   96168,
+   1,
+   "Titanite Shard"
+  ],
+  [
+   96174,
+   7,
+   "Titanite Shard"
+  ],
+  [
+   96173,
+   5,
+   "Titanite Shard"
+  ],
+  [
+   96172,
+   3,
+   "Black Bug Pellet"
+  ],
+  [
+   96171,
+   1,
+   "Rotten Pine Resin"
+  ],
+  [
+   96177,
+   7,
+   "Poison Gem"
+  ],
+  [
+   96177,
+   2,
+   "Ragged Mask"
+  ],
+  [
+   96176,
+   5,
+   "Estus Shard"
+  ],
+  [
+   96176,
+   0,
+   "Homeward Bone"
+  ],
+  [
+   96175,
+   3,
+   "Titanite Shard"
+  ],
+  [
+   96182,
+   6,
+   "Large Soul of a Nameless Soldier"
+  ],
+  [
+   96182,
+   1,
+   "Prism Stone"
+  ],
+  [
+   96181,
+   4,
+   "Large Soul of a Nameless Soldier"
+  ],
+  [
+   96180,
+   7,
+   "Ember"
+  ],
+  [
+   96179,
+   5,
+   "Sage's Coal"
+  ],
+  [
+   96186,
+   3,
+   "Lightning Spear"
+  ],
+  [
+   96185,
+   1,
+   "Blue Bug Pellet"
+  ],
+  [
+   96183,
+   7,
+   "Soul of an Unknown Traveler"
+  ],
+  [
+   96190,
+   5,
+   "Shriving Stone"
+  ],
+  [
+   96189,
+   3,
+   "Titanite Shard"
+  ],
+  [
+   96188,
+   1,
+   "Brigand Twindaggers"
+  ],
+  [
+   96194,
+   7,
+   "Braille Divine Tome of Carim"
+  ],
+  [
+   96193,
+   5,
+   "Ember"
+  ],
+  [
+   96197,
+   7,
+   "Gold Pine Bundle"
+  ],
+  [
+   96196,
+   5,
+   "Ember"
+  ],
+  [
+   96195,
+   3,
+   "Soul of a Nameless Soldier"
+  ],
+  [
+   96202,
+   1,
+   "Large Soul of an Unknown Traveler"
+  ],
+  [
+   96200,
+   7,
+   "Sellsword Twinblades"
+  ],
+  [
+   96199,
+   5,
+   "Golden Falcon Shield"
+  ],
+  [
+   96206,
+   3,
+   "Herald Helm"
+  ],
+  [
+   96205,
+   1,
+   "Brigand Axe"
+  ],
+  [
+   96203,
+   7,
+   "Brigand Hood"
+  ],
+  [
+   96210,
+   5,
+   "Morne's Ring"
+  ],
+  [
+   96209,
+   3,
+   "Sellsword Helm"
+  ],
+  [
+   96208,
+   1,
+   "Farron Coal"
+  ],
+  [
+   96214,
+   7,
+   "Havel's Helm (Farron Keep)"
+  ],
+  [
+   96213,
+   5,
+   "Greataxe (Farron Keep)"
+  ],
+  [
+   96212,
+   3,
+   "Speckled Stoneplate Ring (Farron Keep)"
+  ],
+  [
+   96211,
+   1,
+   "Ember (Farron Keep)"
+  ],
+  [
+   96217,
+   7,
+   "Dragon Crest Shield (Farron Keep)"
+  ],
+  [
+   96216,
+   5,
+   "Dark Stoneplate Ring+2 (Farron Keep)"
+  ],
+  [
+   96215,
+   3,
+   "Chloranthy Ring+2 (Farron Keep)"
+  ],
+  [
+   96222,
+   1,
+   "Lingering Dragoncrest Ring+1 (Farron Keep)"
+  ],
+  [
+   96220,
+   7,
+   "Magic Stoneplate Ring+1 (Farron Keep)"
+  ],
+  [
+   96219,
+   5,
+   "Wolf Ring+1 (Farron Keep)"
+  ],
+  [
+   96229,
+   3,
+   "Antiquated Dress (Farron Keep)"
+  ],
+  [
+   96228,
+   1,
+   "Sunlight Talisman (Farron Keep)"
+  ],
+  [
+   96234,
+   7,
+   "Young White Branch (Farron Keep)"
+  ],
+  [
+   96233,
+   5,
+   "Young White Branch (Farron Keep)"
+  ],
+  [
+   96232,
+   3,
+   "Crown of Dusk (Farron Keep)"
+  ],
+  [
+   96231,
+   1,
+   "Great Swamp Ring (Great Crab - Road of Sacrifices)"
+  ],
+  [
+   96231,
+   0,
+   "Lingering Dragoncrest Ring (Great Crab - Farron Keep)"
+  ],
+  [
+   96238,
+   4,
+   "Pharis's Hat (Elder Ghru #3)"
+  ],
+  [
+   96238,
+   3,
+   "Black Bow of Pharis (Elder Ghru #4)"
+  ]
+ ],
+ "Cathedral of the Deep": [
+  [
+   99954,
+   7,
+   "Notched Whip"
+  ],
+  [
+   99953,
+   5,
+   "Titanite Shard"
+  ],
+  [
+   99952,
+   3,
+   "Astora Greatsword"
+  ],
+  [
+   99951,
+   1,
+   "Executioner's Greatsword"
+  ],
+  [
+   99957,
+   7,
+   "Undead Bone Shard"
+  ],
+  [
+   99956,
+   5,
+   "Curse Ward Greatshield"
+  ],
+  [
+   99955,
+   3,
+   "Titanite Shard"
+  ],
+  [
+   99962,
+   1,
+   "Large Soul of an Unknown Traveler"
+  ],
+  [
+   99960,
+   7,
+   "Paladin's Ashes"
+  ],
+  [
+   99959,
+   5,
+   "Arbalest"
+  ],
+  [
+   99965,
+   1,
+   "Ember"
+  ],
+  [
+   99970,
+   5,
+   "Ember"
+  ],
+  [
+   99969,
+   3,
+   "Poisonbite Ring"
+  ],
+  [
+   99968,
+   1,
+   "Drang Armor"
+  ],
+  [
+   99974,
+   7,
+   "Ember"
+  ],
+  [
+   99973,
+   5,
+   "Duel Charm"
+  ],
+  [
+   99972,
+   3,
+   "Seek Guidance"
+  ],
+  [
+   99977,
+   7,
+   "Estus Shard"
+  ],
+  [
+   99976,
+   5,
+   "Maiden Hood"
+  ],
+  [
+   99975,
+   3,
+   "Pale Tongue"
+  ],
+  [
+   99982,
+   1,
+   "Fading Soul"
+  ],
+  [
+   99980,
+   7,
+   "Blessed Gem"
+  ],
+  [
+   99986,
+   3,
+   "Red Bug Pellet"
+  ],
+  [
+   99985,
+   1,
+   "Soul of a Nameless Soldier"
+  ],
+  [
+   99983,
+   7,
+   "Duel Charm"
+  ],
+  [
+   99989,
+   3,
+   "Large Soul of an Unknown Traveler"
+  ],
+  [
+   99988,
+   1,
+   "Ember"
+  ],
+  [
+   99994,
+   7,
+   "Repair Powder"
+  ],
+  [
+   99993,
+   5,
+   "Large Soul of an Unknown Traveler"
+  ],
+  [
+   99992,
+   3,
+   "Large Soul of an Unknown Traveler"
+  ],
+  [
+   99996,
+   5,
+   "Undead Hunter Charm"
+  ],
+  [
+   99995,
+   3,
+   "Red Bug Pellet"
+  ],
+  [
+   100002,
+   1,
+   "Titanite Shard"
+  ],
+  [
+   100000,
+   7,
+   "Titanite Shard"
+  ],
+  [
+   100006,
+   3,
+   "Rusted Coin"
+  ],
+  [
+   100005,
+   1,
+   "Drang Hammers"
+  ],
+  [
+   100010,
+   5,
+   "Drang Shoes"
+  ],
+  [
+   100009,
+   3,
+   "Large Soul of an Unknown Traveler"
+  ],
+  [
+   100008,
+   1,
+   "Pale Tongue"
+  ],
+  [
+   100014,
+   7,
+   "Drang Gauntlets"
+  ],
+  [
+   100013,
+   5,
+   "Soul of a Nameless Soldier"
+  ],
+  [
+   100012,
+   3,
+   "Helm of Thorns"
+  ],
+  [
+   100015,
+   3,
+   "Exploding Bolt"
+  ],
+  [
+   100022,
+   1,
+   "Lloyd's Sword Ring"
+  ],
+  [
+   100020,
+   7,
+   "Soul of a Nameless Soldier"
+  ],
+  [
+   100029,
+   3,
+   "Homeward Bone"
+  ],
+  [
+   100028,
+   1,
+   "Deep Gem"
+  ],
+  [
+   100037,
+   7,
+   "Titanite Shard"
+  ],
+  [
+   100036,
+   5,
+   "Large Soul of an Unknown Traveler"
+  ],
+  [
+   100054,
+   7,
+   "Ring of the Evil Eye+1"
+  ],
+  [
+   100053,
+   5,
+   "Ring of Favor+2"
+  ],
+  [
+   100056,
+   5,
+   "Crest Shield"
+  ],
+  [
+   100055,
+   3,
+   "Young White Branch"
+  ],
+  [
+   100062,
+   1,
+   "Young White Branch"
+  ],
+  [
+   100060,
+   7,
+   "Saint-tree Bellvine"
+  ],
+  [
+   100059,
+   5,
+   "Saint Bident"
+  ],
+  [
+   100068,
+   1,
+   "Archdeacon White Crown"
+  ],
+  [
+   100074,
+   7,
+   "Heysel Pick (Yellowfinger Heysel)"
+  ],
+  [
+   100073,
+   5,
+   "Deep Ring (Deacon #1 - Irithyll)"
+  ],
+  [
+   100072,
+   3,
+   "Deep Braille Divine Tome (Mimic)"
+  ],
+  [
+   100072,
+   2,
+   "Symbol of Avarice (Mimic)"
+  ]
+ ],
+ "Irithyll": [
+  [
+   103794,
+   7,
+   "Creighton's Steel Mask"
+  ],
+  [
+   103793,
+   5,
+   "Homeward Bone"
+  ],
+  [
+   103792,
+   3,
+   "Large Soul of a Nameless Soldier"
+  ],
+  [
+   103791,
+   1,
+   "Large Titanite Shard"
+  ],
+  [
+   103797,
+   7,
+   "Soul of a Weary Warrior"
+  ],
+  [
+   103796,
+   5,
+   "Soul of a Weary Warrior"
+  ],
+  [
+   103795,
+   3,
+   "Rime-blue Moss Clump"
+  ],
+  [
+   103802,
+   1,
+   "Witchtree Branch"
+  ],
+  [
+   103800,
+   7,
+   "Large Titanite Shard"
+  ],
+  [
+   103799,
+   5,
+   "Estus Shard"
+  ],
+  [
+   103806,
+   3,
+   "Budding Green Blossom"
+  ],
+  [
+   103805,
+   1,
+   "Rime-blue Moss Clump"
+  ],
+  [
+   103803,
+   7,
+   "Large Titanite Shard"
+  ],
+  [
+   103810,
+   5,
+   "Large Titanite Shard"
+  ],
+  [
+   103809,
+   3,
+   "Ring of the Sun's First Born"
+  ],
+  [
+   103808,
+   1,
+   "Large Soul of a Nameless Soldier"
+  ],
+  [
+   103814,
+   7,
+   "Large Titanite Shard"
+  ],
+  [
+   103813,
+   5,
+   "Large Titanite Shard"
+  ],
+  [
+   103812,
+   3,
+   "Soul of a Weary Warrior"
+  ],
+  [
+   103811,
+   1,
+   "Magic Clutch Ring"
+  ],
+  [
+   103817,
+   7,
+   "Fading Soul"
+  ],
+  [
+   103816,
+   5,
+   "Fading Soul"
+  ],
+  [
+   103815,
+   3,
+   "Painting Guardian's Curved Sword (Anor Londo)"
+  ],
+  [
+   103822,
+   1,
+   "Homeward Bone"
+  ],
+  [
+   103820,
+   7,
+   "Undead Bone Shard"
+  ],
+  [
+   103819,
+   5,
+   "Kukri"
+  ],
+  [
+   103826,
+   3,
+   "Rusted Gold Coin"
+  ],
+  [
+   103825,
+   1,
+   "Brass Helm"
+  ],
+  [
+   103823,
+   7,
+   "Blue Bug Pellet"
+  ],
+  [
+   103830,
+   5,
+   "Shriving Stone"
+  ],
+  [
+   103829,
+   3,
+   "Human Dregs"
+  ],
+  [
+   103834,
+   7,
+   "Blood Gem"
+  ],
+  [
+   103833,
+   5,
+   "Green Blossom"
+  ],
+  [
+   103832,
+   3,
+   "Ring of Sacrifice"
+  ],
+  [
+   103831,
+   1,
+   "Great Heal"
+  ],
+  [
+   103837,
+   7,
+   "Large Soul of a Nameless Soldier"
+  ],
+  [
+   103836,
+   5,
+   "Green Blossom"
+  ],
+  [
+   103835,
+   3,
+   "Dung Pie"
+  ],
+  [
+   103842,
+   1,
+   "Dung Pie"
+  ],
+  [
+   103840,
+   7,
+   "Excrement-covered Ashes"
+  ],
+  [
+   103839,
+   5,
+   "Ember"
+  ],
+  [
+   103846,
+   3,
+   "Large Titanite Shard"
+  ],
+  [
+   103845,
+   1,
+   "Large Soul of a Nameless Soldier"
+  ],
+  [
+   103843,
+   7,
+   "Soul of a Weary Warrior"
+  ],
+  [
+   103850,
+   5,
+   "Large Titanite Shard"
+  ],
+  [
+   103849,
+   3,
+   "Blue Bug Pellet"
+  ],
+  [
+   103848,
+   1,
+   "Ember"
+  ],
+  [
+   103854,
+   7,
+   "Large Titanite Shard"
+  ],
+  [
+   103853,
+   5,
+   "Large Titanite Shard"
+  ],
+  [
+   103852,
+   3,
+   "Soul of a Weary Warrior"
+  ],
+  [
+   103851,
+   1,
+   "Ember"
+  ],
+  [
+   103857,
+   7,
+   "Ember"
+  ],
+  [
+   103856,
+   5,
+   "Large Titanite Shard"
+  ],
+  [
+   103855,
+   3,
+   "Dark Stoneplate Ring"
+  ],
+  [
+   103862,
+   1,
+   "Large Titanite Shard"
+  ],
+  [
+   103860,
+   7,
+   "Green Blossom"
+  ],
+  [
+   103863,
+   7,
+   "Deep Gem"
+  ],
+  [
+   103870,
+   5,
+   "Titanite Scale"
+  ],
+  [
+   103869,
+   3,
+   "Dragonslayer Greatbow"
+  ],
+  [
+   103868,
+   1,
+   "Easterner's Ashes"
+  ],
+  [
+   103874,
+   7,
+   "Painting Guardian Hood (Anor Londo)"
+  ],
+  [
+   103872,
+   3,
+   "Soul of a Crestfallen Knight (Anor Londo)"
+  ],
+  [
+   103871,
+   1,
+   "Lightning Gem"
+  ],
+  [
+   103876,
+   5,
+   "Moonlight Arrow (Anor Londo)"
+  ],
+  [
+   103875,
+   3,
+   "Proof of a Concord Kept"
+  ],
+  [
+   103880,
+   7,
+   "Large Soul of a Nameless Soldier"
+  ],
+  [
+   103886,
+   3,
+   "Soul of a Weary Warrior"
+  ],
+  [
+   103885,
+   1,
+   "Proof of a Concord Kept"
+  ],
+  [
+   103883,
+   7,
+   "Rusted Gold Coin"
+  ],
+  [
+   103890,
+   5,
+   "Large Soul of a Weary Warrior"
+  ],
+  [
+   103894,
+   7,
+   "Giant's Coal (Anor Londo)"
+  ],
+  [
+   103893,
+   5,
+   "Chloranthy Ring+1"
+  ],
+  [
+   103892,
+   3,
+   "Havel's Ring+2"
+  ],
+  [
+   103891,
+   1,
+   "Ring of Favor+1"
+  ],
+  [
+   103897,
+   7,
+   "Sun Princess Ring"
+  ],
+  [
+   103896,
+   5,
+   "Covetous Gold Serpent Ring+1"
+  ],
+  [
+   103895,
+   3,
+   "Wood Grain Ring+2"
+  ],
+  [
+   103906,
+   3,
+   "Divine Blessing"
+  ],
+  [
+   103903,
+   7,
+   "Smough's Great Hammer"
+  ],
+  [
+   103909,
+   3,
+   "Reversal Ring"
+  ],
+  [
+   103908,
+   1,
+   "Yorshka's Spear"
+  ],
+  [
+   103914,
+   7,
+   "Leo Ring"
+  ],
+  [
+   103913,
+   0,
+   "Dorhys' Gnawing (Cathedral Evangelist #4)"
+  ],
+  [
+   103912,
+   3,
+   "Golden Ritual Spear (Mimic)"
+  ],
+  [
+   103912,
+   2,
+   "Symbol of Avarice (Mimic)"
+  ],
+  [
+   103912,
+   0,
+   " (Silver Knight #1)"
+  ],
+  [
+   103911,
+   7,
+   " (Silver Knight #2)"
+  ],
+  [
+   103911,
+   6,
+   " (Silver Knight #3)"
+  ],
+  [
+   103911,
+   1,
+   "Ring of Favor (Sulyvahn's Beast #2)"
+  ],
+  [
+   103918,
+   4,
+   "Pontiff's Right Eye (Sulyvahn's Beast #1)"
+  ]
+ ],
+ "Catacombs of Carthus": [
+  [
+   105074,
+   7,
+   "Carthus Rouge"
+  ],
+  [
+   105073,
+   5,
+   "Sharp Gem"
+  ],
+  [
+   105072,
+   3,
+   "Soul of a Nameless Soldier"
+  ],
+  [
+   105071,
+   1,
+   "Titanite Shard"
+  ],
+  [
+   105077,
+   7,
+   "Bloodred Moss Clump"
+  ],
+  [
+   105076,
+   5,
+   "Carthus Milkring"
+  ],
+  [
+   105075,
+   3,
+   "Ember"
+  ],
+  [
+   105082,
+   1,
+   "Carthus Rouge"
+  ],
+  [
+   105080,
+   7,
+   "Ember"
+  ],
+  [
+   105079,
+   5,
+   "Carthus Bloodring"
+  ],
+  [
+   105086,
+   3,
+   "Titanite Shard"
+  ],
+  [
+   105085,
+   1,
+   "Titanite Shard"
+  ],
+  [
+   105083,
+   7,
+   "Ember"
+  ],
+  [
+   105090,
+   5,
+   "Carthus Pyromancy Tome"
+  ],
+  [
+   105089,
+   3,
+   "Large Titanite Shard"
+  ],
+  [
+   105088,
+   1,
+   "Large Titanite Shard"
+  ],
+  [
+   105094,
+   7,
+   "Yellow Bug Pellet"
+  ],
+  [
+   105093,
+   5,
+   "Large Soul of a Nameless Soldier"
+  ],
+  [
+   105092,
+   3,
+   "Black Bug Pellet"
+  ],
+  [
+   105091,
+   1,
+   "Grave Warden's Ashes"
+  ],
+  [
+   105097,
+   7,
+   "Large Titanite Shard"
+  ],
+  [
+   105096,
+   5,
+   "Large Titanite Shard"
+  ],
+  [
+   105095,
+   3,
+   "Large Titanite Shard"
+  ],
+  [
+   105102,
+   1,
+   "Large Titanite Shard"
+  ],
+  [
+   105100,
+   7,
+   "Large Titanite Shard"
+  ],
+  [
+   105099,
+   5,
+   "Large Titanite Shard"
+  ],
+  [
+   105106,
+   3,
+   "Yellow Bug Pellet"
+  ],
+  [
+   105105,
+   1,
+   "Large Titanite Shard"
+  ],
+  [
+   105103,
+   7,
+   "Large Titanite Shard"
+  ],
+  [
+   105110,
+   5,
+   "Large Titanite Shard"
+  ],
+  [
+   105109,
+   3,
+   "Speckled Stoneplate Ring"
+  ],
+  [
+   105108,
+   1,
+   "Homeward Bone"
+  ],
+  [
+   105113,
+   5,
+   "Ember"
+  ],
+  [
+   105112,
+   3,
+   "Chaos Gem"
+  ],
+  [
+   105111,
+   1,
+   "Ember"
+  ],
+  [
+   105117,
+   7,
+   "Izalith Pyromancy Tome"
+  ],
+  [
+   105116,
+   5,
+   "Black Knight Sword"
+  ],
+  [
+   105115,
+   3,
+   "Large Soul of a Nameless Soldier"
+  ],
+  [
+   105122,
+   1,
+   "Old Sage's Blindfold"
+  ],
+  [
+   105120,
+   7,
+   "Ember"
+  ],
+  [
+   105119,
+   5,
+   "Quelana Pyromancy Tome"
+  ],
+  [
+   105126,
+   3,
+   "Izalith Staff"
+  ],
+  [
+   105125,
+   1,
+   "White Hair Talisman"
+  ],
+  [
+   105123,
+   7,
+   "Toxic Mist"
+  ],
+  [
+   105130,
+   5,
+   "Undead Bone Shard"
+  ],
+  [
+   105129,
+   3,
+   "Titanite Scale"
+  ],
+  [
+   105128,
+   1,
+   "Soul of a Nameless Soldier"
+  ],
+  [
+   105132,
+   3,
+   "Grave Warden Pyromancy Tome"
+  ],
+  [
+   105137,
+   7,
+   "Shield of Want"
+  ],
+  [
+   105136,
+   5,
+   "Soul of a Crestfallen Knight"
+  ],
+  [
+   105135,
+   3,
+   "Ember"
+  ],
+  [
+   105140,
+   7,
+   "Sacred Flame"
+  ],
+  [
+   105139,
+   5,
+   "Large Soul of an Unknown Traveler"
+  ],
+  [
+   105146,
+   3,
+   "Dragonrider Bow"
+  ],
+  [
+   105145,
+   1,
+   "Estus Shard"
+  ],
+  [
+   105143,
+   7,
+   "Ring of Steel Protection+2"
+  ],
+  [
+   105150,
+   5,
+   "Thunder Stoneplate Ring+1"
+  ],
+  [
+   105149,
+   3,
+   "Bloodbite Ring+1"
+  ],
+  [
+   105148,
+   1,
+   "Flame Stoneplate Ring+2"
+  ],
+  [
+   105163,
+   7,
+   "Large Titanite Shard"
+  ],
+  [
+   105186,
+   3,
+   "Undead Bone Shard"
+  ],
+  [
+   105185,
+   1,
+   "Dark Gem"
+  ],
+  [
+   105189,
+   3,
+   "Black Blade (Mimic)"
+  ],
+  [
+   105189,
+   2,
+   "Lightning Stake (Carthus Sandworm)"
+  ],
+  [
+   105188,
+   6,
+   "Symbol of Avarice (Mimic)"
+  ]
+ ],
+ "Irithyll Dungeon": [
+  [
+   106354,
+   7,
+   "Large Titanite Shard"
+  ],
+  [
+   106353,
+   5,
+   "Fading Soul"
+  ],
+  [
+   106351,
+   1,
+   "Large Soul of a Nameless Soldier"
+  ],
+  [
+   106357,
+   7,
+   "Jailbreaker's Key"
+  ],
+  [
+   106356,
+   5,
+   "Pale Pine Resin"
+  ],
+  [
+   106355,
+   3,
+   "Simple Gem"
+  ],
+  [
+   106362,
+   1,
+   "Large Soul of a Nameless Soldier"
+  ],
+  [
+   106360,
+   7,
+   "Large Titanite Shard"
+  ],
+  [
+   106359,
+   5,
+   "Homeward Bone"
+  ],
+  [
+   106366,
+   3,
+   "Bellowing Dragoncrest Ring"
+  ],
+  [
+   106365,
+   1,
+   "Soul of a Weary Warrior"
+  ],
+  [
+   106363,
+   7,
+   "Soul of a Crestfallen Knight"
+  ],
+  [
+   106370,
+   5,
+   "Alva Helm"
+  ],
+  [
+   106369,
+   3,
+   "Lightning Bolt"
+  ],
+  [
+   106368,
+   1,
+   "Large Titanite Shard"
+  ],
+  [
+   106374,
+   7,
+   "Profaned Flame"
+  ],
+  [
+   106372,
+   3,
+   "Large Titanite Shard"
+  ],
+  [
+   106371,
+   1,
+   "Soul of a Weary Warrior"
+  ],
+  [
+   106377,
+   7,
+   "Dung Pie"
+  ],
+  [
+   106376,
+   5,
+   "Purging Stone"
+  ],
+  [
+   106375,
+   3,
+   "Ember"
+  ],
+  [
+   106382,
+   1,
+   "Ember"
+  ],
+  [
+   106380,
+   7,
+   "Profaned Coal"
+  ],
+  [
+   106379,
+   5,
+   "Large Titanite Shard"
+  ],
+  [
+   106386,
+   3,
+   "Old Sorcerer Hat"
+  ],
+  [
+   106385,
+   1,
+   "Large Soul of a Weary Warrior"
+  ],
+  [
+   106383,
+   7,
+   "Rusted Coin (Profaned Capital)"
+  ],
+  [
+   106390,
+   5,
+   "Rusted Gold Coin (Profaned Capital)"
+  ],
+  [
+   106389,
+   3,
+   "Purging Stone (Profaned Capital)"
+  ],
+  [
+   106388,
+   1,
+   "Cursebite Ring (Profaned Capital)"
+  ],
+  [
+   106394,
+   7,
+   "Poison Gem (Profaned Capital)"
+  ],
+  [
+   106393,
+   5,
+   "Shriving Stone (Profaned Capital)"
+  ],
+  [
+   106392,
+   3,
+   "Poison Arrow (Profaned Capital)"
+  ],
+  [
+   106391,
+   1,
+   "Rubbish (Profaned Capital)"
+  ],
+  [
+   106397,
+   7,
+   "Onislayer Greatarrow (Profaned Capital)"
+  ],
+  [
+   106396,
+   5,
+   "Large Soul of a Weary Warrior (Profaned Capital)"
+  ],
+  [
+   106395,
+   3,
+   "Rusted Coin (Profaned Capital)"
+  ],
+  [
+   106402,
+   1,
+   "Rusted Coin (Profaned Capital)"
+  ],
+  [
+   106400,
+   7,
+   "Covetous Gold Serpent Ring (Profaned Capital)"
+  ],
+  [
+   106399,
+   5,
+   "Blooming Purple Moss Clump (Profaned Capital)"
+  ],
+  [
+   106406,
+   3,
+   "Wrath of the Gods (Profaned Capital)"
+  ],
+  [
+   106405,
+   1,
+   "Lightning Blade"
+  ],
+  [
+   106403,
+   7,
+   "Large Titanite Shard"
+  ],
+  [
+   106410,
+   5,
+   "Rusted Coin"
+  ],
+  [
+   106409,
+   3,
+   "Dusk Crown Ring"
+  ],
+  [
+   106408,
+   1,
+   "Pickaxe"
+  ],
+  [
+   106414,
+   7,
+   "Xanthous Ashes"
+  ],
+  [
+   106413,
+   5,
+   "Onislayer Greatbow"
+  ],
+  [
+   106412,
+   3,
+   "Rusted Gold Coin"
+  ],
+  [
+   106411,
+   1,
+   "Large Titanite Shard"
+  ],
+  [
+   106417,
+   7,
+   "Jailer's Key Ring"
+  ],
+  [
+   106425,
+   1,
+   "Ember"
+  ],
+  [
+   106430,
+   5,
+   "Old Cell Key"
+  ],
+  [
+   106442,
+   1,
+   "Flame Stoneplate Ring+1"
+  ],
+  [
+   106440,
+   7,
+   "Covetous Silver Serpent Ring+1"
+  ],
+  [
+   106439,
+   5,
+   "Magic Stoneplate Ring+2"
+  ],
+  [
+   106445,
+   1,
+   "Dragon Torso Stone"
+  ],
+  [
+   106454,
+   7,
+   "Court Sorcerer Hood (Profaned Capital)"
+  ],
+  [
+   106453,
+   5,
+   "Storm Ruler (Profaned Capital)"
+  ],
+  [
+   106452,
+   3,
+   "Prisoner Chief's Ashes"
+  ],
+  [
+   106466,
+   3,
+   "Undead Bone Shard"
+  ],
+  [
+   106465,
+   1,
+   "Eleonora (Monstrosity of Sin #3)"
+  ],
+  [
+   106463,
+   7,
+   "Great Magic Shield (Corpse-grub #2)"
+  ],
+  [
+   106470,
+   5,
+   "Jailer's Key Ring (Jailer #2)"
+  ],
+  [
+   106469,
+   3,
+   "Dragonslayer Lightning Arrow (Mimic)"
+  ],
+  [
+   106469,
+   2,
+   "Symbol of Avarice (Mimic)"
+  ],
+  [
+   106468,
+   1,
+   "Titanite Scale (Mimic)"
+  ],
+  [
+   106468,
+   0,
+   "Symbol of Avarice (Mimic)"
+  ],
+  [
+   106474,
+   7,
+   "Rusted Gold Coin (Mimic)"
+  ],
+  [
+   106474,
+   6,
+   "Symbol of Avarice (Mimic)"
+  ],
+  [
+   106473,
+   5,
+   "Court Sorcerer's Staff (Mimic)"
+  ],
+  [
+   106473,
+   4,
+   "Symbol of Avarice (Mimic)"
+  ],
+  [
+   106472,
+   3,
+   "Greatshield of Glory (Mimic)"
+  ],
+  [
+   106472,
+   2,
+   "Symbol of Avarice (Mimic)"
+  ],
+  [
+   106471,
+   1,
+   "Dark Clutch Ring (Mimic)"
+  ],
+  [
+   106471,
+   0,
+   "Symbol of Avarice (Mimic)"
+  ],
+  [
+   106478,
+   4,
+   "Estus Shard (Mimic)"
+  ],
+  [
+   106478,
+   3,
+   "Symbol of Avarice (Mimic)"
+  ]
+ ],
+ "Cemetery of Ash": [
+  [
+   107633,
+   5,
+   "Broken Straight Sword"
+  ],
+  [
+   107632,
+   3,
+   "Soul of a Deserted Corpse"
+  ],
+  [
+   107631,
+   1,
+   "Firebomb"
+  ],
+  [
+   107636,
+   5,
+   "Titanite Shard"
+  ],
+  [
+   107635,
+   3,
+   "Homeward Bone"
+  ],
+  [
+   107642,
+   1,
+   "Ember"
+  ],
+  [
+   107640,
+   7,
+   "Soul of a Deserted Corpse"
+  ],
+  [
+   107639,
+   5,
+   "East-West Shield"
+  ],
+  [
+   107646,
+   3,
+   "Homeward Bone"
+  ],
+  [
+   107645,
+   1,
+   "Soul of an Unknown Traveler"
+  ],
+  [
+   107643,
+   7,
+   "Ember"
+  ],
+  [
+   107649,
+   3,
+   "Sneering Mask"
+  ],
+  [
+   107654,
+   7,
+   "Homeward Bone"
+  ],
+  [
+   107653,
+   5,
+   "Estus Ring"
+  ],
+  [
+   107652,
+   3,
+   "Estus Shard"
+  ],
+  [
+   107651,
+   1,
+   "Fire Keeper Soul"
+  ],
+  [
+   107657,
+   7,
+   "Shriving Stone"
+  ],
+  [
+   107655,
+   3,
+   "Titanite Chunk"
+  ],
+  [
+   107662,
+   1,
+   "Soul of a Crestfallen Knight"
+  ],
+  [
+   107660,
+   7,
+   "Titanite Chunk"
+  ],
+  [
+   107659,
+   5,
+   "Ashen Estus Ring"
+  ],
+  [
+   107666,
+   3,
+   "Black Knight Glaive"
+  ],
+  [
+   107663,
+   7,
+   "Eyes of a Fire Keeper"
+  ],
+  [
+   107670,
+   5,
+   "Soul of a Crestfallen Knight"
+  ],
+  [
+   107669,
+   3,
+   "Blacksmith Hammer"
+  ],
+  [
+   107668,
+   1,
+   "Chaos Blade"
+  ],
+  [
+   107674,
+   7,
+   "Hollow's Ashes"
+  ],
+  [
+   107673,
+   5,
+   "Hornet Ring"
+  ],
+  [
+   107672,
+   3,
+   "Coiled Sword Fragment"
+  ],
+  [
+   107671,
+   1,
+   "Fire Keeper Robe"
+  ],
+  [
+   107680,
+   7,
+   "Life Ring+3"
+  ],
+  [
+   107679,
+   5,
+   "Ring of Steel Protection+1"
+  ],
+  [
+   107686,
+   3,
+   "Speckled Stoneplate Ring+1"
+  ],
+  [
+   107685,
+   1,
+   "Wolf Ring+2"
+  ],
+  [
+   107715,
+   3,
+   "Covetous Silver Serpent Ring"
+  ]
+ ]
+}
