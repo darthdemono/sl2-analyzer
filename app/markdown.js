@@ -29,7 +29,8 @@ const ER_NOTE = "_Elden Ring identity, attributes, and runes are read directly; 
 // The Lords-of-Cinder line: how many of the four are on the throne, which ones the
 // mapped flags name, and the counts behind the number. See lords_line in sl2_to_md.py.
 function lordsLine(lords) {
-  const named = lords.named && lords.named.length ? ` — ${lords.named.join(", ")}` : "";
+  // Mid-dot separated: "Aldrich, Devourer of Gods" has a comma of its own.
+  const named = lords.named && lords.named.length ? ` — ${lords.named.join(" · ")}` : "";
   if (lords.placed == null) {
     return `${(lords.named || []).length} of ${lords.total}${named}`
       + "  _(NG+ — only the mapped throne flags are read, so this is a floor)_";
@@ -231,9 +232,13 @@ export function buildMarkdown(result, filename) {
   if (!result.characters.length) body.push("_No populated character slots found._");
   for (const { slot, ch } of result.characters) { body.push(mdCharacter(ch, slot)); body.push("---", ""); }
   if (result.game === "er") body.push(ER_NOTE, "");
+  // The save version is the one footer line that is about the FILE rather than the
+  // tool; it sits here because it belongs to no single character. See footer_for.
+  const ver = result.saveVersion != null ? [`- **Save format version:** ${result.saveVersion}`] : [];
+  if (result.gamePatch != null) ver.push(`- **Game patch:** ${result.gamePatch}  _(from the save's own regulation)_`);
   const footer = ["<details>",
     "<summary>About this file — how it was produced, and how far to trust it</summary>", "",
     `- **Game:** ${result.title}`, "- **Support tier:** full",
-    `- **Character slots read:** ${result.characters.length}`, "", disclaimer, "", "</details>", ""];
+    `- **Character slots read:** ${result.characters.length}`, ...ver, "", disclaimer, "", "</details>", ""];
   return head.concat(body, footer).join("\n");
 }

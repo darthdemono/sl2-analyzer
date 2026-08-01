@@ -624,7 +624,7 @@ I did not reverse-engineer these formats from scratch, and I am not going to pre
 - DS3 bonfire, boss, and item-pickup flag lists: [FrankvdStam/SoulSplitter](https://github.com/FrankvdStam/SoulSplitter) (GPLv3) and [The-Grand-Archives/Dark-Souls-III-CT-TGA](https://github.com/The-Grand-Archives/Dark-Souls-III-CT-TGA).
 - DSR and DS1 offsets and item tables: [alfizari/Dark-Souls-Remastered-Save-Editor](https://github.com/alfizari/Dark-Souls-Remastered-Save-Editor), plus [tarvitz/dsfp](https://github.com/tarvitz/dsfp) for the PtDE roster and deaths struct.
 - DS1 item IDs, bonfire IDs, and flag addressing: Paramdex and the soulsmodding wiki.
-- Elden Ring save structure (GaItem array, profile table): [ClayAmore/ER-Save-Editor](https://github.com/ClayAmore/ER-Save-Editor).
+- Elden Ring save structure (GaItem array, profile table): [ClayAmore/ER-Save-Editor](https://github.com/ClayAmore/ER-Save-Editor); the save-slot "File version" word and the in-save regulation block that carries the game patch: [ClayAmore/ER-Save-Lib](https://github.com/ClayAmore/ER-Save-Lib).
 - DS2 bonfire, class, covenant, and world-block offsets: the Jappi88 DS2 save editor and the SOTFS Cheat Engine tables.
 - Item name lists: the SOTFS Hex Code Compendium (DS2) and the ER TGA Cheat Engine table's master list.
 - Derived-stat formulas and bonfire-to-area mappings: fextralife and the Dark Souls wikidot scaling tables.

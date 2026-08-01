@@ -1149,6 +1149,45 @@ export function detectSaveGame(data) {
   return detectGame(data, parseBnd4(data));
 }
 
+// Games that stamp a save-format version as a uint32 at slot +0: DSR reads 71, DS3 98,
+// ER 220 or 251. It is NOT the patch (two ER saves here differ while their regulation
+// version matches). DS2 is absent on purpose — it reads a constant 0x6F there on
+// vanilla, Scholar and every mule alike, so that word is structure, not a version — and
+// PtDE's first word is its slot size. See save_format_version in sl2_to_md.py.
+const SAVE_VERSION_GAMES = new Set(["dsr", "ds3", "er"]);
+const SAVE_VERSION_MAX = 4095;
+
+/** The save-format version this file was written with, or null. */
+function saveFormatVersion(data, entries, game, slots) {
+  if (!SAVE_VERSION_GAMES.has(game)) return null;
+  const dec = game === "dsr" ? (b) => decryptIvPrefixed(b, DSR_KEY)
+    : game === "ds3" ? (b) => decryptIvPrefixed(b, DS3_KEY) : decryptNone;
+  for (let i = slots[0]; i < slots[1]; i++) {
+    if (i >= entries.length) continue;
+    const buf = dec(blobOf(data, entries[i]));   // an unused slot is all zeros
+    if (buf === null) continue;
+    const v = u32(buf, 0);
+    if (v != null && v > 0 && v <= SAVE_VERSION_MAX) return v;
+  }
+  return null;
+}
+
+// Elden Ring ships its regulation inside the save, in BND4 entry 11 behind a " GER"
+// magic, and that block is versioned: a uint32 laid out M-mm-p-bbbb. See er_game_patch.
+const ER_REG_ENTRY = 11;
+const ER_REG_VER_OFF = 8;
+
+/** Elden Ring's game patch, decoded from its regulation version, or null. */
+function erGamePatch(data, entries) {
+  if (entries.length <= ER_REG_ENTRY) return null;
+  const buf = decryptNone(blobOf(data, entries[ER_REG_ENTRY]));
+  if (buf.length < 4 || buf[0] !== 0x20 || buf[1] !== 0x47 || buf[2] !== 0x45 || buf[3] !== 0x52) return null;
+  const v = u32(buf, ER_REG_VER_OFF);
+  if (v == null || v < 10000000 || v > 19999999) return null;
+  const minor = Math.floor(v / 100000) % 100;
+  return `${Math.floor(v / 10000000)}.${String(minor).padStart(2, "0")}.${Math.floor(v / 10000) % 10}`;
+}
+
 /**
  * Parse a whole save into characters. `dbs` is the preloaded database bundle
  * (see db.js). Returns {game, title, characters:[{slot, ch}], bonfireTotal}.
@@ -1239,7 +1278,9 @@ export function parseSave(data, dbs) {
   // denominator there would imply a roster the db does not represent.
   const fam = DS2_GAMES.has(game) ? "ds2" : game === "dsr" || game === "ptde" ? "ds1" : game;
   const bonfireTotal = (dbs[fam] && dbs[fam].bonfireTotal) || 0;
-  return { game, title: meta.title, characters, images, bonfireTotal };
+  const saveVersion = saveFormatVersion(data, entries, game, meta.slots);
+  const gamePatch = game === "er" ? erGamePatch(data, entries) : null;
+  return { game, title: meta.title, characters, images, bonfireTotal, saveVersion, gamePatch };
 }
 
 export { ParseError };

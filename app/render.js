@@ -202,7 +202,7 @@ function characterPanel(ch) {
   if (ch.hollow_lvl) rows.push(statRow(null, "Hollowing", ch.hollow_lvl));
   if (ch.lords) {
     // "N of 4" — a closed set, so the denominator is real. See lords_line / lordsLine.
-    const named = ch.lords.named && ch.lords.named.length ? ` (${ch.lords.named.join(", ")})` : "";
+    const named = ch.lords.named && ch.lords.named.length ? ` (${ch.lords.named.join(" · ")})` : "";
     const n = ch.lords.placed == null ? (ch.lords.named || []).length : ch.lords.placed;
     rows.push(statRow(null, "Cinders Placed", `${n} of ${ch.lords.total}${named}`));
   }

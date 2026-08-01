@@ -2843,7 +2843,8 @@ DS2_BONFIRE_NOTE = "each bonfire the save records as discovered, by area — a f
 #        the mapped flags name, and the two counts the number came from.
 # @param lords The @c ch["lords"] dict from @ref attach_progress_totals.
 def lords_line(lords):
-    named = f" — {', '.join(lords['named'])}" if lords["named"] else ""
+    # Mid-dot separated: "Aldrich, Devourer of Gods" has a comma of its own.
+    named = f" — {' · '.join(lords['named'])}" if lords["named"] else ""
     if lords["placed"] is None:      # NG+: the thrones reset, the defeat flags do not
         return (f"{len(lords['named'])} of {lords['total']}{named}"
                 "  _(NG+ — only the mapped throne flags are read, so this is a floor)_")
@@ -3185,18 +3186,89 @@ def disclaimer_for(cfg):
 
 
 ##
+# @brief Games that stamp a save-format version as a @c uint32 at slot @c +0.
+# @details ClayAmore's ER-Save-Lib names this field ("File version", the word right
+# after the 16-byte checksum) and branches on it, so it is documented rather than
+# inferred. DSR reads 71, DS3 98, ER 220 or 251. It is NOT the game patch — two ER saves
+# here read 220 and 251 with the same regulation version — so it is printed as a bare
+# number beside the patch, not translated into one. DS2 is deliberately absent: it reads
+# a constant @c 0x6F there on vanilla, Scholar and all 41 mules alike, so that word is
+# structure, not a version. PtDE's first word is its slot size. Neither is guessed at.
+SAVE_VERSION_GAMES = {"dsr", "ds3", "er"}
+## @brief Above this a slot-0 word is not a version counter but data.
+SAVE_VERSION_MAX = 4095
+
+
+##
+# @brief The save-format version this file was written with, or None.
+# @details Read from the first slot that carries one — an unused slot is all zeros, so
+# the walk continues past it rather than reporting 0.
+# @param data The full file bytes. @param entries BND4 entries.
+# @param cfg  The GAMES entry. @param game The game key.
+def save_format_version(data, entries, cfg, game):
+    if game not in SAVE_VERSION_GAMES:
+        return None
+    for e in entries:
+        if e.index not in cfg["slots"]:
+            continue
+        buf = cfg["decrypt"](data[e.offset:e.offset + e.size])
+        v = u32(buf, 0) if buf else None
+        if v is not None and 0 < v <= SAVE_VERSION_MAX:
+            return v
+    return None
+
+
+## @brief Elden Ring ships its regulation (the game's own param data) inside the save,
+#  in BND4 entry 11 behind a " GER" magic — and that block is versioned.
+ER_REG_ENTRY = 11
+ER_REG_MAGIC = b" GER"
+ER_REG_VER_OFF = 8      # magic[4] + unk u32, per ER-Save-Lib's UserData11
+
+
+##
+# @brief Elden Ring's game patch, decoded from its regulation version, or None.
+# @details The regulation version is a @c uint32 laid out as @c M-mm-p-bbbb: major,
+# minor, patch, build. Both ER saves here read @c 11601000 → 1.16.0. The layout is not
+# a guess — ER-Save-Lib carries a regulation-version→size table of 24 real ids, and
+# every one of them decodes this way to a version Bandai actually shipped (10210038 →
+# 1.02.1, 10330078 → 1.03.3, 10911000 → 1.09.1, 11611000 → 1.16.1). The build digits are
+# dropped: they identify the regulation revision, not the patch players are told about.
+# @note ER only. DS3's entry 11 carries the same " GER" magic but no version word (its
+# @c +8 is a size), and DS1/DS2 have no regulation block at all — so nothing to read.
+# @param data The full file bytes. @param entries BND4 entries.
+def er_game_patch(data, entries):
+    if len(entries) <= ER_REG_ENTRY:
+        return None
+    e = entries[ER_REG_ENTRY]
+    buf = decrypt_none(data[e.offset:e.offset + e.size])
+    if buf[:4] != ER_REG_MAGIC:
+        return None
+    v = u32(buf, ER_REG_VER_OFF)
+    if v is None or not 10000000 <= v <= 19999999:
+        return None
+    return f"{v // 10 ** 7}.{v // 10 ** 5 % 100:02d}.{v // 10 ** 4 % 10}"
+
+
+##
 # @brief The closing "about this file" block: game, tier, slot count and the
 #        how-it-works note.
 # @details These are facts about the TOOL, not about the character, and they are
 # identical in every export — so they sit at the end, out of the way of the save's own
-# numbers, and folded into a @c <details> block so two exports diff cleanly.
+# numbers, and folded into a @c <details> block so two exports diff cleanly. The save
+# version is the one line here that IS about the file, and it sits here because it is a
+# property of the file rather than of any one character — as is the game patch.
 # @param cfg The GAMES entry. @param n Characters rendered.
-def footer_for(cfg, n):
+# @param version The save-format version, or None where the game has no known field.
+# @param patch The game patch (ER only, from its regulation version), or None.
+def footer_for(cfg, n, version=None, patch=None):
+    ver = [f"- **Save format version:** {version}"] if version is not None else []
+    if patch is not None:
+        ver.append(f"- **Game patch:** {patch}  _(from the save's own regulation)_")
     return ["<details>", "<summary>About this file — how it was produced, "
             "and how far to trust it</summary>", "",
             f"- **Game:** {cfg['title']}",
             f"- **Support tier:** {cfg['tier']}",
-            f"- **Character slots read:** {n}", "",
+            f"- **Character slots read:** {n}", *ver, "",
             disclaimer_for(cfg), "", "</details>", ""]
 
 
@@ -3210,6 +3282,8 @@ def convert(data, filename, base_dir):
     entries = parse_bnd4(data)
     game = detect_game(data, entries)
     cfg = GAMES[game]
+    version = save_format_version(data, entries, cfg, game)
+    patch = er_game_patch(data, entries) if game == "er" else None
 
     # Only the save's own identity up top; what the TOOL is and how far to trust it
     # is the same in every export, so it goes in the closing block (footer_for).
@@ -3253,7 +3327,7 @@ def convert(data, filename, base_dir):
                  "a separate held-inventory that shifts between patches and is not "
                  "parsed, so they are not listed. What is listed is really owned._",
                  ""]
-        return "\n".join(head + body + footer_for(cfg, len(characters)))
+        return "\n".join(head + body + footer_for(cfg, len(characters), version, patch))
 
     # DS3: names from the header, inventory by id-scan, stats by content-scan.
     if game == "ds3":
@@ -3286,7 +3360,7 @@ def convert(data, filename, base_dir):
         for i, ch in characters:
             body.append(md_for_character(ch, i - cfg["slots"].start + 1))
             body += ["---", ""]
-        return "\n".join(head + body + footer_for(cfg, len(characters)))
+        return "\n".join(head + body + footer_for(cfg, len(characters), version, patch))
 
     # Full / inventory tier: decrypt each slot and parse it.
     db_dir = os.path.join(base_dir, cfg["db"][0])
@@ -3322,7 +3396,7 @@ def convert(data, filename, base_dir):
     for i, ch in characters:
         body.append(md_for_character(ch, i - cfg["slots"].start + 1))
         body += ["---", ""]
-    return "\n".join(head + body + footer_for(cfg, len(characters)))
+    return "\n".join(head + body + footer_for(cfg, len(characters), version, patch))
 
 
 ## @brief Folders a Souls save can live in, per OS. Each game keeps its `.sl2` in
