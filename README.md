@@ -9,7 +9,7 @@ There are two ways to use it, and they run the exact same reading logic:
 
 Both read the save and never write to it. Point either one at your live save if you like. The worst case is a bad output file, not a bricked character.
 
-There is a third way to use this repo, and it has nothing to do with saves at all. **The `db_*/` folders are a curated Souls data set** — item ID tables for four games, bonfire tables, boss-defeat flag tables, NPC questline flags, covenant flags, boss-soul-to-boss maps. They are plain JSON with no dependency on the parser. If you are building a randomizer, a wiki scraper, a speedrun tool, a mod, or a Cheat Engine table and you just need "ID 7010900 is a Deep Battle Axe," take the folder and ignore everything else. See **[The data](#the-data-a-curated-souls-json-set)**.
+There is a third way to use this repo, and it has nothing to do with saves at all. **The `db_*/` folders are a curated Souls data set** — item ID tables for four games, bonfire tables, boss-defeat flag tables, NPC questline flags, covenant flags, boss-soul-to-boss maps. They are plain JSON with no dependency on the parser. If you are building a randomizer, a wiki scraper, a speedrun tool, a mod, or a Cheat Engine table and you just need "ID 7010900 is a Deep Battle Axe," take the folder and ignore everything else — it is MIT, same as the code. See **[The data](#the-data-a-curated-souls-json-set)**.
 
 The code lives at **https://github.com/darthdemono/sl2-analyzer**. Every Markdown file it writes carries the repo link and a one-line note on how that game was read, so a summary you pasted somewhere months ago still points back at the tool that made it.
 
@@ -58,10 +58,13 @@ What each game actually surfaces. A blank cell means the field is not readable f
 | Inventory, named | yes | yes, with `+N` and infusion | yes | partial |
 | Equipped gear | — | — | weapons, armour, rings, ammo | — |
 | Bonfires | 43, named, with kindle level | 77, named, by area | 77, named, by area | — |
-| Boss defeats by flag | 12 | 6 | 25 | — |
+| Boss defeats by flag | 12 | 6 | 25 + 26 victory flags | — |
 | Boss defeats by held soul | yes | yes | yes | yes |
 | Boss defeats by gate / NG+ | yes | yes | yes | gate only |
-| NPC questline rewards | — | — | 58 NPCs, 101 rewards | — |
+| Which missing boss is reachable now | — | — | yes, from the route graph | — |
+| NPC questline rewards | — | — | 57 NPCs, 101 rewards | — |
+| World items picked up | — | — | 426, named, in 6 areas | — |
+| Cinders of a Lord placed | — | — | count always, 3 of 4 named | — |
 
 ---
 
@@ -69,7 +72,7 @@ What each game actually surfaces. A blank cell means the field is not readable f
 
 This started as tables the parser needed. It ended up being the part of the repo most likely to be useful to somebody who never touches a `.sl2`. So it is documented properly here, as a data set in its own right.
 
-Everything below is plain UTF-8 JSON, no schema files, no build step, no dependency on the Python or the JavaScript. Clone the repo, take the folder you want, delete the rest.
+Everything below is plain UTF-8 JSON: no build step, no dependency on the Python or the JavaScript, and no schema to satisfy — these are the lookup tables themselves, not the tool's output. (The export format has a schema; that is [`schema.json`](schema.json), and it describes what the CLI *writes*, not what is in these folders.) Clone the repo, take the folder you want, delete the rest.
 
 ### Item name tables
 
@@ -113,10 +116,12 @@ These are the interesting ones, and they took a lot more work than the item list
 | `db_ds3/bonfires.json` | `{area: [[dist, bit, name]]}` | 77 in 14 areas | Every DS3 and DLC bonfire, as a save byte-offset and bit |
 | `db_ds3/boss_flags.json` | `{boss: [dist, bit]}` | 25 | Boss-defeat flags, same addressing |
 | `db_ds3/boss_victory.json` | `{boss: [dist, bit]}` | 26 | The `63xx` boss-victory flags — a second kill signal that, unlike the per-map flags, survives an NG+ reset |
-| `db_ds3/lord_cinders.json` | `{lord: [dist, bit]}` | 1 | The flag set when a Lord's Cinders go on the Firelink throne. Only Abyss Watchers is pinned; the other three need their own differentials |
+| `db_ds3/lord_cinders.json` | `{lord: [dist, bit]}` | 3 | The flag set when a Lord's Cinders go on the Firelink throne. Abyss Watchers, Yhorm and Aldrich are each pinned by their own differential; the Twin Princes still need theirs |
 | `db_ds3/boss_souls.json` | `{soul_item: boss}` | 22 | Boss soul → boss |
-| `db_ds3/covenants.json` | `{covenant: [[dist, bit, what it proves]]}` | 8 / 20 flags | Join and rank-reward flags per covenant |
-| `db_ds3/questlines.json` | `{npc: [[dist, bit, reward]]}` | 58 / 101 flags | NPC quest reward flags |
+| `db_ds3/covenants.json` | `{covenant: [[dist, bit, what it proves]]}` | 8 / 18 flags | Join and rank-reward flags per covenant |
+| `db_ds3/questlines.json` | `{npc: [[dist, bit, reward]]}` | 57 / 101 flags | NPC quest reward flags |
+| `db_ds3/item_pickups.json` | `{area: [[dist, bit, item]]}` | 6 areas / 426 items | Every one-off world item in the six areas whose flag-group base could be derived, as a save byte-offset and bit. An area is absent when its base is unknown — never guessed |
+| `db_ds3/boss_route.json` | `{boss: [gate_area, [predecessors]]}` | 26 | The hard route gates, for working out which missing boss is reachable now |
 | `db_er/boss_souls.json` | `{remembrance: boss}` | 14 | Remembrance → the boss that drops it |
 
 The DS3 tables store `[dist, bit]` rather than a flag ID, because the ID-to-byte conversion is not obvious and doing it once at generation time means a consumer does not need the formula. `dist` is a byte offset from the start of that slot's event-flag region and `bit` is the bit index within the byte, MSB-first. The formula that produced them is documented below, so you can regenerate the tables for any other flag you care about.
@@ -163,7 +168,9 @@ I did not extract any of these from the games myself. They are transcribed, reco
 - **DS3 flags** — FrankvdStam/SoulSplitter's flag lists, cross-checked against The-Grand-Archives Cheat Engine table. 60 of 60 bonfire names agree between the two.
 - **Elden Ring items** — the ER TGA Cheat Engine table's master list, split by type nibble.
 
-Two of these carry licence weight worth knowing about. SoulSplitter is **GPLv3**; the flag *lists* were used as a reference to compute offsets, and what ships here is derived data, but if you are redistributing verbatim tables in a closed product, go read their licence first. The Cheat Engine tables and the compendium have no stated licence at all, which is the usual state of affairs in this scene. I am not going to pretend that is settled.
+Three of the upstream projects are **GPL-3.0** — SoulSplitter, souls_givifier, and SoulsFormats — and that is worth addressing rather than hoping nobody checks. No code from any of them is in this repository. What was taken is facts about a file format FromSoftware defined: key bytes, field offsets, event-flag IDs. A key is a number you discover, not a work you author; "the death counter is a uint32 at +104" is a measurement; and the flag lists are exhaustive by nature, so there is no creative selection in them to infringe. What ships in `db_ds3/` is not those lists anyway — it is byte offsets and bit positions computed from them.
+
+The full audit, including the two caveats I am not going to paper over (the EU database right is a different regime from copyright, and none of this is legal advice), is in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). It also names the seven files to delete if you would rather not have the question in your dependency tree at all — the tool degrades gracefully without them. The Cheat Engine tables, the compendium and Paramdex state no licence whatsoever, which is the usual state of affairs in this scene, and I am not going to pretend that is settled either.
 
 ---
 
@@ -280,10 +287,12 @@ Every game gets the baseline: **boss souls and remembrances still held.** You ca
 **Dark Souls III goes deepest,** because its event flags turned out to be in the save after all:
 
 - **Bonfires, all 77 named.** Not counted, named. Every base-game and DLC bonfire resolves to its own name, grouped by area. A real early save reads Cleansing Chapel, Deacons of the Deep and Cathedral of the Deep under Cathedral, Firelink Shrine, Cemetery of Ash and Iudex Gundyr under Cemetery, and so on.
+- **Boss route awareness.** Missing bosses split into "available now" — every hard predecessor dead and the gating area already reached — and the rest. The route graph is game structure, not a save read, and the area half is what stops a DLC boss reading as reachable before you have entered the DLC.
 - **Bosses defeated, from 25 defeat flags,** computed from the authoritative flag list rather than hand-checked. Every computed offset independently reproduced the older hand-verified table, which is mutual confirmation, and the rebuild added Ancient Wyvern, which the old one missed. This is what catches bosses that drop no soul, like Iudex Gundyr, which the soul floor could never see.
 - **Bosses defeated again, from a second and independent set of 26 victory flags.** The per-map defeat flags reset when you start NG+; these do not, which is why a finished character reads a full roster where the map flags read nothing. They also cover Stray Demon, which the map table has no entry for. Every one of them was checked against a 36-save ladder and first appears in exactly the snapshot the boss died in.
-- **Cinders of a Lord placed on the throne.** One lord so far — Abyss Watchers — pinned by a 46-second save pair either side of the offering. The other three are not guessed at; each needs its own pair.
-- **NPC questlines.** 58 NPCs, 101 reward flags — what Hawkwood, Greirat, Siegward, Leonhard, Yuria and the rest have actually handed over. On a real early save this reads eleven coherent NPCs and zero late-game or DLC false positives.
+- **Cinders of a Lord placed on the throne.** Three lords so far — Abyss Watchers, Yhorm and Aldrich — each pinned by its own save pair either side of the offering. The Twin Princes are not guessed at, even though the obvious bit is sitting right there in the same byte: the three known IDs do not run in offering order, so their spacing is a pattern rather than evidence. The *count* does not wait on it, because a lord's cinders sit in your inventory from the kill until the offering, so "placed" is (lords dead − cinders held) and needs no new flag at all.
+- **NPC questlines.** 57 NPCs, 101 reward flags — what Hawkwood, Greirat, Siegward, Leonhard, Yuria and the rest have actually handed over. On a real early save this reads eleven coherent NPCs and zero late-game or DLC false positives.
+- **World items collected, 426 of them across six areas.** Not a count — every one-off pickup in Road of Sacrifices, Cathedral of the Deep, Irithyll, Catacombs of Carthus, Irithyll Dungeon and Cemetery of Ash, named, with what you have *not* picked up listed beside what you have. The six flag-group bases were derived by windowed timing against a 46-save ladder: an item whose first-held snapshot is known must have its flag clear in every earlier save and set in every later one. Exactly one base out of 130,560 survives per group, and all six landed on the published `k*0x500 + 111` grid, which nothing in the search knew about. The other areas are **absent from the table rather than guessed**, so the section counts what is tracked and says so.
 - **Covenants found**, with join and rank-reward flags, alongside the covenant currently worn.
 - **Equipped gear** — both hands' weapons with their reinforcement level, all four armour slots, all four rings, and ammo. Every slot is gated on the resolved ID landing in the right category, so a stray handle drops out instead of printing a weapon in a helmet slot.
 - **Embered, play time, max FP, NG+.** Reaching NG+ proves every unskippable boss on the road to Soul of Cinder dead, even ones whose souls were long since spent.
@@ -608,6 +617,7 @@ Said out loud rather than papered over:
 - **Upgraded gear in DS1's scanned inventory is not named with its level.** DS1 bakes the reinforcement into the item ID and its scan-based inventory carries base IDs. **DS3 no longer has this problem in either place** — the held inventory turned out to store the exact `base + infusion*100 + level` ID, same as the equip slots, so a held `Greataxe +6` reads as such rather than dropping out. DS2 never had it: its tables are built from the full SOTFS ID list, so reinforced and infused variants all resolve by name. Elden Ring is the reverse, where reinforced-weapon IDs fall back to the base name.
 - **DS3 has no starting class, gender, or Dark Sigil level,** and no published editor reads them either, so there is nothing to port. Each needs its own differential save.
 - **Scholar-only content is absent from a vanilla DS2 save,** which is the game's doing, not the tool's. The two releases share one ID table, so a vanilla save simply never carries the items and bonfires Scholar added.
+- **DS3 world pickups cover six areas, not the whole game.** Each area's flag group needs its own save base, and a base is only accepted when the ladder can *date* items in it — an item held from a known snapshot onward, with the flag clear before and set after. Areas the ladder cannot date are left out of the table entirely. A base chosen by plausibility instead of timing would invent pickups, which is the one thing this tool must never do.
 
 ---
 
@@ -616,6 +626,8 @@ Said out loud rather than papered over:
 ```
 sl2_to_md.py      the entry point; re-exports the package so `import sl2_to_md` still works
 schema.json       JSON Schema for the --json export, published at the site root
+LICENSE           MIT
+THIRD-PARTY-NOTICES.md   where every reverse-engineered fact came from, and its licence
 sl2/              the Python package, one module per layer and one per game
   reader.py       bounds-checked buffer reads; nothing else touches a raw offset
   keys.py         the five AES keys (all of them ship inside the games)
@@ -657,17 +669,29 @@ The Python tool and the JavaScript port keep the same offsets and constants. Cha
 
 ---
 
+## License
+
+[MIT](LICENSE). Use it for anything, commercial included, no permission needed and nothing owed — keep the copyright notice and that is the whole of it.
+
+That applies to the code *and* the data tables, which is the deliberate part: the tables are the half of this repo most likely to be useful to somebody who never touches a `.sl2`, and a restrictive licence on them would defeat the point of documenting them.
+
+Three of the projects this work builds on are GPL-3.0. None of their code is here — only facts about a file format — and the reasoning, the per-project audit, and the caveats are written out in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) so you can check it rather than take my word for it.
+
+---
+
 ## Credits
 
 I did not reverse-engineer these formats from scratch, and I am not going to pretend I did. The keys, offsets, and structures come from people who mapped them first:
 
-- Vanilla DS2 key: [TKGP/SoulsFormats](https://github.com/JKAnderson/SoulsFormats) (`SFUtil.GetDS2SaveKey`).
+- Vanilla DS2 key: [TKGP/SoulsFormats](https://github.com/JKAnderson/SoulsFormats) (`SFUtil.GetDS2SaveKey`, GPL-3.0).
 - DS2 offsets and item tables: [alfizari/Dark-Souls-2-Save-Editor-PS4-PC](https://github.com/alfizari/Dark-Souls-2-Save-Editor-PS4-PC).
-- DSR, DS3, and ER keys, decryption, and header layout: [jtesta/souls_givifier](https://github.com/jtesta/souls_givifier).
+- DSR, DS3, and ER keys, decryption, and header layout: [jtesta/souls_givifier](https://github.com/jtesta/souls_givifier) (GPL-3.0).
 - DS3 stat offsets, play time, and the event-flag region: [alfizari/Dark-Souls-3-Save-Editor-PS4-PC](https://github.com/alfizari/Dark-Souls-3-Save-Editor-PS4-PC).
 - DS3 bonfire, boss, and item-pickup flag lists: [FrankvdStam/SoulSplitter](https://github.com/FrankvdStam/SoulSplitter) (GPLv3) and [The-Grand-Archives/Dark-Souls-III-CT-TGA](https://github.com/The-Grand-Archives/Dark-Souls-III-CT-TGA).
 - DSR and DS1 offsets and item tables: [alfizari/Dark-Souls-Remastered-Save-Editor](https://github.com/alfizari/Dark-Souls-Remastered-Save-Editor), plus [tarvitz/dsfp](https://github.com/tarvitz/dsfp) for the PtDE roster and deaths struct.
 - DS1 item IDs, bonfire IDs, and flag addressing: Paramdex and the soulsmodding wiki.
+
+Per-project licences and what was taken from each are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 - Elden Ring save structure (GaItem array, profile table): [ClayAmore/ER-Save-Editor](https://github.com/ClayAmore/ER-Save-Editor); the save-slot "File version" word and the in-save regulation block that carries the game patch: [ClayAmore/ER-Save-Lib](https://github.com/ClayAmore/ER-Save-Lib).
 - DS2 bonfire, class, covenant, and world-block offsets: the Jappi88 DS2 save editor and the SOTFS Cheat Engine tables.
 - Item name lists: the SOTFS Hex Code Compendium (DS2) and the ER TGA Cheat Engine table's master list.
