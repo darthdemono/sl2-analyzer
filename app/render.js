@@ -6,6 +6,7 @@
 
 import { STAT_ABBR, statGovernsFor, statCapsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, DS2_GAMES, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime, countDupes } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
+import { buildJsonText } from "./jsonout.js";
 
 function el(tag, props, ...kids) {
   const n = document.createElement(tag);
@@ -389,18 +390,44 @@ function characterCard(slot, ch, bonfireTotal) {
   return card;
 }
 
+/**
+ * Hand the browser a generated file. Shared by both download buttons so the blob/anchor
+ * dance exists once.
+ * @param {string} text the file contents
+ * @param {string} mime
+ * @param {string} name the download filename
+ */
+function saveText(text, mime, name) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = el("a", { href: url, download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  // Revoke on the next tick — revoking synchronously can beat the download.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+/** The save's basename, for naming whatever we hand back. */
+const stem = (filename) => (filename || "save").replace(/\.sl2$/i, "");
+
 /** Save the same Markdown to a file, for anyone who wants it on disk not on the clipboard. */
 function downloadButton(result, filename) {
   const btn = el("button", { class: "btn btn-ghost", type: "button", text: "Download .md" });
   btn.addEventListener("click", () => {
-    const blob = new Blob([buildMarkdown(result, filename)], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = el("a", { href: url, download: `${(filename || "save").replace(/\.sl2$/i, "")}.md` });
-    document.body.append(a);
-    a.click();
-    a.remove();
-    // Revoke on the next tick — revoking synchronously can beat the download.
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+    saveText(buildMarkdown(result, filename), "text/markdown;charset=utf-8", `${stem(filename)}.md`);
+  });
+  return btn;
+}
+
+/**
+ * The same data as JSON, against the published schema — for anything that is going to be
+ * read by a program rather than a person. Byte-identical to what the CLI writes.
+ */
+function downloadJsonButton(result, filename) {
+  const btn = el("button", { class: "btn btn-ghost", type: "button", text: "Download .json" });
+  btn.addEventListener("click", () => {
+    saveText(buildJsonText(result, filename), "application/json;charset=utf-8", `${stem(filename)}.json`);
   });
   return btn;
 }
@@ -482,6 +509,7 @@ export function renderSave(result, filename) {
     el("div", { class: "gb-right" },
       el("span", { class: "count", text: `${result.characters.length} character${result.characters.length === 1 ? "" : "s"}` }),
       downloadButton(result, filename),
+      downloadJsonButton(result, filename),
       copyButton(result, filename))));
   if (!result.characters.length) root.append(el("p", { class: "note", text: "No populated character slots found." }));
 

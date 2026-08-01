@@ -6,7 +6,7 @@
 // they are the one request that leaves the browser, and quietly persisting them
 // would make that leak outlive the tab.
 
-const VERSION = "v2";
+const VERSION = "v3";
 const CACHE = `sl2-analyzer-${VERSION}`;
 
 // The app shell. Item tables are not listed: there are 40 of them across four games
@@ -22,6 +22,7 @@ const SHELL = [
   "app/parser.js",
   "app/render.js",
   "app/markdown.js",
+  "app/jsonout.js",
   "app/tables.js",
   "app/reader.js",
   "app/aes.js",

@@ -4,7 +4,7 @@ This reads a FromSoftware `.sl2` save and tells you what is in it. That is the w
 
 There are two ways to use it, and they run the exact same reading logic:
 
-- **A web page.** Drop a `.sl2` onto [the site](https://darthdemono.github.io/sl2-analyzer/) and it lays each character out as a replica of that game's own in-game **Level-Up screen** — a framed stat panel skinned to the game, with progress lists and (for DS2) item thumbnails below. It parses the file in your browser. Nothing uploads, nothing hits a server, and the save never leaves your machine.
+- **A web page.** Drop a `.sl2` onto [the site](https://darthdemono.github.io/sl2-analyzer/) and it lays each character out as a replica of that game's own in-game **Level-Up screen** — a framed stat panel skinned to the game, with progress lists and (for DS2) item thumbnails below. It parses the file in your browser. Nothing uploads, nothing hits a server, and the save never leaves your machine. Copy the Markdown, or download it as `.md` or `.json` — the JSON is byte-for-byte what the CLI writes.
 - **A Python CLI.** Point `sl2_to_md.py` at a save and it writes one Markdown file describing the run (or JSON, against a [published schema](schema.json), if a program is reading it). That is the format an LLM can actually read. A `.sl2` is an encrypted binary blob; paste it into a chat and you get nothing. Paste the Markdown and the model knows where you are in the run instead of guessing at it.
 
 Both read the save and never write to it. Point either one at your live save if you like. The worst case is a bad output file, not a bricked character.
@@ -326,7 +326,7 @@ Instead of generic charts, each character is drawn as a replica of that game's o
 - **Bonfire completion as a fraction.** "22 of 77", with a bar. The denominator is real because the bonfire tables are complete for every game that has one. Bosses deliberately get no such fraction — those tables are a mapped subset, so a percentage would imply a roster the data cannot back.
 - **A tab per character** when a save holds more than one, so a ten-slot mule is readable instead of ten stacked sheets. Arrow keys move between them.
 - **Item thumbnails for DS2**, pulled from the wiki so the inventory reads like the in-game menu. This is the one thing that leaves your browser: the save is still never uploaded, but each thumbnail request tells the wiki's image host which item it was for. The privacy note on the page says so.
-- **Copy Markdown, or download it.** Either button emits the exact same Markdown the Python CLI writes, for every character in the file — not just the tab you are looking at.
+- **Copy Markdown, or download `.md` or `.json`.** Every button emits exactly what the Python CLI writes, for every character in the file — not just the tab you are looking at. The JSON is the same document as `-o out.json`, against the same [schema](schema.json), and a parity harness holds the two byte-for-byte so a consumer cannot tell which front end produced a file. The browser has no `--meta` equivalent, so its exports carry no `environment` block.
 
 Three things make it quick. Parsing runs in a **Web Worker**, so a big save never freezes the tab. The game is detected from the archive header *before* any table is fetched, so dropping a DS3 save loads eleven files instead of all forty. And a **service worker** caches the page, its code and the tables you have used, so after the first visit it works with no connection at all — which suits a tool that already does all its work locally. The thumbnails are excluded from that cache on purpose: they are the one request that leaves the browser, and storing them would outlive the tab.
 
@@ -656,6 +656,7 @@ app/
   tables.js       shared lookup tables, formatters, per-game attribute order and theme
   render.js       the per-game Level-Up screen replicas (framed panels, DS2 derived stats + thumbnails)
   markdown.js     the browser's Copy-Markdown output
+  jsonout.js      the browser's JSON export, byte-identical to the CLI's
   worker.js       runs detect + load + parse off the main thread
   main.js         file-drop wiring and the inline fallback
 db_ds1/*.json     DS1 items (shared by DSR and PtDE), bonfires, boss flags, boss souls

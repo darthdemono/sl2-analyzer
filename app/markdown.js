@@ -5,7 +5,7 @@
 
 import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, DS2_GAMES, fmt, fmtPlaytime, countDupes } from "./tables.js";
 
-const REPO_URL = "https://github.com/darthdemono/sl2-analyzer";
+export const REPO_URL = "https://github.com/darthdemono/sl2-analyzer";
 // DS1 reads each bonfire's own record (so it knows the kindle level and can list a
 // discovered-but-unlit one); DS3 only has per-area flag bits. See sl2_to_md.py.
 const DS1_BONFIRE_NOTE = "each bonfire's own record, with how far it is kindled — a floor";
@@ -253,7 +253,7 @@ export function buildMarkdown(result, filename) {
   if (result.gamePatch != null) ver.push(`- **Game patch:** ${result.gamePatch}  _(from the save's own regulation)_`);
   const footer = ["<details>",
     "<summary>About this file — how it was produced, and how far to trust it</summary>", "",
-    `- **Game:** ${result.title}`, "- **Support tier:** full",
+    `- **Game:** ${result.title}`, `- **Support tier:** ${result.tier || "full"}`,
     `- **Character slots read:** ${result.characters.length}`, ...ver, "", disclaimer, "", "</details>", ""];
   return head.concat(body, footer).join("\n");
 }

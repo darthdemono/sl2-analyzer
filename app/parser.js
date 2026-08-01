@@ -1142,12 +1142,12 @@ function erParse(buf, iddb, name, level) {
 
 // ── Game table + driver ──────────────────────────────────────────────────
 export const GAMES = {
-  ds2sotfs: { title: "Dark Souls II: Scholar of the First Sin", slots: [1, 11] },
-  ds2vanilla: { title: "Dark Souls II", slots: [1, 11] },
-  dsr: { title: "Dark Souls Remastered", slots: [0, 10] },
-  ptde: { title: "Dark Souls: Prepare to Die Edition", slots: [0, 10] },
-  ds3: { title: "Dark Souls III", slots: [0, 10] },
-  er: { title: "Elden Ring", slots: [0, 10] },
+  ds2sotfs: { title: "Dark Souls II: Scholar of the First Sin", tier: "full", slots: [1, 11] },
+  ds2vanilla: { title: "Dark Souls II", tier: "full", slots: [1, 11] },
+  dsr: { title: "Dark Souls Remastered", tier: "full", slots: [0, 10] },
+  ptde: { title: "Dark Souls: Prepare to Die Edition", tier: "full", slots: [0, 10] },
+  ds3: { title: "Dark Souls III", tier: "full", slots: [0, 10] },
+  er: { title: "Elden Ring", tier: "full", slots: [0, 10] },
 };
 
 /**
@@ -1294,7 +1294,7 @@ export function parseSave(data, dbs) {
   const bonfireTotal = (dbs[fam] && dbs[fam].bonfireTotal) || 0;
   const saveVersion = saveFormatVersion(data, entries, game, meta.slots);
   const gamePatch = game === "er" ? erGamePatch(data, entries) : null;
-  return { game, title: meta.title, characters, images, bonfireTotal, saveVersion, gamePatch };
+  return { game, title: meta.title, tier: meta.tier, characters, images, bonfireTotal, saveVersion, gamePatch };
 }
 
 export { ParseError };
