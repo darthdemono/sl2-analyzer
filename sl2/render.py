@@ -303,12 +303,35 @@ def md_for_character(ch, slot_no):
                   f"- **Lightning DEF:** {d['lightning_def']}",
                   f"- **Dark DEF:** {d['dark_def']}", ""]
         if ch["game"] == "ds3":
-            d = ds3_derived_stats(ch["stats"])
-            L += ["### Derived Stats  _(computed from attributes — base values before "
-                  "rings, covenant & equipment)_", "",
-                  f"- **Attunement Slots:** {d['slots']}",
-                  f"- **Equip Load (max capacity):** {d['equip_load']:.1f}",
-                  f"- **Item Discovery:** {d['item_discovery']}", ""]
+            d = ds3_derived_stats(ch["stats"], ch.get("ring_mods"))
+            w = d["ring_bonus"]
+
+            # "73.0 base, +5% Ring of Favor, +15% Havel's Ring" -- the sum is only as
+            # good as its parts, so the parts are printed beside it.
+            def credit(base, kind, unit):
+                if not w[kind]:
+                    return ""
+                parts = ", ".join(f"+{v:g}{unit} {n}" for n, v in w[kind])
+                return f"  _({base} base, {parts})_"
+
+            L += ["### Derived Stats  _(computed from attributes, plus the documented "
+                  "bonus of any worn ring named beside the value — the game's other "
+                  "gear is not read)_", "",
+                  f"- **Attunement Slots:** {d['slots']}"
+                  + credit(d["slots_base"], "slots", ""),
+                  f"- **Equip Load (max capacity):** {d['equip_load']:.1f}"
+                  + credit(f"{d['equip_load_base']:.1f}", "load_pct", "%"),
+                  f"- **Item Discovery:** {d['item_discovery']}"
+                  + credit(d["item_discovery_base"], "discovery", "")]
+            # HP and stamina are read fields, so a ring that boosts them is already in
+            # the numbers above -- say so rather than adding it a second time.
+            already = [f"+{v:g}% {'Max HP' if k == 'hp_pct' else 'Stamina'} ({n})"
+                       for k in ("hp_pct", "stam_pct") for n, v in w[k]]
+            if already:
+                L.append(f"- **Also from rings:** {', '.join(already)}  _(Max HP and "
+                         f"Stamina are read from the save, so they already include "
+                         f"these)_")
+            L.append("")
         if ch["game"] in ("dsr", "ptde"):
             d = ds1_derived_stats(ch["stats"])
             L += ["### Derived Stats  _(computed from attributes — base values before "
@@ -421,7 +444,16 @@ def md_for_character(ch, slot_no):
         L += [f"- **{slot}:** {name}" for slot, name in ch.get("equipped_weapons", {}).items()]
         L += [f"- **{slot}:** {name}" for slot, name in ch.get("equipped_armor", {}).items()]
         if ch.get("equipped_rings"):
-            L.append(f"- **Rings:** {', '.join(ch['equipped_rings'])}")
+            # With the effect table loaded each ring gets its own line and what it
+            # does; without it (or for a ring the table doesn't cover) the old
+            # one-line list is still the fallback, so nothing is lost.
+            eff = dict(ch.get("ring_effects") or [])
+            if eff:
+                L.append("- **Rings:**")
+                L += [f"    - {n}" + (f" — {eff[n]}" if n in eff else "")
+                      for n in ch["equipped_rings"]]
+            else:
+                L.append(f"- **Rings:** {', '.join(ch['equipped_rings'])}")
         if ch.get("equipped_ammo"):
             L.append(f"- **Ammo:** {', '.join(ch['equipped_ammo'])}")
         L.append("")

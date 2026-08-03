@@ -14,7 +14,7 @@ from .progress import attach_defeated_bosses
 from .roster import parse_roster
 from .ds1 import ds1_augment, dsr_parse, ptde_parse
 from .ds2 import ds2_active_slots, ds2_augment, ds2_parse
-from .ds3 import DS3_DB_FILES, ds3_attach_flags, ds3_event_flag_base, ds3_goods_cat, ds3_journey, ds3_parse, ds3_playtime
+from .ds3 import DS3_DB_FILES, ds3_attach_flags, ds3_attach_ring_effects, ds3_event_flag_base, ds3_goods_cat, ds3_journey, ds3_parse, ds3_playtime
 from .er import er_parse, er_roster, load_er_db
 from .totals import attach_progress_totals
 from .render import md_for_character
@@ -312,6 +312,7 @@ def parse_save(data, base_dir):
                 flag_base = ds3_event_flag_base(slot)  # walk the block chain once
                 ch["ng_plus"] = ds3_journey(slot, flag_base)
                 attach_defeated_bosses(ch, base_dir)
+                ds3_attach_ring_effects(ch, base_dir)
                 ds3_attach_flags(ch, slot, flag_base, base_dir)
                 attach_progress_totals(ch, base_dir)
                 characters.append((i, ch))

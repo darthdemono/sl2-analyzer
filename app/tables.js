@@ -222,14 +222,38 @@ export function ds2DerivedStats(stats) {
 
 // DS3 attunement-slot breakpoints (fextralife). Mirror of Python DS3_SLOT_BREAKS.
 const DS3_SLOT_BREAKS = [10, 14, 18, 24, 30, 40, 50, 60, 80, 99];
-/** DS3 base derived stats from attributes only — attunement slots, base equip load
- *  (40 + VIT), base item discovery (100 + LUCK, cap 199). See sl2_to_md.py. */
-export function ds3DerivedStats(stats) {
+/** Sum the worn rings' structured modifiers (ch.ring_mods). Mirror of Python
+ *  ds3_ring_bonuses. @returns [totals, {stat: [[ring name, value]]}] */
+export function ds3RingBonuses(ringMods) {
+  const keys = ["load_pct", "discovery", "slots", "hp_pct", "stam_pct"];
+  const total = {}, who = {};
+  for (const k of keys) { total[k] = 0; who[k] = []; }
+  for (const [name, mods] of ringMods || []) {
+    for (const [k, v] of Object.entries(mods)) {
+      if (k in total) { total[k] += v; who[k].push([name, v]); }
+    }
+  }
+  return [total, who];
+}
+
+/** DS3 derived stats: attunement slots, equip load (40 + VIT) and item discovery
+ *  (100 + LUCK, cap 199) from attributes, plus the documented bonus of any worn ring
+ *  that moves one of those three — they are the values the save does NOT store, so
+ *  nothing else would show the ring. Equip-load percentages sum rather than compound.
+ *  See sl2_to_md.py ds3_derived_stats. */
+export function ds3DerivedStats(stats, ringMods) {
   const atn = stats.Attunement || 0, vit = stats.Vitality || 0, lck = stats.Luck || 0;
+  const [total, who] = ds3RingBonuses(ringMods);
+  const base = 40 + vit, slots = DS3_SLOT_BREAKS.filter((b) => atn >= b).length;
+  const discovery = Math.min(199, 100 + lck);
   return {
-    slots: DS3_SLOT_BREAKS.filter((b) => atn >= b).length,
-    equip_load: 40 + vit,
-    item_discovery: Math.min(199, 100 + lck),
+    slots: slots + total.slots,
+    slots_base: slots,
+    equip_load: Math.trunc(base * (100 + total.load_pct) / 10) / 10,
+    equip_load_base: base,
+    item_discovery: discovery + total.discovery,
+    item_discovery_base: discovery,
+    ring_bonus: who,
   };
 }
 

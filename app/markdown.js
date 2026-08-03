@@ -107,11 +107,21 @@ function mdCharacter(ch, slot) {
         `- **Dark DEF:** ${d.dark_def}`, "");
     }
     if (ch.game === "ds3") {
-      const d = ds3DerivedStats(ch.stats);
-      L.push("### Derived Stats  _(computed from attributes — base values before rings, covenant & equipment)_", "",
-        `- **Attunement Slots:** ${d.slots}`,
-        `- **Equip Load (max capacity):** ${d.equip_load.toFixed(1)}`,
-        `- **Item Discovery:** ${d.item_discovery}`, "");
+      const d = ds3DerivedStats(ch.stats, ch.ring_mods), w = d.ring_bonus;
+      // "73.0 base, +5% Ring of Favor, +15% Havel's Ring" — the sum is only as good as
+      // its parts, so the parts are printed beside it.
+      const credit = (base, kind, unit) => (w[kind].length
+        ? `  _(${base} base, ${w[kind].map(([n, v]) => `+${v}${unit} ${n}`).join(", ")})_` : "");
+      L.push("### Derived Stats  _(computed from attributes, plus the documented bonus of any worn ring named beside the value — the game's other gear is not read)_", "",
+        `- **Attunement Slots:** ${d.slots}` + credit(d.slots_base, "slots", ""),
+        `- **Equip Load (max capacity):** ${d.equip_load.toFixed(1)}` + credit(d.equip_load_base.toFixed(1), "load_pct", "%"),
+        `- **Item Discovery:** ${d.item_discovery}` + credit(d.item_discovery_base, "discovery", ""));
+      // HP and stamina are read fields, so a ring that boosts them is already in the
+      // numbers above — say so rather than adding it a second time.
+      const already = ["hp_pct", "stam_pct"].flatMap((k) =>
+        w[k].map(([n, v]) => `+${v}% ${k === "hp_pct" ? "Max HP" : "Stamina"} (${n})`));
+      if (already.length) L.push(`- **Also from rings:** ${already.join(", ")}  _(Max HP and Stamina are read from the save, so they already include these)_`);
+      L.push("");
     }
     if (ch.game === "dsr" || ch.game === "ptde") {
       const d = ds1DerivedStats(ch.stats);
@@ -204,7 +214,17 @@ function mdCharacter(ch, slot) {
     L.push("### Equipped  _(worn gear read from the equip slots)_", "");
     for (const [slot, name] of Object.entries(weapons)) L.push(`- **${slot}:** ${name}`);
     for (const [slot, name] of Object.entries(armor)) L.push(`- **${slot}:** ${name}`);
-    if (rings.length) L.push(`- **Rings:** ${rings.join(", ")}`);
+    if (rings.length) {
+      // With the effect table loaded each ring gets its own line and what it does;
+      // without it the old one-line list is still the fallback.
+      const eff = Object.fromEntries(ch.ring_effects || []);
+      if (Object.keys(eff).length) {
+        L.push("- **Rings:**");
+        for (const n of rings) L.push(`    - ${n}` + (eff[n] ? ` — ${eff[n]}` : ""));
+      } else {
+        L.push(`- **Rings:** ${rings.join(", ")}`);
+      }
+    }
     if (ammo.length) L.push(`- **Ammo:** ${ammo.join(", ")}`);
     L.push("");
   }

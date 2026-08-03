@@ -137,14 +137,20 @@ function ds2DerivedPanel(ch) {
 // DS3 derived panel — the base attribute-only values the status screen shows that
 // aren't already read from the save. See ds3DerivedStats.
 function ds3DerivedPanel(ch) {
-  const d = ds3DerivedStats(ch.stats);
+  const d = ds3DerivedStats(ch.stats, ch.ring_mods), w = d.ring_bonus;
+  // A ring's share is shown beside the value it moved, so the total is checkable.
+  const credit = (base, kind, unit) => (w[kind].length
+    ? ` (${base}${w[kind].map(([, v]) => ` +${v}${unit}`).join("")})` : "");
+  const ringed = Object.values(w).some((a) => a.length);
   return el("div", { class: "lp" },
     el("div", { class: "lp-h", text: "Derived (base)" }),
     el("div", { class: "lp-rows" },
-      statRow("load", "Attunement Slots", d.slots),
-      statRow("load", "Equip Load", d.equip_load.toFixed(1)),
-      statRow(null, "Item Discovery", d.item_discovery)),
-    el("p", { class: "lp-note", text: "Base values from attributes — before rings, covenant and equipment. HP/FP/stamina are read from the save above; poise, defences and attack power are gear-scaled, so they're left off." }));
+      statRow("load", "Attunement Slots", d.slots + credit(d.slots_base, "slots", "")),
+      statRow("load", "Equip Load", d.equip_load.toFixed(1) + credit(d.equip_load_base.toFixed(1), "load_pct", "%")),
+      statRow(null, "Item Discovery", d.item_discovery + credit(d.item_discovery_base, "discovery", ""))),
+    el("p", { class: "lp-note", text: ringed
+      ? "From attributes, plus the documented bonus of a worn ring where one applies (in brackets: the ringless base, then each ring's share). These three are not stored in the save, so nothing else would show the ring — Max HP and Stamina above are read fields and already include it. Other gear, poise, defences and attack power are left off."
+      : "Base values from attributes — before rings, covenant and equipment. HP/FP/stamina are read from the save above; poise, defences and attack power are gear-scaled, so they're left off." }));
 }
 
 /** DS1's derived panel: the two values that are pure attribute functions. */
@@ -364,7 +370,17 @@ function characterCard(slot, ch, bonfireTotal) {
       list.append(el("li", null, el("span", { class: "slot", text: `${slot}: ` }), name));
     }
     if (eqRings.length) {
-      list.append(el("li", null, el("span", { class: "slot", text: "Rings: " }), eqRings.join(", ")));
+      // One line per ring once the effect table is loaded, so what it does sits beside
+      // it; otherwise the plain comma list as before.
+      const eff = Object.fromEntries(ch.ring_effects || []);
+      if (Object.keys(eff).length) {
+        for (const n of eqRings) {
+          list.append(el("li", null, el("span", { class: "slot", text: "Ring: " }),
+            n + (eff[n] ? ` — ${eff[n]}` : "")));
+        }
+      } else {
+        list.append(el("li", null, el("span", { class: "slot", text: "Rings: " }), eqRings.join(", ")));
+      }
     }
     if (eqAmmo.length) {
       list.append(el("li", null, el("span", { class: "slot", text: "Ammo: " }), eqAmmo.join(", ")));

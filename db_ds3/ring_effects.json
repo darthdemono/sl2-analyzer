@@ -1,0 +1,471 @@
+{
+ "Aldrich's Ruby": {
+  "effect": [
+   "Recovers 85 HP from critical attacks"
+  ]
+ },
+ "Aldrich's Sapphire": {
+  "effect": [
+   "Recovers 15 FP from critical attacks"
+  ]
+ },
+ "Ashen Estus Ring": {
+  "effect": [
+   "Increases FP restored with Ashen Estus Flask by 20%."
+  ]
+ },
+ "Bellowing Dragoncrest Ring": {
+  "effect": [
+   "Boosts sorcery damage by +20%."
+  ]
+ },
+ "Bloodbite Ring": {
+  "effect": [
+   "Increases bleed resistance by 90 points",
+   "+1: +140"
+  ]
+ },
+ "Blue Tearstone Ring": {
+  "effect": [
+   "Increases absorptions by 20% (PVP: 15%) when HP is below 20%"
+  ]
+ },
+ "Calamity Ring": {
+  "effect": [
+   "Reduces absorptions by 100%"
+  ]
+ },
+ "Carthus Bloodring": {
+  "effect": [
+   "Increases duration of invincibility while rolling and reduces absorptions by 30%"
+  ]
+ },
+ "Carthus Milkring": {
+  "effect": [
+   "Increases DEX by 3 levels and obscures the wearer while rolling."
+  ]
+ },
+ "Chillbite Ring": {
+  "effect": [
+   "Increases frost resistance by 140."
+  ]
+ },
+ "Chloranthy Ring": {
+  "effect": [
+   "Raises stamina recovery speed by 7 points/second",
+   "+1: +8 stamina/second",
+   "+2: +9 stamina/second",
+   "+3: +10 stamina/second"
+  ]
+ },
+ "Covetous Gold Serpent Ring": {
+  "effect": [
+   "Increases Item Discovery by 50 points",
+   "+1: +75",
+   "+2: +100",
+   "+3: +125"
+  ],
+  "mods": {
+   "0": {
+    "discovery": 50
+   },
+   "1": {
+    "discovery": 75
+   },
+   "2": {
+    "discovery": 100
+   },
+   "3": {
+    "discovery": 125
+   }
+  }
+ },
+ "Covetous Silver Serpent Ring": {
+  "effect": [
+   "Fallen foes yield +10% more souls",
+   "+1: +20%",
+   "+2: +30%",
+   "+3: +35%"
+  ]
+ },
+ "Cursebite Ring": {
+  "effect": [
+   "Increases curse resistance by 150 points"
+  ]
+ },
+ "Dark Clutch Ring": {
+  "effect": [
+   "Increases dark attack by 15% (PVP: 8%)",
+   "Reduces physical absorptions by 10% (PVP: -15%)"
+  ]
+ },
+ "Dark Stoneplate Ring": {
+  "effect": [
+   "Increases dark absorption by 13% (PVP: +4%)",
+   "+1: +17% (PVP: +5%)",
+   "+2: +20% (PVP: +6%)"
+  ]
+ },
+ "Darkmoon Ring": {
+  "effect": [
+   "Allows attunement of many additional spells (+2 attunement slots)"
+  ],
+  "mods": {
+   "0": {
+    "slots": 2
+   }
+  }
+ },
+ "Deep Ring": {
+  "effect": [
+   "Allow attunement of additional spells (+1 attunement slot)"
+  ],
+  "mods": {
+   "0": {
+    "slots": 1
+   }
+  }
+ },
+ "Dragonscale Ring": {
+  "effect": [
+   "Reduced damage taken from backstabs by 30%"
+  ]
+ },
+ "Dusk Crown Ring": {
+  "effect": [
+   "Reduces spells' consumption of FP by 25% at the cost of 15% less max HP"
+  ]
+ },
+ "Estus Ring": {
+  "effect": [
+   "Increases HP restored with Estus Flask by 20%"
+  ]
+ },
+ "Farron Ring": {
+  "effect": [
+   "Reduces Skill FP consumption by 25%"
+  ]
+ },
+ "Fire Clutch Ring": {
+  "effect": [
+   "Increases fire attack by 15% (PVP: +8%)",
+   "Reduces physical absorptions by 10% (PVP: -15%)"
+  ]
+ },
+ "Flame Stoneplate Ring": {
+  "effect": [
+   "Increases fire absorption by 13% (PVP: +4%)",
+   "+1: +17% (PVP: +5%)",
+   "+2: +20% (PVP: +6%)"
+  ]
+ },
+ "Fleshbite Ring": {
+  "effect": [
+   "Raises poison, bleed, frost and curse resistances by 40 points",
+   "+1: +60"
+  ]
+ },
+ "Flynn's Ring": {
+  "effect": [
+   "Lowering equip load increases attack power up to 15%"
+  ]
+ },
+ "Great Swamp Ring": {
+  "effect": [
+   "Boosts pyromancy damage by +12%."
+  ]
+ },
+ "Havel's Ring": {
+  "effect": [
+   "Increases maximum Equipment Load by 15%",
+   "+1: +17%",
+   "+2: +18%",
+   "+3: +19%"
+  ],
+  "mods": {
+   "0": {
+    "load_pct": 15
+   },
+   "1": {
+    "load_pct": 17
+   },
+   "2": {
+    "load_pct": 18
+   },
+   "3": {
+    "load_pct": 19
+   }
+  }
+ },
+ "Hawk Ring": {
+  "effect": [
+   "Extends the range of arrows"
+  ]
+ },
+ "Hornet Ring": {
+  "effect": [
+   "Increases Critical Damage by 30%"
+  ]
+ },
+ "Horsehoof Ring": {
+  "effect": [
+   "Enemies lose 40% more Stamina when guarding against your kicks"
+  ]
+ },
+ "Hunter's Ring": {
+  "effect": [
+   "Increases Dexterity by 5 levels"
+  ]
+ },
+ "Knight Slayer's Ring": {
+  "effect": [
+   "Enemies lose 20% more stamina when guarding attacks."
+  ]
+ },
+ "Knight's Ring": {
+  "effect": [
+   "Increases Strength by 5 levels"
+  ]
+ },
+ "Leo Ring": {
+  "effect": [
+   "Strengthens thrust weapon counter attacks by 15%"
+  ]
+ },
+ "Life Ring": {
+  "effect": [
+   "Increases maximum HP by 7%.",
+   "+1: +8%",
+   "+2: +9%",
+   "+3: +10%"
+  ]
+ },
+ "Lightning Clutch Ring": {
+  "effect": [
+   "Increases lightning attack by 15% (PVP: +8%)",
+   "Reduces physical absorptions by 10% (PVP: -15%)"
+  ]
+ },
+ "Lingering Dragoncrest Ring": {
+  "effect": [
+   "Extends length of spell effects by 30%",
+   "+1: +35%",
+   "+2: +40%"
+  ]
+ },
+ "Lloyd's Shield Ring": {
+  "effect": [
+   "Increases absorptions by 20% when HP is full (>99%)"
+  ]
+ },
+ "Lloyd's Sword Ring": {
+  "effect": [
+   "Increases attack by 10% when HP is full (>99%)"
+  ]
+ },
+ "Magic Clutch Ring": {
+  "effect": [
+   "Increases magic attack by 15% (PVP: +8%)",
+   "Reduces physical absorptions by 10% (PVP: -15%)"
+  ]
+ },
+ "Magic Stoneplate Ring": {
+  "effect": [
+   "Increases magic absorption by 13% (PVP: +4%)",
+   "+1: +17% (PVP: +5%)",
+   "+2: +20% (PVP: +6%)"
+  ]
+ },
+ "Morne's Ring": {
+  "effect": [
+   "Boosts miracle damage by 12%"
+  ]
+ },
+ "Obscuring Ring": {
+  "effect": [
+   "Enemies need to be closer to notice you with sight, and you are invisible to other players beyond a certain distance"
+  ]
+ },
+ "Poisonbite Ring": {
+  "effect": [
+   "Increases poison resistance by 90 points",
+   "+1: +140"
+  ]
+ },
+ "Pontiff's Left Eye": {
+  "effect": [
+   "Restores 30 HP after a certain amount of successive attacks."
+  ]
+ },
+ "Pontiff's Right Eye": {
+  "effect": [
+   "Increases damage of consecutive attacks by +3% / +5% / +11%, as long as attacking persists."
+  ]
+ },
+ "Priestess Ring": {
+  "effect": [
+   "Increases Faith by 5 levels"
+  ]
+ },
+ "Prisoner's Chain": {
+  "effect": [
+   "Increases VGR (5), END (5), and VIT (5), and reduces absorptions by 4%"
+  ]
+ },
+ "Red Tearstone Ring": {
+  "effect": [
+   "Increases damage by 20% when HP is below 20%"
+  ]
+ },
+ "Reversal Ring": {
+  "effect": [
+   "Use the animations of the opposite gender (run and walk animations, emotes, etc.)"
+  ]
+ },
+ "Ring of Favor": {
+  "effect": [
+   "Increases max HP by 3%, stamina by 9% and Equipment Load by 5%",
+   "+1: +4.5% / +10% / +6%",
+   "+2: +5% / +11% / +7%",
+   "+3: +6% / +12% / +8%"
+  ],
+  "mods": {
+   "0": {
+    "hp_pct": 3,
+    "load_pct": 5,
+    "stam_pct": 9
+   },
+   "1": {
+    "hp_pct": 4.5,
+    "load_pct": 6,
+    "stam_pct": 10
+   },
+   "2": {
+    "hp_pct": 5,
+    "load_pct": 7,
+    "stam_pct": 11
+   },
+   "3": {
+    "hp_pct": 6,
+    "load_pct": 8,
+    "stam_pct": 12
+   }
+  }
+ },
+ "Ring of Sacrifice": {
+  "effect": [
+   "Its wearer will lose nothing upon death, but the ring itself breaks."
+  ]
+ },
+ "Ring of Steel Protection": {
+  "effect": [
+   "Increases physical absorption by 10% (PVP: +2%)",
+   "+1: +13% (PVP: +3%)",
+   "+2: +15% (PVP: +4%)",
+   "+3: +17% (PVP: +5%)"
+  ]
+ },
+ "Ring of the Evil Eye": {
+  "effect": [
+   "Absorb +30 HP from each defeated foe.",
+   "+1: +33",
+   "+2: +35",
+   "+3: +37"
+  ]
+ },
+ "Ring of the Sun's First Born": {
+  "effect": [
+   "Boosts miracle damage by 20%"
+  ]
+ },
+ "Sage Ring": {
+  "effect": [
+   "Spell casting speed increased as if you had +30 DEX",
+   "+1: +35",
+   "+2: +40"
+  ]
+ },
+ "Saint's Ring": {
+  "effect": [
+   "Allows attunement of additional spells (+1 attunement slot)"
+  ],
+  "mods": {
+   "0": {
+    "slots": 1
+   }
+  }
+ },
+ "Scholar Ring": {
+  "effect": [
+   "Increase Intelligence by 5 levels"
+  ]
+ },
+ "Silvercat Ring": {
+  "effect": [
+   "Prevents fall damage, but falling a lethal distance still kills you."
+  ]
+ },
+ "Skull Ring": {
+  "effect": [
+   "Easier to be detected by enemies."
+  ]
+ },
+ "Slumbering Dragoncrest Ring": {
+  "effect": [
+   "Movement and rolling are silent."
+  ]
+ },
+ "Speckled Stoneplate Ring": {
+  "effect": [
+   "Increases magic, fire, lightning and dark absorption by 5% (PVP: +2%)",
+   "+1: +7% (PVP: +3%)"
+  ]
+ },
+ "Sun Princess Ring": {
+  "effect": [
+   "Gradually restores HP (2 HP/second)"
+  ]
+ },
+ "Thunder Stoneplate Ring": {
+  "effect": [
+   "Increases lightning absorption by 13% (PVP: +4%)",
+   "+1: +17% (PVP: +5%)",
+   "+2: +20% (PVP: +6%)"
+  ]
+ },
+ "Untrue Dark Ring": {
+  "effect": [
+   "Retain human appearance while hollow and appear as a host in other worlds."
+  ]
+ },
+ "Untrue White Ring": {
+  "effect": [
+   "Take the appearance of a white phantom at all times"
+  ]
+ },
+ "Witch's Ring": {
+  "effect": [
+   "Boosts pyromancy damage by +20%"
+  ]
+ },
+ "Wolf Ring": {
+  "effect": [
+   "Increases poise by 4 points",
+   "+1: +6",
+   "+2: +8",
+   "+3: +9"
+  ]
+ },
+ "Wood Grain Ring": {
+  "effect": [
+   "Increases weapon durability by 20%",
+   "+1: +30%",
+   "+2: +40%"
+  ]
+ },
+ "Young Dragon Ring": {
+  "effect": [
+   "Boosts sorcery damage by +12%."
+  ]
+ }
+}

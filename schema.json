@@ -138,6 +138,24 @@
         "equipped_armor": { "type": "object", "additionalProperties": { "type": "string" }, "description": "DS3 only: Head / Chest / Hands / Legs." },
         "equipped_rings": { "type": "array", "items": { "type": "string" }, "description": "DS3 only, up to four." },
         "equipped_ammo": { "type": "array", "items": { "type": "string" }, "description": "DS3 only: arrows and bolts." },
+        "ring_effects": {
+          "type": "array",
+          "description": "DS3 only: what each worn ring does, as [ring name, effect text]. Reference data about the ITEM (the fextralife Rings table), not a read of this save — present only for rings that table covers.",
+          "items": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }
+        },
+        "ring_mods": {
+          "type": "array",
+          "description": "DS3 only: the subset of ring_effects that modifies a value this tool derives, as [ring name, {stat: amount}]. Stats are load_pct, discovery, slots, hp_pct, stam_pct.",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "prefixItems": [
+              { "type": "string" },
+              { "type": "object", "additionalProperties": { "type": "number" } }
+            ]
+          }
+        },
         "bosses": {
           "type": "object",
           "description": "Bosses proven dead, keyed by boss name; the value lists WHY, which is the point — every entry is auditable. A floor, not a roster.",

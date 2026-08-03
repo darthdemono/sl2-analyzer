@@ -965,6 +965,35 @@ function ds3EventFlagBase(buf) {
   return bits / (sample.length * 8) <= DS3_FLAG_MAX_DENSITY ? base : null;
 }
 function popcount(x) { let c = 0; while (x) { c += x & 1; x >>>= 1; } return c; }
+/** Split an equipped ring name into its table key and reinforcement level. The db
+ *  spells three Ring of Favor ids "Ring of Favor+N" and the fourth "Ring of Favor +3",
+ *  so the space before the suffix is optional. Mirror of Python ds3_ring_level. */
+function ds3RingLevel(name) {
+  const m = /^(.*?)\s*\+(\d)$/.exec(name);
+  return m ? [m[1], Number(m[2])] : [name, 0];
+}
+
+/** Attach each equipped ring's documented effect (ch.ring_effects) and, for the few
+ *  rings that move a value the derived stats print, its structured modifier
+ *  (ch.ring_mods). Mirror of Python ds3_attach_ring_effects. */
+function ds3AttachRingEffects(ch, table) {
+  if (!table || !Object.keys(table).length) return;
+  const effects = [], mods = [];
+  for (const name of ch.equipped_rings || []) {
+    const [base, lvl] = ds3RingLevel(name);
+    const entry = table[base];
+    if (!entry) continue;
+    const lines = entry.effect;
+    let text = lines[0];
+    for (const extra of lines.slice(1)) if (extra.startsWith(`+${lvl}:`)) text += ` (${extra})`;
+    effects.push([name, text]);
+    const m = (entry.mods || {})[String(lvl)];
+    if (m) mods.push([name, m]);
+  }
+  if (effects.length) ch.ring_effects = effects;
+  if (mods.length) ch.ring_mods = mods;
+}
+
 function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, covenantDb,
                         bossVictoryDb, lordCinderDb, pickupDb) {
   if (base == null) return;
@@ -1243,6 +1272,7 @@ export function parseSave(data, dbs) {
         const flagBase = ds3EventFlagBase(slot); // walk the block chain once
         ch.ng_plus = ds3Journey(slot, flagBase);
         attachDefeatedBosses(ch, dbs);
+        ds3AttachRingEffects(ch, dbs.ds3.ringEffects);
         ds3AttachFlags(ch, slot, flagBase, dbs.ds3.bonfires, dbs.ds3.bossFlags, dbs.ds3.questlines,
           dbs.ds3.covenants, dbs.ds3.bossVictory, dbs.ds3.lordCinders, dbs.ds3.pickups);
         attachProgressTotals(ch, dbs);
