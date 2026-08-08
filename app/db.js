@@ -117,7 +117,7 @@ async function loadDs3(getJSON) {
                       "db_ds3/questlines.json", "db_ds3/covenants.json",
                       "db_ds3/boss_victory.json", "db_ds3/lord_cinders.json",
                       "db_ds3/boss_route.json", "db_ds3/item_pickups.json",
-                      "db_ds3/ring_effects.json"]),
+                      "db_ds3/ring_effects.json", "db_ds3/endings.json"]),
   ]);
   // name-keyed decimal, flat id→[name,cat], first-wins.
   const table = new Map();
@@ -134,7 +134,7 @@ async function loadDs3(getJSON) {
            questlines: extra[3] || {}, covenants: extra[4] || {},
            bossVictory: extra[5] || {}, lordCinders: extra[6] || {},
            bossRoute: extra[7] || {}, pickups: extra[8] || {},
-           ringEffects: extra[9] || {},
+           ringEffects: extra[9] || {}, endings: extra[10] || {},
            // DS3 groups bonfires by area, so the total is the sum of the area lists.
            bonfireTotal: Object.values(bonfires).reduce((s, a) => s + a.length, 0) };
 }
@@ -162,7 +162,8 @@ const EMPTY = {
                 bossFlags: new Map(), bossSouls: {}, images: {}, bonfireTotal: 0 }),
   ds3: () => ({ items: new Map(), bossSouls: {}, bonfires: {}, bossFlags: {},
                 questlines: {}, covenants: {}, bossVictory: {}, lordCinders: {},
-                bossRoute: {}, pickups: {}, ringEffects: {}, bonfireTotal: 0 }),
+                bossRoute: {}, pickups: {}, ringEffects: {}, endings: {},
+                bonfireTotal: 0 }),
   er: () => ({ items: {}, bossSouls: {} }),
 };
 
@@ -201,7 +202,7 @@ export function dbPathsFor(family) {
       "db_ds3/boss_souls.json", "db_ds3/bonfires.json", "db_ds3/boss_flags.json",
       "db_ds3/questlines.json", "db_ds3/covenants.json", "db_ds3/boss_victory.json",
       "db_ds3/lord_cinders.json", "db_ds3/boss_route.json", "db_ds3/item_pickups.json",
-      "db_ds3/ring_effects.json"];
+      "db_ds3/ring_effects.json", "db_ds3/endings.json"];
   }
   return [...ER_FILES.map((c) => `db_er/${c}.json`), "db_er/boss_souls.json"];
 }

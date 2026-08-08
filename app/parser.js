@@ -995,7 +995,7 @@ function ds3AttachRingEffects(ch, table) {
 }
 
 function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, covenantDb,
-                        bossVictoryDb, lordCinderDb, pickupDb) {
+                        bossVictoryDb, lordCinderDb, pickupDb, endingDb) {
   if (base == null) return;
   const areas = [];
   let anyLit = false;
@@ -1064,6 +1064,12 @@ function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, coven
     if (got.length) covs[cov] = got;
   }
   if (Object.keys(covs).length) ch.covenants = covs;
+  const endings = [];
+  for (const [end, [dist, bit]] of Object.entries(endingDb || {})) {
+    const val = u8(buf, base + dist);
+    if (val != null && (val & (1 << bit))) endings.push(end);
+  }
+  if (endings.length) ch.endings = endings;
 }
 // DS3 NG+ cycle: uint16 just before the event-flag region; guarded to a sane range
 // (a cheated mule reads 0xFFFF). See sl2_to_md.py.
@@ -1274,7 +1280,8 @@ export function parseSave(data, dbs) {
         attachDefeatedBosses(ch, dbs);
         ds3AttachRingEffects(ch, dbs.ds3.ringEffects);
         ds3AttachFlags(ch, slot, flagBase, dbs.ds3.bonfires, dbs.ds3.bossFlags, dbs.ds3.questlines,
-          dbs.ds3.covenants, dbs.ds3.bossVictory, dbs.ds3.lordCinders, dbs.ds3.pickups);
+          dbs.ds3.covenants, dbs.ds3.bossVictory, dbs.ds3.lordCinders, dbs.ds3.pickups,
+          dbs.ds3.endings);
         attachProgressTotals(ch, dbs);
         characters.push({ slot: label(i), ch });
       }

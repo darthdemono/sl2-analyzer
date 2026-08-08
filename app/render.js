@@ -213,6 +213,9 @@ function characterPanel(ch) {
     const n = ch.lords.placed == null ? (ch.lords.named || []).length : ch.lords.placed;
     rows.push(statRow(null, "Cinders Placed", `${n} of ${ch.lords.total}${named}`));
   }
+  if (ch.endings && ch.endings.length) {
+    rows.push(statRow(null, ch.endings.length === 1 ? "Ending" : "Endings", ch.endings.join(" · ")));
+  }
   return rows.length ? el("div", { class: "lp" }, el("div", { class: "lp-h", text: "Character" }), ...rows) : null;
 }
 

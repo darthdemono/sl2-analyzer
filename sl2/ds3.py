@@ -196,10 +196,11 @@ def load_ds3_boss_victory(base_dir):
 
 ## @brief Load the DS3 Lords-of-Cinder table (db_ds3/lord_cinders.json): lord name →
 #  @c [distance, bit] of the flag set when that lord's Cinders are placed on the
-#  Firelink throne. Only the ONE flag a real differential pinned is listed
-#  (14000125, Abyss Watchers — the only flag gained anywhere in the m40 group across a
-#  46-second offering window, and 0 in all 34 earlier saves). The other three lords'
-#  flags are NOT guessed; they need their own offering windows. Cached. Returns {}.
+#  Firelink throne. All four are listed now, each pinned by its own offering window
+#  (14000125 Abyss Watchers first — the only flag gained anywhere in the m40 group
+#  across a 46-second window — then Yhorm, Aldrich, and Twin Princes; they turned out
+#  to be the four ODD ids in one byte, which is what settled the last seat). Cached.
+#  Returns {}.
 _DS3_CINDER_CACHE = {}
 
 
@@ -300,6 +301,31 @@ def load_ds3_covenants(base_dir):
         except (OSError, ValueError):
             _DS3_COV_CACHE[base_dir] = {}
     return _DS3_COV_CACHE[base_dir]
+
+
+## @brief Load the DS3 endings table (db_ds3/endings.json): ending name →
+#  @c [distance, bit]. All four endings live in ONE byte, one bit each — the same
+#  shape as the lord-cinder byte. Three bits were pinned by a three-way differential:
+#  the same pre-ending save was finished three different ways, and each ending flipped
+#  exactly one bit of it (bit 7 Link the First Flame, bit 5 The End of Fire, bit 4 the
+#  Fire-Keeper-slain variant), with nine further flips common to all three and so
+#  generic. The remaining bit 6 is The Usurpation of Fire BY ELIMINATION — the game has
+#  four endings, three seats are pinned by a labelled save, and the family is closed;
+#  it is the one field here not observed set, because reaching it needs a save from a
+#  playthrough that took it. Flags are cumulative, so a character can hold more than
+#  one. Cached. Returns {} if absent.
+_DS3_ENDING_CACHE = {}
+
+
+def load_ds3_endings(base_dir):
+    if base_dir not in _DS3_ENDING_CACHE:
+        path = os.path.join(base_dir, "db_ds3", "endings.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _DS3_ENDING_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _DS3_ENDING_CACHE[base_dir] = {}
+    return _DS3_ENDING_CACHE[base_dir]
 
 
 ## @brief DS3 held-item record size and the offset of the quantity within it.
@@ -908,8 +934,9 @@ def ds3_event_flag_base(buf):
 #        them to @p ch: @c bonfire_areas as [(area, count, [names])] — every lit
 #        bonfire named from @ref load_ds3_bonfires — and merge @c flag boss evidence
 #        into @c ch["bosses"] (deduping with any soul/gate evidence already there,
-#        from both the per-map and the group-6 victory tables), and @c cinders as the
-#        Lords of Cinder whose ashes are on the throne.
+#        from both the per-map and the group-6 victory tables), @c cinders as the
+#        Lords of Cinder whose ashes are on the throne, and @c endings as the endings
+#        this character has reached (cumulative, so an NG+ save can hold several).
 #        No-op if @p base is None (region not located). @param base The event-flag
 #        base from @ref ds3_event_flag_base. @param base_dir Repo root for the db.
 def ds3_attach_flags(ch, buf, base, base_dir):
@@ -968,6 +995,11 @@ def ds3_attach_flags(ch, buf, base, base_dir):
             covs[cov] = got
     if covs:
         ch["covenants"] = covs
+
+    endings = [end for end, (dist, bit) in load_ds3_endings(base_dir).items()
+               if (u8(buf, base + dist) or 0) & (1 << bit)]
+    if endings:
+        ch["endings"] = endings
 
 
 ## @brief DS3 New Game+ cycle (journey count), a uint16 just before the event-flag

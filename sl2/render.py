@@ -259,6 +259,10 @@ def md_for_character(ch, slot_no):
         L.append(f"- **Stamina:** {fmt(ch['stamina'])}")
     if ch.get("lords"):
         L.append(f"- **Cinders of a Lord Placed:** {lords_line(ch['lords'])}")
+    if ch.get("endings"):
+        ends = ch["endings"]
+        L.append(f"- **Ending{'' if len(ends) == 1 else 's'} Reached:** "
+                 + " · ".join(ends))
     build = guess_build(ch["stats"])
     if build:
         L.append(f"- **Build:** {build}")

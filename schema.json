@@ -212,6 +212,7 @@
           "additionalProperties": { "type": "array", "items": { "type": "string" } }
         },
         "cinders": { "type": "array", "items": { "type": "string" }, "description": "DS3 only: Lords of Cinder whose cinders are confirmed placed on the throne by a mapped flag." },
+        "endings": { "type": "array", "items": { "type": "string" }, "description": "DS3 only: endings this character has reached. The flags are cumulative across journeys, so a character can hold more than one." },
         "lords": {
           "type": "object",
           "description": "DS3 only: the Lords of Cinder. There are exactly four, so this section has a real denominator.",

@@ -72,6 +72,9 @@ function mdCharacter(ch, slot) {
   if (ch.deaths != null) L.push(`- **Deaths:** ${fmt(ch.deaths)}`);
   if (ch.stamina != null) L.push(`- **Stamina:** ${fmt(ch.stamina)}`);
   if (ch.lords) L.push(`- **Cinders of a Lord Placed:** ${lordsLine(ch.lords)}`);
+  if (ch.endings && ch.endings.length) {
+    L.push(`- **Ending${ch.endings.length === 1 ? "" : "s"} Reached:** ${ch.endings.join(" · ")}`);
+  }
   const build = guessBuild(ch.stats);
   if (build) L.push(`- **Build:** ${build}`);
   L.push("");
