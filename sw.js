@@ -2,11 +2,10 @@
 // reason it needs the network at all is to fetch itself and its item tables — so
 // caching those makes it work with no connection, which suits a save analyzer.
 //
-// Deliberately NOT cached: the fextralife item thumbnails. They are cross-origin,
-// they are the one request that leaves the browser, and quietly persisting them
-// would make that leak outlive the tab.
+// There is nothing cross-origin to think about: the page fetches only itself and its
+// own tables, so everything it asks for is cacheable.
 
-const VERSION = "v5";
+const VERSION = "v6";
 const CACHE = `sl2-analyzer-${VERSION}`;
 
 // The app shell. Item tables are not listed: there are 40 of them across four games
@@ -27,6 +26,10 @@ const SHELL = [
   "app/reader.js",
   "app/aes.js",
   "app/db.js",
+  "app/combine.js",
+  "app/timeline.js",
+  "app/chart.js",
+  "app/mdview.js",
 ];
 
 self.addEventListener("install", (e) => {
@@ -44,17 +47,20 @@ self.addEventListener("activate", (e) => {
 });
 
 const isDb = (url) => /\/db_(ds1|ds2|ds3|er)\//.test(url.pathname);
+// The chart library is 3.4 MB and only the combined view ever asks for it, so it is
+// cached the same way as the tables: on first use, not up front.
+const isVendor = (url) => url.pathname.includes("/vendor/");
 
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;   // never touch the wiki images
+  if (url.origin !== self.location.origin) return;   // same-origin only, by design
 
   // Item tables are content-addressed in practice — a name/id table only changes
   // when the repo does — so serve them from cache and only hit the network on a
   // miss. This is what makes a second save of the same game load instantly.
-  if (isDb(url)) {
+  if (isDb(url) || isVendor(url)) {
     e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
       return res;

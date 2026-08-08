@@ -75,7 +75,7 @@ async function loadDs2(getJSON) {
   const [items, extra] = await Promise.all([
     jgetAll(getJSON, stems.map((s) => `db_ds2/${s}.json`)),
     jgetAll(getJSON, ["db_ds2/bonfires.json", "db_ds2/boss_flags.json", "db_ds2/bonfire_areas.json",
-                      "db_ds2/boss_souls.json", "db_ds2/images.json"]),
+                      "db_ds2/boss_souls.json"]),
   ]);
   // id-keyed, setdefault — first file to claim an id keeps it, so stem order matters.
   const table = new Map();
@@ -88,7 +88,7 @@ async function loadDs2(getJSON) {
   });
   const bonfires = toMap16(extra[0]);
   return { items: table, bonfires, bossFlags: toMap16(extra[1]),
-           bonfireAreas: toMap16(extra[2]), bossSouls: extra[3] || {}, images: extra[4] || {},
+           bonfireAreas: toMap16(extra[2]), bossSouls: extra[3] || {},
            bonfireTotal: bonfires.size };
 }
 
@@ -159,7 +159,7 @@ const LOADERS = { ds1: loadDs1, ds2: loadDs2, ds3: loadDs3, er: loadEr };
 const EMPTY = {
   ds1: () => ({ items: {}, bossSouls: {}, bonfires: {}, bossFlags: {}, bonfireTotal: 0 }),
   ds2: () => ({ items: new Map(), bonfires: new Map(), bonfireAreas: new Map(),
-                bossFlags: new Map(), bossSouls: {}, images: {}, bonfireTotal: 0 }),
+                bossFlags: new Map(), bossSouls: {}, bonfireTotal: 0 }),
   ds3: () => ({ items: new Map(), bossSouls: {}, bonfires: {}, bossFlags: {},
                 questlines: {}, covenants: {}, bossVictory: {}, lordCinders: {},
                 bossRoute: {}, pickups: {}, ringEffects: {}, endings: {},
@@ -195,7 +195,7 @@ export function dbPathsFor(family) {
   if (family === "ds2") {
     return [...Object.keys(DS2_FILES).map((s) => `db_ds2/${s}.json`),
       "db_ds2/bonfires.json", "db_ds2/boss_flags.json", "db_ds2/bonfire_areas.json",
-      "db_ds2/boss_souls.json", "db_ds2/images.json"];
+      "db_ds2/boss_souls.json"];
   }
   if (family === "ds3") {
     return [...Object.keys(DS3_FILES).map((s) => `db_ds3/${s}.json`),

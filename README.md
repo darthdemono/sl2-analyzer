@@ -4,7 +4,7 @@ This reads a FromSoftware `.sl2` save and tells you what is in it. That is the w
 
 There are two ways to use it, and they run the exact same reading logic:
 
-- **A web page.** Drop a `.sl2` onto [the site](https://sl2-analyzer.darthdemono.com/) and it lays each character out as a replica of that game's own in-game **Level-Up screen** — a framed stat panel skinned to the game, with progress lists and (for DS2) item thumbnails below. It parses the file in your browser. Nothing uploads, nothing hits a server, and the save never leaves your machine. Copy the Markdown, or download it as `.md` or `.json` — the JSON is byte-for-byte what the CLI writes.
+- **A web page.** Drop a `.sl2` onto [the site](https://sl2-analyzer.darthdemono.com/) and it lays each character out as a replica of that game's own in-game **Level-Up screen** — a framed stat panel skinned to the game, with the progress lists below. Switch to **Combined** and drop a whole folder instead, from as many games as you like, and it reconstructs the history across all of them. It parses everything in your browser: nothing uploads, nothing hits a server, and the page makes no cross-origin request at all.
 - **A Python CLI.** Point `sl2_to_md.py` at a save and it writes one Markdown file describing the run (or JSON, against a [published schema](schema.json), if a program is reading it). That is the format an LLM can actually read. A `.sl2` is an encrypted binary blob; paste it into a chat and you get nothing. Paste the Markdown and the model knows where you are in the run instead of guessing at it.
 
 Both read the save and never write to it. Point either one at your live save if you like. The worst case is a bad output file, not a bricked character.
@@ -325,12 +325,52 @@ Instead of generic charts, each character is drawn as a replica of that game's o
 - **An Attribute Scaling reference**, folded away beside the sheet: what each attribute governs in that game and where it soft-caps, next to your own value. It is documented mechanics rather than anything read from the save, and it says so.
 - **Bonfire completion as a fraction.** "22 of 77", with a bar. The denominator is real because the bonfire tables are complete for every game that has one. Bosses deliberately get no such fraction — those tables are a mapped subset, so a percentage would imply a roster the data cannot back.
 - **A tab per character** when a save holds more than one, so a ten-slot mule is readable instead of ten stacked sheets. Arrow keys move between them.
-- **Item thumbnails for DS2**, pulled from the wiki so the inventory reads like the in-game menu. This is the one thing that leaves your browser: the save is still never uploaded, but each thumbnail request tells the wiki's image host which item it was for. The privacy note on the page says so.
 - **Copy Markdown, or download `.md` or `.json`.** Every button emits exactly what the Python CLI writes, for every character in the file — not just the tab you are looking at. The JSON is the same document as `-o out.json`, against the same [schema](schema.json), and a parity harness holds the two byte-for-byte so a consumer cannot tell which front end produced a file. The browser has no `--meta` equivalent, so its exports carry no `environment` block.
 
-Three things make it quick. Parsing runs in a **Web Worker**, so a big save never freezes the tab. The game is detected from the archive header *before* any table is fetched, so dropping a DS3 save loads eleven files instead of all forty. And a **service worker** caches the page, its code and the tables you have used, so after the first visit it works with no connection at all — which suits a tool that already does all its work locally. The thumbnails are excluded from that cache on purpose: they are the one request that leaves the browser, and storing them would outlive the tab.
+Three things make it quick. Parsing runs in a **Web Worker**, so a big save never freezes the tab. The game is detected from the archive header *before* any table is fetched, so dropping a DS3 save loads eleven files instead of all forty. And a **service worker** caches the page, its code and the tables you have used, so after the first visit it works with no connection at all — which suits a tool that already does all its work locally.
+
+The page makes **no cross-origin request at all**. It fetches itself and its own tables, and nothing else, so "your save never leaves the browser" needs no footnote.
 
 That last point is not a coincidence. The web app is a faithful port of the Python reader, and both are held to it: the JavaScript parser is checked byte-for-byte against the Python tool's output for every test save, and the browser's Markdown is checked byte-for-byte against the CLI's Markdown. If they ever drift, the check fails. Two front ends, one source of truth.
+
+---
+
+## Combined mode: a folder of backups, as one history
+
+One save is a photograph. A folder of them is a history, and the tool will reconstruct it — across characters, and across games. Point the CLI at a directory, or hit **Combined** on the page and drop as many `.sl2` files as you like:
+
+```bash
+python3 sl2_to_md.py ~/saves/ -o history.md            # one folder, walked recursively
+python3 sl2_to_md.py ~/ds1 ~/ds2 ~/ds3 ~/er -o all.md  # several at once
+```
+
+Nothing is filename-driven. Which game a file holds comes from its header, which character it belongs to comes from the save, and the order comes from the game's own play-time clock. Your backups can be called anything.
+
+**Runs, not files.** Saves are grouped into runs by (game, character, slot), so one folder of DS3 backups is one run, and an all-characters mule is ten. Each run gets its own section: a full dump of its newest save, then when each boss, bonfire, covenant, reward and world item first appeared.
+
+**The backup ladder is a tree, and the tool works out the shape.** Sorted by time your backups look like one line, but reloading an earlier save and playing on *forks* the run — the four Dark Souls III endings are exactly that, one pre-ending save finished four ways. Lineage is recoverable because event flags never clear: a snapshot's parent is the latest earlier one whose progress it still entirely contains, so a sibling branch (holding a flag this one lacks) fails that test and both land on the shared ancestor. Only one-way signals are compared — bonfires, flag-proven bosses, endings, world pickups, level, Estus. Souls are spent, covenants are switched and embered is consumed, so none of those get a vote; any one of them would fork the tree on every death.
+
+Two things it refuses to fake. A save that could not descend from anything before it becomes a **separate line** rather than an invented edge — it holds *less* progress than saves that came earlier, so it is a different playthrough that happens to share a name. And a New Game+ lap is allowed to shed the flags a lap resets, but never its endings, which is what keeps two saves finished differently from collapsing into one line.
+
+**Two charts, because they mean two different things.** The journey chart is real-world time — which game you played, in what order, by file date, since a DS2 play time and a DS3 one are unrelated numbers. Each run chart is save lineage. Both are Mermaid, so they render on GitHub, in Obsidian, and on the page itself:
+
+```mermaid
+flowchart LR
+  r0["Dark Souls Remastered — Stalker0111<br/>1 save · ^1<br/>lv95 · 25:16:39<br/>23 bosses"]
+  r1["Dark Souls II: Scholar of the First Sin — Joy<br/>1 save · ^2<br/>lv88 · 21:01:33<br/>12 bosses"]
+  r2["Dark Souls III — Joy<br/>3 saves · ^3–^5<br/>lv114 · 64:26:02<br/>26 bosses<br/>FINISHED: The End of Fire"]
+  r0 --> r1
+  r1 --> r2
+```
+
+Every node is one save file, carried as a reference number rather than a filename — a path in a box makes the box wider than the chart. The numbers are resolved in a reference list at the end, ordered earliest to latest by file date:
+
+```
+^1: [[DRAKS0005 (dsr).sl2]] — _2021-10-22 18:13_
+^2: [[DS2SOFS0000.sl2]] — _2023-06-27 09:18_
+```
+
+On the web the same document is rendered in the page, charts and all, with **Copy Markdown** and **Download .md** beside it. The chart library is vendored rather than fetched from a CDN, and it is loaded the first time a chart actually needs it, so a single-save visit never pays for it. And the combined document has its own parity harness: the browser's version is compared byte-for-byte against the CLI's over a whole folder, reference numbering and every chart edge included.
 
 ---
 
@@ -366,6 +406,8 @@ python3 sl2_to_md.py -o playthrough.md
 ```
 
 `-o` is the output path, and its folder is created for you if it does not exist. If you leave `-o` off, it writes `playthrough.md` in the current directory. On an unsupported or malformed file the tool prints why and exits non-zero, so it drops cleanly into a script.
+
+Hand it a **folder**, or more than one path, and you get the combined document instead — see [Combined mode](#combined-mode-a-folder-of-backups-as-one-history). `--combined` forces it for a single file. A save in the folder that will not parse is skipped rather than fatal; a directory of backups collected over years will contain a truncated copy sooner or later.
 
 ### JSON, if something other than a person is reading it
 
@@ -639,11 +681,15 @@ sl2/              the Python package, one module per layer and one per game
   roster.py       the header roster: names, and DS3 play time
   ds1.py ds2.py ds3.py er.py   one module per game family
   totals.py       the "of N" denominators (needs every game's tables, hence its own file)
+  timeline.py     runs, snapshot lineage and what each save achieved (no rendering)
+  chart.py        the Mermaid journey / save-tree charts and the reference list
+  combine.py      the combined document: walk a folder, group runs, write it out
   render.py       Markdown rendering
   jsonout.py      JSON rendering and the --meta environment block
   convert.py      the driver: parse_save, then either writer
   cli.py          argument parsing and main()
 index.html        the web app: markup and styling
+vendor/mermaid.min.js   the chart library, vendored (MIT) so the page needs no CDN
 sw.js             service worker: caches the app + used tables so it runs offline
 manifest.webmanifest / icon.svg   installable-app metadata
 .nojekyll         tells GitHub Pages to serve the folders as-is
@@ -654,14 +700,16 @@ app/
   parser.js       the reader ported to the browser, all six save variants
   db.js           loads the item / progress databases, per game and in parallel
   tables.js       shared lookup tables, formatters, per-game attribute order and theme
-  render.js       the per-game Level-Up screen replicas (framed panels, DS2 derived stats + thumbnails)
+  render.js       the per-game Level-Up screen replicas (framed panels, DS2 derived stats)
   markdown.js     the browser's Copy-Markdown output
   jsonout.js      the browser's JSON export, byte-identical to the CLI's
+  timeline.js chart.js combine.js   the combined document, ported from sl2/
+  mdview.js       renders that document to DOM without ever setting innerHTML
   worker.js       runs detect + load + parse off the main thread
   main.js         file-drop wiring and the inline fallback
 db_ds1/*.json     DS1 items (shared by DSR and PtDE), bonfires, boss flags, boss souls
-db_ds2/*.json     DS2 items, bonfires + areas, boss flags, boss souls, wiki image map
-db_ds3/*.json     DS3 items, bonfires, boss flags, boss souls, covenants, questlines
+db_ds2/*.json     DS2 items, bonfires + areas, boss flags, boss souls
+db_ds3/*.json     DS3 items, bonfires, boss flags, boss souls, covenants, questlines, endings
 db_er/*.json      Elden Ring items by type nibble, remembrance map
 requirements.txt  the one Python dependency
 ```

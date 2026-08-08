@@ -1320,8 +1320,6 @@ export function parseSave(data, dbs) {
       }
     }
   }
-  // DS2 carries a name→image-filename map (fextralife thumbnails) for the renderer.
-  const images = DS2_GAMES.has(game) ? dbs.ds2.images : null;
   // How many bonfires the game HAS, so the renderer can say "22 of 77" instead of
   // a bare count. Taken from the table rather than hardcoded, and only honest
   // because these three tables are complete (DS3 77/77, DS2 77/77, DS1 43/43).
@@ -1331,7 +1329,7 @@ export function parseSave(data, dbs) {
   const bonfireTotal = (dbs[fam] && dbs[fam].bonfireTotal) || 0;
   const saveVersion = saveFormatVersion(data, entries, game, meta.slots);
   const gamePatch = game === "er" ? erGamePatch(data, entries) : null;
-  return { game, title: meta.title, tier: meta.tier, characters, images, bonfireTotal, saveVersion, gamePatch };
+  return { game, title: meta.title, tier: meta.tier, characters, bonfireTotal, saveVersion, gamePatch };
 }
 
 export { ParseError };

@@ -5,6 +5,7 @@ import glob
 import json
 import os
 import sys
+from .combine import build_combined, find_saves
 from .convert import parse_save, render_markdown
 from .jsonout import build_json, parse_meta
 
@@ -69,8 +70,10 @@ def main():
                "--meta launcher=Heroic --meta proton='GE-Proton 9-20' "
                "--meta dlc='Ashes of Ariandel' --meta dlc='The Ringed City'. "
                "A key repeated becomes a list. Any key is accepted.")
-    ap.add_argument("sl2", nargs="?",
-                    help="path to the .sl2 save (auto-detected if omitted)")
+    ap.add_argument("sl2", nargs="*",
+                    help="path to a .sl2 save, or a FOLDER of them (auto-detected if "
+                         "omitted). Several paths, or one folder, produce a combined "
+                         "playthrough document covering every character found.")
     ap.add_argument("-o", "--out", default="playthrough.md",
                     help="output path; a .json extension selects JSON")
     ap.add_argument("--format", choices=("auto", "md", "json"), default="auto",
@@ -83,25 +86,50 @@ def main():
                     help="JSON object of the same metadata, merged underneath --meta")
     ap.add_argument("--indent", type=int, default=2,
                     help="JSON indent; 0 for one dense line (default: 2)")
+    ap.add_argument("--combined", action="store_true",
+                    help="force the combined document even for a single save")
     args = ap.parse_args()
-
-    sl2 = args.sl2 or auto_find_save()
-    if not os.path.isfile(sl2):
-        sys.exit(f"No such file: {sl2}")
-    with open(sl2, "rb") as f:
-        data = f.read()
 
     try:
         meta = parse_meta(args.meta, args.meta_json)
     except (OSError, ValueError) as exc:
         sys.exit(str(exc))
 
+    # The db_* folders sit beside the package, not inside it.
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # A folder, or more than one path, can only mean the combined document — there is
+    # no single save to summarise. One file still takes the single-save path unless
+    # --combined asks otherwise.
+    paths = list(args.sl2)
+    files = []
+    for p in paths:
+        if os.path.isdir(p):
+            files += find_saves(p)
+        elif os.path.isfile(p):
+            files.append(os.path.abspath(p))
+        else:
+            sys.exit(f"No such file or folder: {p}")
+    if paths and not files:
+        sys.exit("No .sl2 files found in: " + ", ".join(paths))
+
+    if args.combined or len(files) > 1 or any(os.path.isdir(p) for p in paths):
+        text = build_combined(files, base_dir, meta)
+        if text is None:
+            sys.exit("None of those files could be read as a supported save.")
+        write_out(args.out, text)
+        return
+
+    sl2 = files[0] if files else auto_find_save()
+    if not os.path.isfile(sl2):
+        sys.exit(f"No such file: {sl2}")
+    with open(sl2, "rb") as f:
+        data = f.read()
+
     fmt = args.format
     if fmt == "auto":
         fmt = "json" if args.out.lower().endswith(".json") else "md"
 
-    # The db_* folders sit beside the package, not inside it.
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     name = os.path.basename(sl2)
     save = parse_save(data, base_dir)
     if fmt == "json":
@@ -111,9 +139,14 @@ def main():
     else:
         text = render_markdown(save, name, meta)
 
-    out_dir = os.path.dirname(os.path.abspath(args.out))
+    write_out(args.out, text)
+
+
+## @brief Write the document, making the output folder if it does not exist yet.
+def write_out(path, text):
+    out_dir = os.path.dirname(os.path.abspath(path))
     if out_dir and not os.path.isdir(out_dir):
         os.makedirs(out_dir, exist_ok=True)
-    with open(args.out, "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8") as f:
         f.write(text)
-    print(f"Wrote {args.out}")
+    print(f"Wrote {path}")

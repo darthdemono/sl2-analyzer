@@ -21,30 +21,12 @@ function el(tag, props, ...kids) {
 
 const section = (title, kids) => el("section", { class: "sec" }, el("h4", { text: title }), ...kids);
 
-// ── Item thumbnails (DS2 only): fextralife images keyed by base item name. These
-//    are the one thing that leaves the browser — the privacy note says so. Names
-//    carry infusion prefixes / "+N" the image map doesn't, so normalise before lookup.
-const IMG_BASE = "https://darksouls2.wiki.fextralife.com/file/Dark-Souls-2/";
-const INFUSIONS = ["Fire ", "Magic ", "Lightning ", "Dark ", "Poison ", "Bleed ", "Raw ", "Enchanted ", "Mundane "];
-let imgResolve = () => null;
-function makeImgResolver(images) {
-  if (!images) return () => null;
-  return (name) => {
-    if (images[name]) return images[name];
-    const base = name.replace(/ \+\d+$/, "");
-    if (images[base]) return images[base];
-    for (const p of INFUSIONS) if (base.startsWith(p)) return images[base.slice(p.length)] || null;
-    return null;
-  };
-}
+// Items are text. The DS2 build used to pull a thumbnail per item from the
+// fextralife CDN, which was the ONE request that left the browser; it is gone, so
+// the page now makes no cross-origin request at all and the privacy claim is
+// unconditional.
 function itemLi(name, qty) {
-  const li = el("li", null);
-  const fn = imgResolve(name);
-  if (fn) {
-    const img = el("img", { class: "item-img", src: IMG_BASE + encodeURIComponent(fn), alt: "", loading: "lazy" });
-    img.addEventListener("error", () => { img.remove(); li.classList.add("noimg"); });
-    li.append(img);
-  } else li.classList.add("noimg");
+  const li = el("li", { class: "noimg" });
   li.append(name + (qty && qty > 1 ? ` ×${qty}` : ""));
   return li;
 }
@@ -517,7 +499,6 @@ let uidSeq = 0;
 
 /** Build the DOM for a parsed save result, themed to the detected game. */
 export function renderSave(result, filename) {
-  imgResolve = makeImgResolver(result.images);
   const theme = GAME_THEME[result.game] || "ds1";
   const root = el("div", { class: `result t-${theme}` });
   root.append(el("div", { class: "gamebar" },

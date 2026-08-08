@@ -88,3 +88,11 @@ lookup tables so that a save file can be read at all, which is interoperability,
 republication of the games. This project ships no game assets, no executable code from
 any game, and nothing that helps you obtain one. It reads a file you already own and
 it never writes to it.
+
+## Vendored code
+
+**Mermaid** (`vendor/mermaid.min.js`) — MIT, © 2014–2024 Knut Sveidqvist.
+<https://github.com/mermaid-js/mermaid>. Vendored rather than loaded from a CDN so
+the page stays self-contained, works offline, and makes no cross-origin request. It
+renders the flowcharts in the combined view; the Markdown export carries the same
+charts as plain ```mermaid blocks, which need no library at all.

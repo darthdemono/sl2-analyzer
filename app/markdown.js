@@ -52,7 +52,7 @@ function bullets(items) {
   return items.map(([n, q]) => `- ${n}` + (q && q > 1 ? ` ×${q}` : ""));
 }
 
-function mdCharacter(ch, slot) {
+export function mdCharacter(ch, slot) {
   const L = [`## Slot ${slot}: ${ch.name}`, ""];
   if (ch.level != null) L.push(`- **${ch.game === "er" ? "Level" : "Soul Level"}:** ${ch.level}`);
   if (ch.klass) L.push(`- **Class:** ${ch.klass}`);

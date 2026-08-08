@@ -110,6 +110,38 @@
   #drop .big { display: block; font-family: var(--font-title); font-size: 19px; letter-spacing: .12em;
     text-transform: uppercase; color: var(--val); }
   #drop .small { display: block; color: var(--ink-dim); font-size: 14px; font-style: italic; margin-top: 8px; }
+
+  /* Mode switch. Two real buttons, so Tab and Enter work without help. */
+  #modes { display: flex; align-items: center; gap: 10px; margin-top: 26px; flex-wrap: wrap; }
+  .mode { font-family: var(--font-title); font-size: 12px; letter-spacing: .14em;
+    text-transform: uppercase; padding: 8px 16px; color: var(--ink-dim); cursor: pointer;
+    background: transparent; border: 1px solid var(--rule); border-radius: 2px; }
+  .mode:hover { color: var(--ink); border-color: var(--accent); }
+  .mode.on { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+  .mode-note { color: var(--ink-dim); font-size: 13px; font-style: italic; }
+  #pick-folder { margin-top: 10px; }
+  .combined-actions { display: flex; gap: 10px; margin: 22px 0 6px; flex-wrap: wrap; }
+
+  /* The combined document, rendered from its own Markdown. */
+  .md-h { font-family: var(--font-title); letter-spacing: .06em; margin: 26px 0 10px; }
+  h2.md-h { font-size: 22px; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
+  h3.md-h { font-size: 18px; color: var(--accent); }
+  h4.md-h { font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); }
+  h5.md-h { font-size: 14px; }
+  .md-p { margin: 8px 0; line-height: 1.65; }
+  .md-list { margin: 8px 0 12px 18px; }
+  .md-list li { margin: 3px 0; }
+  .md-scroll { overflow-x: auto; margin: 10px 0 18px; }
+  .md-table { border-collapse: collapse; font-size: 14px; min-width: 100%; }
+  .md-table th, .md-table td { border: 1px solid var(--rule); padding: 6px 10px; text-align: left; white-space: nowrap; }
+  .md-table th { font-family: var(--font-title); font-size: 12px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-dim); }
+  .md-details { margin: 20px 0; border: 1px solid var(--rule); padding: 12px 16px; }
+  .md-details summary { cursor: pointer; font-family: var(--font-title); letter-spacing: .08em; }
+  .ref { font-variant-numeric: tabular-nums; color: var(--accent); }
+  pre.code { overflow-x: auto; padding: 12px; border: 1px solid var(--rule); font-size: 13px; }
+  pre.mermaid { margin: 16px 0; text-align: center; overflow-x: auto; }
+  pre.mermaid svg { max-width: 100%; height: auto; }
   /* One visible focus ring for every interactive element. :focus-visible so a mouse
      click does not leave it behind, but a keyboard Tab always shows it. */
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
@@ -260,11 +292,9 @@
 
   ul.items { list-style: none; margin: 0; padding: 0; }
   ul.items li { display: flex; align-items: center; gap: 9px; padding: 4px 0; font-size: 16px; color: var(--ink); }
-  /* the ◆ bullet only shows on rows without a thumbnail (image rows lead with the icon) */
+  /* every item row leads with the ◆ bullet — item rows are text, no thumbnails */
   ul.items li.noimg { padding-left: 18px; position: relative; }
   ul.items li.noimg::before { content: "◆"; position: absolute; left: 0; top: 0; color: var(--accent-2); font-size: 9px; line-height: 2.1; }
-  .item-img { width: 30px; height: 30px; flex: none; object-fit: contain; border: 1px solid var(--rule);
-    border-radius: 2px; background: rgba(0, 0, 0, 0.35); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03); }
   ul.items.cols { columns: 2; } @media (max-width: 560px) { ul.items.cols { columns: 1; } }
   ul.items.cols li { break-inside: avoid; }
   .tag { font-family: var(--font-title); font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em;
@@ -301,7 +331,7 @@
 <header>
   <h1>SL2<span class="dot"> · </span>Analyzer</h1>
   <p class="tag-line">A Souls save is a locked box. Encrypted, undocumented, and useless to you as a file. Drop one here and it opens into the screen the game would have shown you: level and attributes, souls held, every item carried, every bonfire lit, and every boss the save can still prove is dead. It reads the file. It never guesses.</p>
-  <span class="privacy">Read in your browser, never uploaded · DS2 thumbnails come from fextralife.com — the only request that leaves your machine</span>
+  <span class="privacy">Read in your browser, never uploaded · makes no request to anyone</span>
 </header>
 <main>
   <details class="how frame" open>
@@ -323,8 +353,8 @@
   <details class="how frame" open>
     <summary>How it works</summary>
     <div class="how-body">
-      <p>A <code>.sl2</code> is one packed archive of blocks — most of them encrypted, one per character, a few more for the world. The page unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off positions the community mapped over years. Where does your save go? Nowhere. It is parsed in this tab and forgotten when you close it. The one exception is the DS2 item thumbnails, which are fetched from fextralife.com as you scroll, so those requests do reveal which items a save holds.</p>
-      <p>The parsing runs on a background thread, so a nine-megabyte save does not freeze the page, and only the tables for the game you dropped get fetched instead of all four games' worth. After the first visit it works <b>offline</b> — the page, its code and the tables it has already used are cached, so you can read a save on a plane. The thumbnails are deliberately not cached. They are the only thing that leaves your browser, and keeping copies of them would outlive the tab they were fetched for.</p>
+      <p>A <code>.sl2</code> is one packed archive of blocks — most of them encrypted, one per character, a few more for the world. The page unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off positions the community mapped over years. Where does your save go? Nowhere. It is parsed in this tab and forgotten when you close it, and the page asks no other server for anything at all.</p>
+      <p>The parsing runs on a background thread, so a nine-megabyte save does not freeze the page, and only the tables for the game you dropped get fetched instead of all four games' worth. After the first visit it works <b>offline</b> — the page, its code and the tables it has already used are cached, so you can read a save on a plane.</p>
       <p>Three ways to take the reading with you. <b>Copy Markdown</b> puts all of it on your clipboard, which is the format to paste into an LLM — it cannot open a <code>.sl2</code>, but it reads Markdown fine. <b>Download .md</b> is that same text as a file. <b>Download .json</b> is the same data written for a program instead of a person, against a <a href="schema.json">published schema</a>, and byte-for-byte identical to what the command-line tool writes. A harness holds those two together on every save, so nothing can tell which one produced a file. One thing to know before you consume it: a field is there only if it was read. Dark Souls III keeps no death counter, so a DS3 character has no <code>deaths</code> key at all — not a zero, not a null. That way you can always tell "the game does not record this" from "it really is none".</p>
       <p>Every game hides its data somewhere else, so each one is read differently.</p>
       <ul>
@@ -338,11 +368,18 @@
       <p><b>Progress is a floor, not a ceiling.</b> A boss counts as dead only when the save still proves it: the soul sitting in your pack, a defeat flag, or a place past it you could not have reached with the boss alive. Kill a boss and spend the soul, with no flag and no gate behind it, and it stays off the list. The tool under-claims on purpose. Everything it shows you happened. There is simply more that it cannot see.</p>
     </div>
   </details>
+  <div id="modes" role="group" aria-label="What to read">
+    <button type="button" id="mode-single" class="mode on" aria-pressed="true">One save</button>
+    <button type="button" id="mode-combined" class="mode" aria-pressed="false">Combined</button>
+    <span class="mode-note" id="mode-note">One save, read in full.</span>
+  </div>
   <button type="button" id="drop" class="frame" aria-describedby="drop-note">
-    <span class="big">Drop a .sl2 save here, or click to choose</span>
+    <span class="big" id="drop-big">Drop a .sl2 save here, or click to choose</span>
     <span class="small" id="drop-note">Read on this machine. Nothing is sent anywhere.</span>
   </button>
+  <button type="button" id="pick-folder" class="mode" hidden>Choose a folder instead</button>
   <input id="file" type="file" accept=".sl2" hidden>
+  <input id="folder" type="file" hidden webkitdirectory>
   <div id="status" role="status" aria-live="polite"></div>
   <div id="out"></div>
 </main>
