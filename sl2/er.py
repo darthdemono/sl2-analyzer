@@ -176,9 +176,17 @@ ER_CAT = {0x0: "weapons", 0x1: "armors", 0x2: "talismans", 0x4: "goods", 0x8: "a
 ER_DB_FILES = tuple(ER_CAT.values())
 
 
-## @brief Weapon ids bake affinity+reinforcement into the low digits; base ids are
-#  spaced by this, so `id - id % step` recovers the base for a fallback lookup.
+## @brief Weapon ids bake affinity+reinforcement into the low digits: the id is
+#  @c base + affinity*100 + level, base spaced by @ref ER_WEAPON_BASE_STEP. So
+#  `id % 100` is the reinforcement level, `id - id % 100` is the affinity row (which
+#  is what the table names), and `id - id % 10000` is the plain base.
 ER_WEAPON_BASE_STEP = 10000
+ER_WEAPON_AFFINITY_STEP = 100
+
+
+## @brief Highest reinforcement ER allows (+25 on the standard path; somber stops at
+#  +10). A low-digit remainder above this is not a level, so no level is claimed.
+ER_MAX_REINFORCE = 25
 
 
 ##
@@ -200,9 +208,10 @@ def load_er_db(db_dir):
 # @brief Resolve an ER item id to (name, category), type-scoped by its nibble.
 # @details The category comes from the id's top nibble (@ref ER_CAT); the name is
 # looked up ONLY in that category's table, so an armour id can never resolve to a
-# weapon of the same base number. Reinforced/affinity weapons carry the upgrade in
-# their low digits and are not in the table, so on a weapon miss the base id is
-# tried — giving the base weapon's name (the upgrade level itself is still not read).
+# weapon of the same base number. A weapon miss then strips the reinforcement level
+# to land on the affinity row the table actually names ("Sacred Butchering Knife"),
+# and only failing that falls back to the plain base. The level is appended, so a
+# reinforced weapon reads as itself rather than as its unupgraded twin.
 # @return @c (name, category); name is None when unresolved, category None when the
 #         nibble is not a known type.
 def er_resolve(iid, db):
@@ -211,6 +220,13 @@ def er_resolve(iid, db):
         return None, None
     table = db.get(cat, {})
     name = table.get(iid)
-    if name is None and cat == "weapons":
-        name = table.get(iid - iid % ER_WEAPON_BASE_STEP)
-    return name, cat
+    if name is not None or cat != "weapons":
+        return name, cat
+    level = iid % ER_WEAPON_AFFINITY_STEP
+    if level > ER_MAX_REINFORCE:
+        level = 0
+    for step in (ER_WEAPON_AFFINITY_STEP, ER_WEAPON_BASE_STEP):
+        name = table.get(iid - iid % step)
+        if name is not None:
+            return (f"{name} +{level}" if level else name), cat
+    return None, cat

@@ -14,7 +14,10 @@
 const DS2_FILES = { weapons: "weapons", armors: "armors", rings: "rings", spells: "spells",
   key: "keys", bolts: "bolts", upgrade: "upgrade", consumables: "consumables",
   online: "online", emotes: "emotes", bosssouls: "bosssouls" };
-const DS1_FILES = { MeleeWeapons: "weapons", Armor: "armors", Rings: "rings", Consumables: "goods" };
+// Spells are ordinary goods to the game (Soul Arrow is good 3000); they live in their
+// own file only so they render under their own heading. Mirrors DS1_DB_FILES.
+const DS1_FILES = { MeleeWeapons: "weapons", Armor: "armors", Rings: "rings",
+  Consumables: "goods", Spells: "spells" };
 const DS3_FILES = { weapons: "weapons", armors: "armors", rings: "rings", goods: "goods", bolts: "bolts", spells: "spells" };
 const ER_FILES = ["weapons", "armors", "talismans", "goods", "ashes"];
 // Sekiro: decimal id-keyed, one file per item type, plus a dev-name file per type kept
@@ -47,6 +50,13 @@ async function jget(getJSON, path) {
  */
 const jgetAll = (getJSON, paths) => Promise.all(paths.map((p) => jget(getJSON, p)));
 
+/**
+ * Ids for one table entry. A name whose value is a LIST owns several ids — the game
+ * really does ship one name over several ids (a "Cinders of a Lord" per lord), and a
+ * name-keyed table can only hold them that way. Mirrors Python `_ids`.
+ */
+const idsOf = (v) => (Array.isArray(v) ? v : [v]).map(Number);
+
 const toMap16 = (j) => {
   const m = new Map();
   if (j) for (const [k, v] of Object.entries(j)) m.set(parseInt(k, 16), v);
@@ -59,19 +69,20 @@ async function loadDs1(getJSON) {
   const stems = Object.keys(DS1_FILES);
   const [items, extra] = await Promise.all([
     jgetAll(getJSON, stems.map((s) => `db_ds1/${s}.json`)),
-    jgetAll(getJSON, ["db_ds1/boss_souls.json", "db_ds1/bonfires.json", "db_ds1/boss_flags.json"]),
+    jgetAll(getJSON, ["db_ds1/boss_souls.json", "db_ds1/bonfires.json", "db_ds1/boss_flags.json",
+                      "db_ds1/boss_route.json"]),
   ]);
   // name-keyed decimal, per-category, last-wins.
   const table = {};
   stems.forEach((stem, i) => {
     if (!items[i]) return;
-    const m = new Map();
-    for (const [name, id] of Object.entries(items[i])) m.set(Number(id), name);
+    const m = table[DS1_FILES[stem]] || new Map();
+    for (const [name, id] of Object.entries(items[i])) for (const n of idsOf(id)) m.set(n, name);
     table[DS1_FILES[stem]] = m;
   });
   const bonfires = extra[1] || {};
   return { items: table, bossSouls: extra[0] || {}, bonfires, bossFlags: extra[2] || {},
-           bonfireTotal: Object.keys(bonfires).length };
+           bossRoute: extra[3] || {}, bonfireTotal: Object.keys(bonfires).length };
 }
 
 async function loadDs2(getJSON) {
@@ -113,6 +124,17 @@ function ds3GoodsCat(iid) {
   return "goods";
 }
 
+// Arrows and bolts ARE weapons to the param — and to Paramdex, where the full table
+// comes from — but the report prints them under Ammunition and the equipped-ammo read
+// gates on that category. Bows start at 1300000, so the block is unambiguous.
+const DS3_AMMO_LO = 400000, DS3_AMMO_HI = 409999;
+
+function ds3ItemCat(iid, cat) {
+  if (cat === "goods") return ds3GoodsCat(iid);
+  if (cat === "weapons" && iid >= DS3_AMMO_LO && iid <= DS3_AMMO_HI) return "bolts";
+  return cat;
+}
+
 async function loadDs3(getJSON) {
   const stems = Object.keys(DS3_FILES);
   const [items, extra] = await Promise.all([
@@ -127,10 +149,9 @@ async function loadDs3(getJSON) {
   const table = new Map();
   stems.forEach((stem, i) => {
     if (!items[i]) return;
-    for (const [name, id] of Object.entries(items[i])) {
-      const n = Number(id);
+    for (const [name, id] of Object.entries(items[i])) for (const n of idsOf(id)) {
       const cat = DS3_FILES[stem];
-      if (!table.has(n)) table.set(n, [name, cat === "goods" ? ds3GoodsCat(n) : cat]);
+      if (!table.has(n)) table.set(n, [name, ds3ItemCat(n, cat)]);
     }
   });
   const bonfires = extra[1] || {};
@@ -183,7 +204,7 @@ const LOADERS = { ds1: loadDs1, ds2: loadDs2, ds3: loadDs3, er: loadEr, sdt: loa
  * game can never turn a lookup into a TypeError.
  */
 const EMPTY = {
-  ds1: () => ({ items: {}, bossSouls: {}, bonfires: {}, bossFlags: {}, bonfireTotal: 0 }),
+  ds1: () => ({ items: {}, bossSouls: {}, bonfires: {}, bossFlags: {}, bossRoute: {}, bonfireTotal: 0 }),
   ds2: () => ({ items: new Map(), bonfires: new Map(), bonfireAreas: new Map(),
                 bossFlags: new Map(), bossSouls: {}, bonfireTotal: 0 }),
   ds3: () => ({ items: new Map(), bossSouls: {}, bonfires: {}, bossFlags: {},
@@ -217,7 +238,8 @@ export const loadAllDbs = (getJSON) => loadDbsFor(getJSON, ALL_FAMILIES);
 export function dbPathsFor(family) {
   if (family === "ds1") {
     return [...Object.keys(DS1_FILES).map((s) => `db_ds1/${s}.json`),
-      "db_ds1/boss_souls.json", "db_ds1/bonfires.json", "db_ds1/boss_flags.json"];
+      "db_ds1/boss_souls.json", "db_ds1/bonfires.json", "db_ds1/boss_flags.json",
+      "db_ds1/boss_route.json"];
   }
   if (family === "ds2") {
     return [...Object.keys(DS2_FILES).map((s) => `db_ds2/${s}.json`),

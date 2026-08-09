@@ -2,10 +2,11 @@
 missing. Kept out of progress.py because naming the gap needs every game's own
 tables, which would otherwise make the two import each other.
 """
-from .progress import BOSS_SOUL_DB_DIR, DS3_CINDER_ITEM, DS3_LORDS, MANDATORY_BOSSES, load_boss_soul_map
+from .progress import (BOSS_SOUL_DB_DIR, DS3_CINDER_ITEM, DS3_LORDS, MANDATORY_BOSSES,
+                       load_boss_route, load_boss_soul_map)
 from .ds1 import load_ds1_boss_flags
 from .ds2 import DS2_COVENANT, DS2_GAMES, load_ds2_boss_souls, load_ds2_bosses
-from .ds3 import DS3_COVENANT, load_ds3_boss_flags, load_ds3_boss_route, load_ds3_boss_victory, load_ds3_covenants
+from .ds3 import DS3_COVENANT, load_ds3_boss_flags, load_ds3_boss_victory, load_ds3_covenants
 from .sdt import load_sdt_boss_flags
 
 
@@ -67,21 +68,31 @@ def attach_progress_totals(ch, base_dir):
     if covs and ch.get("covenants"):
         ch["covenant_total"] = len(covs | set(ch["covenants"]))
         ch["covenants_missing"] = sorted(n for n in covs if n not in ch["covenants"])
-    if game != "ds3":
-        return
     ch_bosses = ch.get("bosses") or {}
     # Which of the missing bosses you could walk to RIGHT NOW: every hard predecessor
     # dead, and at least one bonfire lit in its gate area (so a DLC boss cannot be
     # "available" before you own/enter the DLC). Reached-area is the conservative half
     # — it under-reports the very next area rather than sending you somewhere you
     # cannot get to. Route structure only; nothing here is read from the save.
+    #
+    # A predecessor the game's tables cannot NAME is dropped rather than treated as
+    # alive, or it would withhold the boss for ever: DS1 can prove neither the Asylum
+    # Demon, the Gaping Dragon nor Pinwheel (no flag, no soul), and each of the three
+    # sits in front of an area whose own bonfire already proves you got past it —
+    # Taurus needs the Undead Burg, Quelaag needs Blighttown, Nito needs the Tomb of
+    # the Giants. So the area half carries the gate the roster cannot.
     reached = {a for a, c, _n, _t, _m in (ch.get("bonfire_areas") or []) if c}
-    if reached:
-        avail = [b for b, (area, after) in load_ds3_boss_route(base_dir).items()
-                 if b not in ch_bosses and area in reached
-                 and all(p in ch_bosses for p in after)]
+    route = load_boss_route(base_dir, BOSS_SOUL_DB_DIR.get(game) or "")
+    if reached and route and roster:
+        # Only a boss the roster can name may be listed: "available" is a refinement of
+        # "missing", and a boss outside the roster is one the tool cannot say is alive.
+        avail = [b for b, (area, after) in route.items()
+                 if b in roster and b not in ch_bosses and area in reached
+                 and all(p in ch_bosses for p in after if p in roster)]
         if avail:
             ch["bosses_available"] = avail
+    if game != "ds3":
+        return
     dead = [lord for boss, lord in DS3_LORDS.items() if boss in ch_bosses]
     held = sum(q for n, q in (ch.get("key_items") or []) if n == DS3_CINDER_ITEM)
     named = ch.get("cinders") or []

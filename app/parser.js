@@ -240,19 +240,26 @@ function attachProgressTotals(ch, dbs) {
     ch.covenant_total = new Set([...covs, ...Object.keys(ch.covenants)]).size;
     ch.covenants_missing = [...covs].filter((n) => !(n in ch.covenants)).sort();
   }
-  if (game !== "ds3") return;
   const chBosses = ch.bosses || {};
   // Which of the missing bosses you could walk to right now: every hard predecessor
   // dead, and a bonfire lit in its gate area (so a DLC boss cannot be "available"
   // before you enter the DLC). Route structure only — nothing read from the save.
+  //
+  // A predecessor the game's tables cannot NAME is dropped rather than treated as
+  // alive, or it would withhold the boss for ever: DS1 can prove neither the Asylum
+  // Demon, the Gaping Dragon nor Pinwheel, and each sits in front of an area whose own
+  // bonfire already proves you got past it. Only a boss the roster names may be listed
+  // — "available" is a refinement of "missing". Mirrors attach_progress_totals.
   const reached = new Set((ch.bonfire_areas || []).filter(([, c]) => c).map(([a]) => a));
-  if (reached.size) {
-    const avail = Object.entries(dbs.ds3.bossRoute || {})
-      .filter(([b, [area, after]]) => !(b in chBosses) && reached.has(area)
-        && after.every((p) => p in chBosses))
+  const route = (dbs[BOSS_SOUL_DB_DIR[game]] || {}).bossRoute || {};
+  if (reached.size && roster.size) {
+    const avail = Object.entries(route)
+      .filter(([b, [area, after]]) => roster.has(b) && !(b in chBosses) && reached.has(area)
+        && after.every((p) => !roster.has(p) || p in chBosses))
       .map(([b]) => b);
     if (avail.length) ch.bosses_available = avail;
   }
+  if (game !== "ds3") return;
   const dead = DS3_LORDS.filter(([boss]) => chBosses[boss]).map(([, lord]) => lord);
   let held = 0;
   for (const [n, q] of ch.key_items || []) if (n === DS3_CINDER_ITEM) held += q;
@@ -556,7 +563,10 @@ function ds1Inventory(buf, itemDb) {
     const stype = u32(buf, o + 4), iid = u32(buf, o + 8), qty = u32(buf, o + 12);
     o += 28;
     if (!iid) continue;
-    const cat = stype != null ? DS1_CAT[stype & 0xF0000000] : null;
+    let cat = stype != null ? DS1_CAT[stype & 0xF0000000] : null;
+    // A spell IS a good as far as the slot type is concerned — only the id says
+    // otherwise, which is why the spell table is separate and consulted here.
+    if (cat === "goods" && itemDb.spells && itemDb.spells.has(iid)) cat = "spells";
     const name = cat ? ds1Resolve(itemDb, cat, iid) : null;
     if (name == null) { unknown++; continue; }
     push(cat, [name, qty]);
@@ -1117,7 +1127,10 @@ const ER_STAT_D = [["Vigor", 0], ["Mind", 4], ["Endurance", 8], ["Strength", 12]
   ["Dexterity", 16], ["Intelligence", 20], ["Faith", 24], ["Arcane", 28]];
 const ER_HP_D = -40, ER_STAM_D = -12, ER_LEVEL_D = 44, ER_RUNES_D = 48, ER_LEVEL_BASE = 79;
 const ER_CAT = { 0x0: "weapons", 0x1: "armors", 0x2: "talismans", 0x4: "goods", 0x8: "ashes" };
-const ER_WEAPON_BASE_STEP = 10000;
+// id = base + affinity*100 + level: `% 100` is the reinforcement level, `- % 100` the
+// affinity row the table names, `- % 10000` the plain base. +25 is the ceiling, so a
+// larger remainder is not a level and none is claimed.
+const ER_WEAPON_BASE_STEP = 10000, ER_WEAPON_AFFINITY_STEP = 100, ER_MAX_REINFORCE = 25;
 
 function erRoster(menu) {
   const length = u32(menu, ER_MENU_LEN_OFF);
@@ -1150,8 +1163,14 @@ function erResolve(iid, db) {
   if (cat === undefined) return [null, null];
   const table = db[cat] || new Map();
   let name = table.get(iid);
-  if (name == null && cat === "weapons") name = table.get(iid - (iid % ER_WEAPON_BASE_STEP));
-  return [name ?? null, cat];
+  if (name != null || cat !== "weapons") return [name ?? null, cat];
+  let level = iid % ER_WEAPON_AFFINITY_STEP;
+  if (level > ER_MAX_REINFORCE) level = 0;
+  for (const step of [ER_WEAPON_AFFINITY_STEP, ER_WEAPON_BASE_STEP]) {
+    name = table.get(iid - (iid % step));
+    if (name != null) return [level ? `${name} +${level}` : name, cat];
+  }
+  return [null, cat];
 }
 function erFindStats(buf) {
   const dists = ER_STAT_D.map(([, d]) => d);

@@ -70,6 +70,28 @@ def load_boss_soul_map(base_dir, subdir):
     return _BOSS_SOUL_CACHE[key]
 
 
+## @brief Load a game's route graph (boss_route.json): boss name →
+#  @c [gate area, [bosses that must die first]]. GAME STRUCTURE, not a save read —
+#  it exists to answer "what can I fight now", which no flag can. The area name is a
+#  key of that game's own bonfire table, so "the area was reached" is decided by that
+#  area's lit bonfires; the predecessor list is only the HARD gates (the arena or key
+#  you cannot get past otherwise), never a suggested order.
+#  Cached per (base_dir, subdir). Returns {} if the game has no table.
+_BOSS_ROUTE_CACHE = {}
+
+
+def load_boss_route(base_dir, subdir):
+    key = (base_dir, subdir)
+    if key not in _BOSS_ROUTE_CACHE:
+        path = os.path.join(base_dir, subdir, "boss_route.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _BOSS_ROUTE_CACHE[key] = json.load(f)
+        except (OSError, ValueError):
+            _BOSS_ROUTE_CACHE[key] = {}
+    return _BOSS_ROUTE_CACHE[key]
+
+
 ## @brief Endgame-only progression prereqs: a proven-dead boss (key) implies its
 #  mandatory predecessors (values) are dead too, tagged `gate`. Each key lists ALL
 #  its predecessors (already flattened), so one closure pass suffices. DELIBERATELY

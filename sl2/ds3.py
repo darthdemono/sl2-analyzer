@@ -215,27 +215,6 @@ def load_ds3_lord_cinders(base_dir):
     return _DS3_CINDER_CACHE[base_dir]
 
 
-## @brief Load the DS3 route graph (db_ds3/boss_route.json): boss name →
-#  @c [gate area, [bosses that must die first]]. This is GAME STRUCTURE, not a save
-#  read — the fixed route from fextralife's Game Progress Route — and it exists to
-#  answer "what can I fight now", which no flag can. The area name is a key of
-#  db_ds3/bonfires.json, so "the area was reached" is decided by that area's own lit
-#  bonfires; the predecessor list is only the HARD gates (the arena or key you cannot
-#  get past otherwise), never a suggested order. Cached. Returns {} if absent.
-_DS3_ROUTE_CACHE = {}
-
-
-def load_ds3_boss_route(base_dir):
-    if base_dir not in _DS3_ROUTE_CACHE:
-        path = os.path.join(base_dir, "db_ds3", "boss_route.json")
-        try:
-            with open(path, encoding="utf-8") as f:
-                _DS3_ROUTE_CACHE[base_dir] = json.load(f)
-        except (OSError, ValueError):
-            _DS3_ROUTE_CACHE[base_dir] = {}
-    return _DS3_ROUTE_CACHE[base_dir]
-
-
 ## @brief Load the DS3 NPC-questline table (db_ds3/questlines.json): NPC/source →
 #  list of @c [distance, bit, reward] — one per reward that NPC hands out, each a
 #  "you received this" event flag in the common group 50006. The group-50006 save
@@ -440,6 +419,25 @@ def ds3_goods_cat(iid):
         if lo <= real <= hi:
             return cat
     return "goods"
+
+
+## @brief Where ammunition lives in the weapon id space. Arrows and bolts ARE weapons
+#  to the param — and to Paramdex, which is where the full table comes from — but the
+#  report has always printed them under Ammunition, and @ref ds3_equipped_ammo gates on
+#  that category, so they are re-homed on the way in. Bows start at 1300000, so the
+#  block is unambiguous.
+DS3_AMMO_LO, DS3_AMMO_HI = 400000, 409999
+
+
+##
+# @brief Refine a scanned DS3 id's category. The one place that knows the id blocks
+#        differ from the file an id happens to be listed in.
+def ds3_item_cat(iid, cat):
+    if cat == "goods":
+        return ds3_goods_cat(iid)
+    if cat == "weapons" and DS3_AMMO_LO <= iid <= DS3_AMMO_HI:
+        return "bolts"
+    return cat
 
 
 ##

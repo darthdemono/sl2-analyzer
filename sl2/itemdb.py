@@ -16,8 +16,21 @@ DS2_DB_FILES = {"weapons": "weapons", "armors": "armors", "rings": "rings",
 
 ## @brief DS1 (DSR and PtDE) tables. Ids repeat across categories, so lookups stay
 #         category-scoped and the slot type decides which table to use.
+#  Spells are stored as ordinary goods by the game (Soul Arrow is good 3000), but they
+#  are kept in their own file so they render under their own heading like DS2/DS3 —
+#  the slot type cannot tell them apart, the id range can.
 DS1_DB_FILES = {"MeleeWeapons": "weapons", "Armor": "armors",
-                "Rings": "rings", "Consumables": "goods"}
+                "Rings": "rings", "Consumables": "goods", "Spells": "spells"}
+
+
+##
+# @brief Ids for one table entry. A name whose value is a LIST owns several ids.
+# @details The tables are name-keyed, so one name can normally hold one id — which
+# silently dropped every duplicate the game really ships (DS3 has one "Cinders of a
+# Lord" per lord, DS1 has a base and an alternate-path row under one name). A list
+# value keeps them all; a bare value is the ordinary single-id case.
+def _ids(value):
+    return [int(v) for v in (value if isinstance(value, list) else [value])]
 
 
 ##
@@ -45,7 +58,10 @@ def load_item_db(db_dir, flat, files):
     for stem, cat in files.items():
         path = os.path.join(db_dir, stem + ".json")
         if os.path.exists(path):
-            db[cat] = {int(v): k for k, v in json.load(open(path, encoding="utf-8")).items()}
+            table = db.setdefault(cat, {})
+            for name, value in json.load(open(path, encoding="utf-8")).items():
+                for iid in _ids(value):
+                    table[iid] = name
     return db
 
 
@@ -79,7 +95,7 @@ def load_scan_db(db_dir, files, refine=None):
     for stem, cat in files.items():
         path = os.path.join(db_dir, stem + ".json")
         if os.path.exists(path):
-            for name, iid in json.load(open(path, encoding="utf-8")).items():
-                iid = int(iid)
-                db.setdefault(iid, (name, refine(iid, cat) if refine else cat))
+            for name, value in json.load(open(path, encoding="utf-8")).items():
+                for iid in _ids(value):
+                    db.setdefault(iid, (name, refine(iid, cat) if refine else cat))
     return db

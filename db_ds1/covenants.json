@@ -1,0 +1,72 @@
+{
+ "Way of White": {
+  "npc": "Petrus of Thorolund / Rhea",
+  "offering": null,
+  "ranks": []
+ },
+ "Princess's Guard": {
+  "npc": "Gwynevere",
+  "offering": "Souls (rank via covenant level)",
+  "ranks": [
+   "Bountiful Sunlight",
+   "Soothing Sunlight"
+  ]
+ },
+ "Warrior of Sunlight": {
+  "npc": "Sunlight Altar",
+  "offering": "Sunlight Medal",
+  "ranks": [
+   "Great Lightning Spear",
+   "Sunlight Spear"
+  ]
+ },
+ "Darkwraith": {
+  "npc": "Kaathe",
+  "offering": "Humanity",
+  "ranks": [
+   "Dark Hand upgrade",
+   "Red Eye Orb",
+   "Dark Hand upgrade"
+  ]
+ },
+ "Forest Hunter": {
+  "npc": "Alvina",
+  "offering": null,
+  "ranks": [
+   "Cat Covenant Ring"
+  ]
+ },
+ "Darkmoon Blade": {
+  "npc": "Dark Sun Gwyndolin",
+  "offering": "Souvenir of Reprisal",
+  "ranks": [
+   "Darkmoon Blade",
+   "Darkmoon Talisman"
+  ]
+ },
+ "Chaos Servant": {
+  "npc": "Quelaag's Sister",
+  "offering": "Humanity",
+  "ranks": [
+   "Great Chaos Fireball",
+   "Chaos Storm",
+   "Lost Izalith shortcut"
+  ]
+ },
+ "Gravelord Servant": {
+  "npc": "Gravelord Nito",
+  "offering": "Eye of Death",
+  "ranks": [
+   "Gravelord Sword Dance",
+   "Gravelord Greatsword Dance"
+  ]
+ },
+ "Path of the Dragon": {
+  "npc": "Stone dragon, Ash Lake",
+  "offering": "Dragon Scale",
+  "ranks": [
+   "Dragon Head Stone",
+   "Dragon Torso Stone"
+  ]
+ }
+}

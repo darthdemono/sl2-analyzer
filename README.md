@@ -35,7 +35,7 @@ Vanilla Dark Souls II used to be the one wall, because the Scholar key does not 
 
 **Sekiro is the odd one out and it is the odd one out in the tool's favour.** Nothing is encrypted, nothing moves between patches, and a prosthetic tool's upgrade tier is a separate item ID, so there is no `+N` arithmetic to get wrong. It also has no character name, no attributes and no levelling — the game has none of them, so none appear, and the report says so rather than printing a blank. What it *does* have is the one trick nothing else here can do: **Attack Power goes up by exactly one per Memory consumed**, so `attack - 1` is a count of the boss tokens already spent. Every other game in this repo goes blind the moment you consume a soul. This one does not.
 
-The asterisk on Elden Ring is honest too. Identity, every attribute, runes held, and remembrances are read straight from the save. The item *list* is partial: owned items come from the GaItem array, so armour, talismans, goods, and base weapons resolve, but a reinforced or affinity weapon bakes the upgrade into its id and misses the base-id table. Per-item quantities are not read either. What is listed is really owned. It is just not the complete stash.
+The asterisk on Elden Ring is honest too. Identity, every attribute, runes held, and remembrances are read straight from the save. The item *list* is partial, and the reason is narrower than it used to be: the tables now cover Shadow of the Erdtree, and a reinforced or affinity weapon resolves to its own row with the `+N` on it. What is missing is the **held inventory** — owned items come from the GaItem array, which carries weapons, armour and Ashes of War only, so talismans, spells and consumables never appear and per-item quantities are not read. What is listed is really owned. It is just not the complete stash.
 
 ### Field by field
 
@@ -65,9 +65,9 @@ What each game actually surfaces. A blank cell means the field is not readable f
 | Boss defeats by held soul | yes | yes | yes | yes | yes (Memories) |
 | Boss defeats after the token is **spent** | — | — | — | — | **yes, from Attack Power** |
 | Boss defeats by gate / NG+ | yes | yes | yes | gate only | — |
-| Which missing boss is reachable now | — | — | yes, from the route graph | — | — |
+| Which missing boss is reachable now | yes, from the route graph | — | yes, from the route graph | — | — |
 | NPC questline rewards | — | — | 57 NPCs, 101 rewards | — | — |
-| World items picked up | — | — | 426, named, in 6 areas | — | — |
+| World items picked up | — | — | 937, named, in 14 areas | — | — |
 | Cinders of a Lord placed | — | — | count always, 3 of 4 named | — | — |
 
 ---
@@ -84,17 +84,19 @@ Five game families, four ID schemes, because the games do not agree with each ot
 
 | Folder | Files | IDs | Key scheme |
 |---|---|---:|---|
-| `db_ds1/` | `MeleeWeapons`, `Armor`, `Rings`, `Consumables` | 862 | **name-keyed**, decimal ID as a string: `{"Dagger": "100000"}` |
+| `db_ds1/` | `MeleeWeapons`, `Armor`, `Rings`, `Consumables`, `Spells` | 1,867 | **name-keyed**, decimal ID as a string: `{"Dagger": "100000"}`. A name that owns several IDs carries a list |
 | `db_ds2/` | `weapons`, `armors`, `rings`, `spells`, `bolts`, `upgrade`, `consumables`, `online`, `emotes`, `key`, `bosssouls` | 1,336 | **id-keyed**, little-endian hex with spaces: `{"40 42 0F 00": "Dagger"}` |
-| `db_ds3/` | `weapons`, `armors`, `rings`, `spells`, `goods`, `bolts` | 3,288 | **name-keyed**, decimal integer: `{"Torch": 90000}` |
-| `db_er/` | `weapons`, `armors`, `talismans`, `goods`, `ashes` | 2,668 | **id-keyed**, 8-digit hex: `{"000F4240": "Dagger"}` |
+| `db_ds3/` | `weapons`, `armors`, `rings`, `spells`, `goods`, `bolts` | 3,329 | **name-keyed**, decimal integer: `{"Torch": [90000, 23000000]}` — a list where one name owns several IDs |
+| `db_er/` | `weapons`, `armors`, `talismans`, `goods`, `ashes` | 6,750 | **id-keyed**, 8-digit hex: `{"000F4240": "Dagger"}`. Shadow of the Erdtree included |
 | `db_sdt/` | `weapons`, `armors`, `goods` (+ a `_devnames` file each) | 471 named, 98 dev-named | **id-keyed**, decimal as a string: `{"70500": "Lazulite Shuriken"}` |
 
 Three details that will bite you if you assume they work like each other:
 
 **DS2 is id-keyed on purpose.** One DS2 item name owns several IDs — a base form plus its reinforced, infused, and variant forms. There are four separate "Prisoner's Hood" IDs. A name-keyed file collapses those to one and silently drops whichever variant the save actually holds, so the key is the ID and every variant gets its own line. The hex keys carry spaces because they were transcribed that way from the SOTFS compendium; strip whitespace before decoding (Python's `bytes.fromhex` already ignores it, JavaScript does not).
 
-**DS1 and DS3 numbers repeat across categories,** which is why the tables are kept per category instead of merged into one flat map. Category scoping is what stops an armour ID resolving to a weapon.
+**DS1 and DS3 numbers repeat across categories,** which is why the tables are kept per category instead of merged into one flat map. Category scoping is what stops an armour ID resolving to a weapon. It also means a *name* can own several IDs the way DS2's do — four Cinders of a Lord, one per lord — so a name-keyed value may be a list, and both front ends read either form. One key per name is how six real items went missing the first time these tables were generated.
+
+**DS1 files its spells as ordinary goods,** so `Spells.json` is a split of the goods ID range (3000–8999) rather than a separate ID space, and the slot type in the save cannot tell them apart. Gestures live in the same block and stay in goods, because a gesture under a Spells heading is a worse lie than no heading.
 
 **Sekiro puts the type in the record, not the ID.** Its item records are `[u32 handle][u32 item id][u32 quantity][u32 index]`, and the *handle's* top nibble is the type: `0x8` weapon, `0x9` armour, `0xB` good, `0x0` an empty slot. Mask the item ID with `0x00FFFFFF` and look it up in that type's table only, and a cross-type collision is impossible by construction. The `_devnames` files are kept **separate on purpose**: they hold Paramdex's machine-translated Japanese development strings for the IDs with no English name, and most of them are engine internals ("ID monitoring item 1", six copies of "bare hands") rather than anything a player is handed. Merging them would put debug rows beside real items under the same heading. This tool counts them and does not print them; if you want them, they are right there in their own file.
 
@@ -104,7 +106,7 @@ Upgrade arithmetic, where the games bake it into the ID rather than storing it s
 
 - **DS1 and DS3:** `id = base + infusion*100 + level`, base ends in `000`. A Deep Battle Axe +1 in DS3 is `7010000 + 900 + 1 = 7010901`. DS1 rings are stored at 1/1000 of their real ID, so they resolve through `id // 1000`.
 - **DS2:** the ID does *not* move. A +10 weapon keeps its base ID; reinforcement is the low byte of the uint32 at record `+12` and infusion is the byte at `+13` (`1` Fire, `2` Magic, `3` Lightning, `4` Dark, `5` Poison, `6` Bleed, `7` Raw, `8` Enchanted, `9` Mundane).
-- **Elden Ring:** reinforced and affinity IDs step by `ER_WEAPON_BASE_STEP`, and the base is recovered with `id - id % step`. The exact upgrade level is not read.
+- **Elden Ring:** same shape as DS1 and DS3 — `id = base + affinity*100 + level`. The exact ID is tried first, then the affinity row (`id - id % 100`, which is the row the table names: `Sacred Butchering Knife`), then the plain base (`id - id % 10000`), with the level appended. A remainder above +25 is not a level, so none is claimed.
 - **Sekiro:** there is no arithmetic at all. Each prosthetic upgrade tier is its own item ID — `70000` Loaded Shuriken, `70100` Spinning Shuriken, `70500` Lazulite Shuriken — so a straight lookup already names the exact tier.
 
 ### Progress tables
@@ -131,6 +133,12 @@ These are the interesting ones, and they took a lot more work than the item list
 | `db_ds3/item_pickups.json` | `{area: [[dist, bit, item, where]]}` | 14 areas / 937 items | Every one-off world item, as a save byte-offset and bit, with the place it lies for the three quarters of them the annotations cover. An area is absent when its flag-group base is unknown — never guessed |
 | `db_ds3/boss_route.json` | `{boss: [gate_area, [predecessors]]}` | 26 | The hard route gates, for working out which missing boss is reachable now |
 | `db_er/boss_souls.json` | `{remembrance: boss}` | 14 | Remembrance → the boss that drops it |
+| `db_er/graces.json` | `{area: [[id, name]]}` | 419 in 54 areas | Every Site of Grace, Shadow of the Erdtree included. Shipped for the **names**: which are lit needs Elden Ring's event-flag region base, which nobody has published. Same situation as `db_sdt/idols.json` |
+| `db_er/remembrances.json`, `db_er/great_runes.json` | `{id_hex: name}` | 24 / 14 | Remembrance and Great Rune item IDs, including the duplicate ID each one ships under |
+| `db_ds1/covenants.json` | `{covenant: {npc, offering, ranks}}` | 9 | The DS1 covenants and their rank rewards. Not read either — DS1's covenant byte has no published offset |
+| `db_ds1/ring_effects.json` | `{ring: {effect: [lines]}}` | 41 | What each DS1 ring does. Waiting on DS1 equipment reads, which do not exist yet |
+| `db_ds1/boss_route.json` | `{boss: [gate_area, [predecessors]]}` | 27 | The same shape as DS3's, gate areas reconciled with `db_ds1/bonfires.json`. Three of its bosses (Asylum Demon, Gaping Dragon, Pinwheel) have neither a flag nor a soul, so they are never listed and never block: each sits in front of an area whose own bonfire already proves you got past it |
+| `db_ds1/endings.json`, `db_er/endings.json` | `{ending: {flag, how}}` | 2 / 5 | The endings each game has, with `flag: null`. No flag base, so nothing reads them |
 | `db_sdt/boss_souls.json` | `{memory_item: boss}` | 17 | Memory → the boss that drops it. Sekiro's Memories are the boss-soul analogue, and a cleaner one: one per major boss, no ambiguity |
 | `db_sdt/boss_flags.json` | `{boss: flag_id}` | 15 | Boss-defeat event flag IDs. Shipped for the **names** — the flags themselves are not read, because where Sekiro's flag region sits in the save has never been published. See below |
 | `db_sdt/idols.json` | `{area: [[flag_id, name]]}` | 55 in 8 areas | Every Sculptor's Idol, by flag ID. Same situation: correct IDs, no known place in the file to read them from |
@@ -166,7 +174,7 @@ console.log(table["40420F00"]);                       // Dagger
 
 Every tier the tool reaches is limited by two things only: offsets and item tables. Both are just files, so both are yours to extend. Drop a game's tables into its `db_*` folder and both front ends resolve the names on the next run — there is no registry to update and no code to touch, as long as you keep the folder's key scheme.
 
-The one remaining item gap is Elden Ring's list: no quantities, and reinforced or affinity weapons still miss the base-ID table.
+The one remaining item gap is Elden Ring's list: no quantities, and no talismans, spells or consumables, because those live in a held inventory the parser does not walk. Names themselves are generated — `tools/gen_from_paramdex.py` rebuilds every DS1, DS3 and Elden Ring table from a pinned Paramdex commit, and every ID gate in it carries the collision it is holding back in its own docstring.
 
 ### Provenance and licensing
 
@@ -178,7 +186,7 @@ I did not extract any of these from the games myself. They are transcribed, reco
 - **DS2 bonfires, class, covenant** — the Jappi88 DS2 save editor and the SOTFS Cheat Engine tables, then pinned against differential saves.
 - **DS2 bonfire areas** — the fextralife Bonfires page, cross-checked against the ID clusters (each ID's high byte groups by map file, and every cluster resolved to exactly one map's worth of areas).
 - **DS3 flags** — FrankvdStam/SoulSplitter's flag lists, cross-checked against The-Grand-Archives Cheat Engine table. 60 of 60 bonfire names agree between the two.
-- **Elden Ring items** — the ER TGA Cheat Engine table's master list, split by type nibble.
+- **DS1, DS3 and Elden Ring items** — Paramdex (`soulsmods/Paramdex`, commit pinned at the top of `tools/gen_from_paramdex.py`), generated by that script, with an existing hand-disambiguated name winning on an ID collision. The Elden Ring tables were previously the ER TGA Cheat Engine table's master list, which predates Shadow of the Erdtree.
 
 Three of the upstream projects are **GPL-3.0** — SoulSplitter, souls_givifier, and SoulsFormats — and that is worth addressing rather than hoping nobody checks. No code from any of them is in this repository. What was taken is facts about a file format FromSoftware defined: key bytes, field offsets, event-flag IDs. A key is a number you discover, not a work you author; "the death counter is a uint32 at +104" is a measurement; and the flag lists are exhaustive by nature, so there is no creative selection in them to infringe. What ships in `db_ds3/` is not those lists anyway — it is byte offsets and bit positions computed from them.
 
@@ -708,10 +716,10 @@ Said out loud rather than papered over:
 - **Progress is a floor, not a ceiling.** Covered above. A spent soul with no flag and no gate is a kill the save can no longer prove, so it is not listed.
 - **Boss-defeat flags for Elden Ring are not read.** ER keeps them in a runtime structure and no public editor maps them into the save. DS1's, DS2's and DS3's flags *are* read, so only ER falls back to the soul-and-gate floor for kills.
 - **DS2 has only 6 of ~41 boss flags mapped.** Not for lack of effort — the available save set produces no differential for the other thirty-five, and three separate scanning approaches came back empty. Soul and gate inference covers most real cases; a mid-game boss whose soul you consumed can still be missing.
-- **Upgraded gear in DS1's scanned inventory is not named with its level.** DS1 bakes the reinforcement into the item ID and its scan-based inventory carries base IDs. **DS3 no longer has this problem in either place** — the held inventory turned out to store the exact `base + infusion*100 + level` ID, same as the equip slots, so a held `Greataxe +6` reads as such rather than dropping out. DS2 never had it: its tables are built from the full SOTFS ID list, so reinforced and infused variants all resolve by name. Elden Ring is the reverse, where reinforced-weapon IDs fall back to the base name.
+- **Every game now names an upgrade, and each one gets there differently.** DS1 and DS3 bake `base + infusion*100 + level` into the ID and unwrap it (a held `Greataxe +6` in DS3 reads as such rather than dropping out); DS2's ID does not move at all, so the level and infusion come from two bytes of the item record; Elden Ring resolves the affinity row and appends the level. What Elden Ring still cannot say is *how many* of a thing you own — quantities live in a held inventory the parser does not walk.
 - **DS3 has no starting class, gender, or Dark Sigil level,** and no published editor reads them either, so there is nothing to port. Each needs its own differential save.
 - **Scholar-only content is absent from a vanilla DS2 save,** which is the game's doing, not the tool's. The two releases share one ID table, so a vanilla save simply never carries the items and bonfires Scholar added.
-- **DS3 world pickups cover six areas, not the whole game.** Each area's flag group needs its own save base, and a base is only accepted when the ladder can *date* items in it — an item held from a known snapshot onward, with the flag clear before and set after. Areas the ladder cannot date are left out of the table entirely. A base chosen by plausibility instead of timing would invent pickups, which is the one thing this tool must never do.
+- **DS3 world pickups cover fourteen areas, not quite the whole game.** Three small flag groups have no row in the map table they would be offset from, so they are absent rather than guessed. A base is only accepted when the ladder can *date* items in it — an item held from a known snapshot onward, with the flag clear before and set after. Areas the ladder cannot date are left out of the table entirely. A base chosen by plausibility instead of timing would invent pickups, which is the one thing this tool must never do.
 
 ---
 

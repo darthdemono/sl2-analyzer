@@ -14,7 +14,7 @@ from .progress import attach_defeated_bosses
 from .roster import parse_roster
 from .ds1 import ds1_augment, dsr_parse, ptde_parse
 from .ds2 import ds2_active_slots, ds2_augment, ds2_parse
-from .ds3 import DS3_DB_FILES, ds3_attach_flags, ds3_attach_ring_effects, ds3_event_flag_base, ds3_goods_cat, ds3_journey, ds3_parse, ds3_playtime
+from .ds3 import DS3_DB_FILES, ds3_attach_flags, ds3_attach_ring_effects, ds3_event_flag_base, ds3_item_cat, ds3_journey, ds3_parse, ds3_playtime
 from .er import er_parse, er_roster, load_er_db
 from .sdt import SDT_SLOT_COUNT, load_sdt_db, sdt_parse
 from .totals import attach_progress_totals
@@ -325,8 +325,7 @@ def parse_save(data, base_dir):
     # DS3: names from the header, inventory by id-scan, stats by content-scan.
     if game == "ds3":
         db_dir = os.path.join(base_dir, cfg["db"][0])
-        iddb = load_scan_db(db_dir, cfg["db"][1],
-                            lambda i, c: ds3_goods_cat(i) if c == "goods" else c)
+        iddb = load_scan_db(db_dir, cfg["db"][1], ds3_item_cat)
         if not iddb:
             sys.exit(f"No item database found in {db_dir}")
         menu_entry = entries[cfg["menu"]]

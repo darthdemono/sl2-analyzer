@@ -1,0 +1,167 @@
+{
+ "Asylum Demon": [
+  "Undead Asylum",
+  []
+ ],
+ "Taurus Demon": [
+  "Undead Burg",
+  [
+   "Asylum Demon"
+  ]
+ ],
+ "Bell Gargoyles": [
+  "Undead Parish",
+  [
+   "Taurus Demon"
+  ]
+ ],
+ "Capra Demon": [
+  "Undead Burg",
+  [
+   "Asylum Demon"
+  ]
+ ],
+ "Gaping Dragon": [
+  "Depths",
+  [
+   "Capra Demon"
+  ]
+ ],
+ "Moonlight Butterfly": [
+  "Darkroot Garden",
+  [
+   "Asylum Demon"
+  ]
+ ],
+ "Great Grey Wolf Sif": [
+  "Darkroot Basin",
+  [
+   "Asylum Demon"
+  ]
+ ],
+ "Chaos Witch Quelaag": [
+  "Blighttown",
+  [
+   "Gaping Dragon"
+  ]
+ ],
+ "Ceaseless Discharge": [
+  "Demon Ruins",
+  [
+   "Chaos Witch Quelaag"
+  ]
+ ],
+ "Demon Firesage": [
+  "Demon Ruins",
+  [
+   "Ceaseless Discharge"
+  ]
+ ],
+ "Centipede Demon": [
+  "Demon Ruins",
+  [
+   "Demon Firesage"
+  ]
+ ],
+ "Bed of Chaos": [
+  "Lost Izalith",
+  [
+   "Centipede Demon"
+  ]
+ ],
+ "Iron Golem": [
+  "Sen's Fortress",
+  [
+   "Bell Gargoyles",
+   "Chaos Witch Quelaag"
+  ]
+ ],
+ "Dragon Slayer Ornstein": [
+  "Anor Londo",
+  [
+   "Iron Golem"
+  ]
+ ],
+ "Executioner Smough": [
+  "Anor Londo",
+  [
+   "Iron Golem"
+  ]
+ ],
+ "Dark Sun Gwyndolin": [
+  "Anor Londo",
+  [
+   "Dragon Slayer Ornstein"
+  ]
+ ],
+ "Crossbreed Priscilla": [
+  "Painted World of Ariamis",
+  [
+   "Great Grey Wolf Sif"
+  ]
+ ],
+ "Pinwheel": [
+  "Catacombs",
+  [
+   "Asylum Demon"
+  ]
+ ],
+ "Gravelord Nito": [
+  "Tomb of the Giants",
+  [
+   "Pinwheel",
+   "Dragon Slayer Ornstein"
+  ]
+ ],
+ "Seath the Scaleless": [
+  "Crystal Cave",
+  [
+   "Dragon Slayer Ornstein"
+  ]
+ ],
+ "The Four Kings": [
+  "The Abyss",
+  [
+   "Dragon Slayer Ornstein"
+  ]
+ ],
+ "Stray Demon": [
+  "Undead Asylum",
+  [
+   "Bell Gargoyles"
+  ]
+ ],
+ "Sanctuary Guardian": [
+  "Oolacile",
+  [
+   "Great Grey Wolf Sif"
+  ]
+ ],
+ "Knight Artorias": [
+  "Oolacile",
+  [
+   "Sanctuary Guardian"
+  ]
+ ],
+ "Black Dragon Kalameet": [
+  "Oolacile",
+  [
+   "Knight Artorias"
+  ]
+ ],
+ "Manus, Father of the Abyss": [
+  "Chasm of the Abyss",
+  [
+   "Knight Artorias"
+  ]
+ ],
+ "Gwyn, Lord of Cinder": [
+  "Firelink Altar",
+  [
+   "Gravelord Nito",
+   "Seath the Scaleless",
+   "The Four Kings",
+   "Bed of Chaos"
+  ]
+ ]
+}

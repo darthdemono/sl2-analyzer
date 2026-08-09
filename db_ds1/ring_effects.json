@@ -1,0 +1,207 @@
+{
+ "Havel's Ring": {
+  "effect": [
+   "Raises maximum equip load by 50%."
+  ]
+ },
+ "Red Tearstone Ring": {
+  "effect": [
+   "Boosts physical attack by ~50% while HP is at or below 20%."
+  ]
+ },
+ "Darkmoon Blade Covenant Ring": {
+  "effect": [
+   "Blade of the Darkmoon covenant ring. Enables invasion of guilty sinners."
+  ]
+ },
+ "Cat Covenant Ring": {
+  "effect": [
+   "Forest Hunter covenant ring. Enables auto-summon against Darkroot Garden trespassers."
+  ]
+ },
+ "Cloranthy Ring": {
+  "effect": [
+   "Raises stamina recovery speed."
+  ]
+ },
+ "Flame Stoneplate Ring": {
+  "effect": [
+   "Raises fire damage reduction."
+  ]
+ },
+ "Thunder Stoneplate Ring": {
+  "effect": [
+   "Raises lightning damage reduction."
+  ]
+ },
+ "Spell Stoneplate Ring": {
+  "effect": [
+   "Raises magic damage reduction."
+  ]
+ },
+ "Speckled Stoneplate Ring": {
+  "effect": [
+   "Raises magic, fire and lightning damage reduction by a smaller amount each."
+  ]
+ },
+ "Bloodbite Ring": {
+  "effect": [
+   "Raises bleed resistance."
+  ]
+ },
+ "Poisonbite Ring": {
+  "effect": [
+   "Raises poison resistance."
+  ]
+ },
+ "Tiny Being's Ring": {
+  "effect": [
+   "Raises maximum HP slightly."
+  ]
+ },
+ "Cursebite Ring": {
+  "effect": [
+   "Raises curse resistance."
+  ]
+ },
+ "White Seance Ring": {
+  "effect": [
+   "Grants one extra attunement slot."
+  ]
+ },
+ "Bellowing Dragoncrest Ring": {
+  "effect": [
+   "Raises magic damage by 20%."
+  ]
+ },
+ "Dusk Crown Ring": {
+  "effect": [
+   "Halves spell casting cost; halves maximum HP."
+  ]
+ },
+ "Hornet Ring": {
+  "effect": [
+   "Raises critical (riposte and backstab) damage."
+  ]
+ },
+ "Hawk Ring": {
+  "effect": [
+   "Extends bow range."
+  ]
+ },
+ "Ring of Steel Protection": {
+  "effect": [
+   "Raises physical defence."
+  ]
+ },
+ "Covetous Gold Serpent Ring": {
+  "effect": [
+   "Raises item discovery."
+  ]
+ },
+ "Covetous Silver Serpent Ring": {
+  "effect": [
+   "Raises souls gained from kills by 20%."
+  ]
+ },
+ "Slumbering Dragoncrest Ring": {
+  "effect": [
+   "Silences the wearer's movement."
+  ]
+ },
+ "Ring of Fog": {
+  "effect": [
+   "Makes the wearer harder for enemies to detect."
+  ]
+ },
+ "Rusted Iron Ring": {
+  "effect": [
+   "Allows normal movement speed through deep water and swamp."
+  ]
+ },
+ "Ring of Sacrifice": {
+  "effect": [
+   "Prevents loss of souls and humanity on death; breaks on use."
+  ]
+ },
+ "Rare Ring of Sacrifice": {
+  "effect": [
+   "Prevents soul and humanity loss on death and cancels curse; breaks on use."
+  ]
+ },
+ "Dark Wood Grain Ring": {
+  "effect": [
+   "Changes the roll to a ninja flip while equip load is at or below 25%."
+  ]
+ },
+ "Ring of the Sun Princess": {
+  "effect": [
+   "Grants one extra attunement slot; required for Gwynevere's miracle."
+  ]
+ },
+ "Old Witch's Ring": {
+  "effect": [
+   "Allows conversation with Quelana of Izalith."
+  ]
+ },
+ "Covenant of Artorias": {
+  "effect": [
+   "Allows traversal of the Abyss."
+  ]
+ },
+ "Orange Charred Ring": {
+  "effect": [
+   "Allows walking on lava without rapid damage."
+  ]
+ },
+ "Lingering Dragoncrest Ring": {
+  "effect": [
+   "Extends spell effect duration."
+  ]
+ },
+ "Ring of the Evil Eye": {
+  "effect": [
+   "Restores HP on each kill."
+  ]
+ },
+ "Ring of Favor and Protection": {
+  "effect": [
+   "Raises HP, stamina and equip load; breaks permanently if removed."
+  ]
+ },
+ "Leo Ring": {
+  "effect": [
+   "Raises damage of counter thrust attacks."
+  ]
+ },
+ "East Wood Grain Ring": {
+  "effect": [
+   "Slows weapon and armour durability loss."
+  ]
+ },
+ "Wolf Ring": {
+  "effect": [
+   "Raises poise."
+  ]
+ },
+ "Blue Tearstone Ring": {
+  "effect": [
+   "Raises damage reduction sharply while HP is low."
+  ]
+ },
+ "Ring of the Sun's Firstborn": {
+  "effect": [
+   "Raises miracle damage."
+  ]
+ },
+ "Darkmoon Seance Ring": {
+  "effect": [
+   "Grants one extra attunement slot."
+  ]
+ },
+ "Calamity Ring": {
+  "effect": [
+   "Doubles all damage taken."
+  ]
+ }
+}

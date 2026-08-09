@@ -343,6 +343,10 @@ def ds1_inventory(buf, item_db):
         if not iid:
             continue
         cat = DS1_CAT.get(stype & 0xF0000000) if stype is not None else None
+        # A spell IS a good as far as the slot type is concerned — only the id says
+        # otherwise, which is why the spell table is separate and consulted here.
+        if cat == "goods" and iid in item_db.get("spells", {}):
+            cat = "spells"
         name = ds1_resolve(item_db, cat, iid) if cat else None
         if name is None:
             unknown += 1
