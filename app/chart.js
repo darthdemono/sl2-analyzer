@@ -14,6 +14,13 @@ export const mm = (text) => String(text).replaceAll('"', "#quot;");
 
 export const label = (lines) => mm(lines.filter(Boolean).join("<br/>"));
 
+/** "1 boss" / "2 bosses". A fresh save really does hold one of things, and a count
+ *  that reads "1 bosses" makes the whole document look generated. */
+export function plural(n, word) {
+  const end = n === 1 ? "" : (/(s|x|ch)$/.test(word) ? "es" : "s");
+  return `${n} ${word}${end}`;
+}
+
 /** H:MM:SS, or an em dash where the game stores no clock. */
 export function hms(sec) {
   if (!sec) return "—";
@@ -81,7 +88,10 @@ export function journeyChart(runs, refs) {
     const span = nums.length === 1 ? `^${nums[0]}` : `^${nums[0]}–^${nums[nums.length - 1]}`;
     const got = [`${rows.length} save${rows.length === 1 ? "" : "s"} · ${span}`,
       `lv${last.level} · ${hms(last.play_time)}`];
-    if (Object.keys(last.bosses).length) got.push(`${Object.keys(last.bosses).length} bosses`);
+    // The carried set when one was worked out — a boss whose soul was spent is still a
+    // boss killed, and the journey chart should say so.
+    const known = last.carried_bosses || last.bosses;
+    if (Object.keys(known).length) got.push(plural(Object.keys(known).length, "boss"));
     if (last.endings.length) {
       got.push("FINISHED: " + [...last.endings].sort().join(" · "));
     }

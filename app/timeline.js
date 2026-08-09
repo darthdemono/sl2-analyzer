@@ -159,6 +159,36 @@ export function buildTree(rows) {
   return { parents, restarts };
 }
 
+/**
+ * Carry every boss kill forward down each line of descent.
+ *
+ * A single save is a floor and it can only fall: the held-soul evidence that proves a
+ * kill DISAPPEARS when the soul is spent, so a later save reports fewer bosses than an
+ * earlier one on the same run. Honest for one file; wasteful for a document holding
+ * both. A kill is permanent, so a boss proven at any ancestor is proven here.
+ *
+ * ANCESTORS, not "every earlier snapshot": a sibling branch is a different line, and a
+ * boss killed there was never killed on this one.
+ * @returns {Map<string, [string[], number]>[]} per row: boss -> [evidence, row it came from]
+ */
+export function carryBosses(rows, parents) {
+  const out = [];
+  rows.forEach((r, i) => {
+    const got = new Map(parents[i] === null ? [] : out[parents[i]]);
+    // The current save's own evidence always wins: it is the one still standing.
+    for (const [boss, ev] of Object.entries(r.bosses)) got.set(boss, [[...ev].sort(), i]);
+    out.push(got);
+  });
+  return out;
+}
+
+/** The bosses a snapshot can only prove through an ancestor. */
+export function carriedOnly(row, carried) {
+  return [...carried.entries()].filter(([b]) => !(b in row.bosses))
+    .map(([b, [ev, at]]) => [b, ev, at])
+    .sort((x, y) => x[2] - y[2] || cmp(x[0], y[0]));
+}
+
 /** Children of each node, in order. */
 export function children(parents) {
   const kids = new Map();

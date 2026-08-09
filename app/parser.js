@@ -357,6 +357,10 @@ function ds2Parse(buf, itemDb, game = "ds2sotfs") {
   };
 }
 const DS2_BOSS_GATE = {
+  // No-Man's Wharf is only reachable through Heide's Tower of Flame, and the way out
+  // of Heide's opens when the Dragonrider dies — a fog gate, not a suggested order.
+  // The one mid-game gate; the rest of DS2's middle is skippable, hence endgame-only.
+  "Unseen Path to Heide": ["Dragonrider"],
   "Undead Crypt Entrance": ["Looking Glass Knight", "Demon of Song"],
   "Throne Floor": ["Looking Glass Knight", "Demon of Song", "Velstadt, the Royal Aegis"],
 };

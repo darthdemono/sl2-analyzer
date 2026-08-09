@@ -189,6 +189,39 @@ def build_tree(rows):
 
 
 ##
+# @brief Carry every boss kill forward down each line of descent.
+# @details A single save is a floor and it can only fall: the held-soul evidence that
+# proves a kill DISAPPEARS the moment the soul is spent, so a later save reports fewer
+# bosses than an earlier one on the same run. That is honest for one file — the save
+# genuinely no longer proves it — but a document that has both files in front of it and
+# still says "no evidence" is throwing away what it was given. A kill is permanent, so
+# a boss proven at any ancestor is proven here.
+#
+# ANCESTORS, not "every earlier snapshot": a sibling branch is a different line, and a
+# boss killed there was never killed on this one. This is exactly the case the DS3
+# endings make real.
+# @param rows Snapshots of one run, @param parents from @ref build_tree.
+# @return [{boss: (sorted evidence, index of the snapshot it was proven in)}, ...].
+def carry_bosses(rows, parents):
+    out = []
+    for i, r in enumerate(rows):
+        got = dict(out[parents[i]]) if parents[i] is not None else {}
+        for boss, ev in r["bosses"].items():
+            # The current save's own evidence always wins: it is the one still standing.
+            got[boss] = (sorted(ev), i)
+        out.append(got)
+    return out
+
+
+##
+# @brief The bosses a snapshot can only prove through an ancestor, newest first.
+# @return [(boss, evidence, index of the snapshot that proved it)].
+def carried_only(row, carried):
+    return sorted(((b, ev, at) for b, (ev, at) in carried.items() if b not in row["bosses"]),
+                  key=lambda t: (t[2], t[0]))
+
+
+##
 # @brief Children of each node, in order. @return {parent index: [child index, ...]}.
 def children(parents):
     kids = {}

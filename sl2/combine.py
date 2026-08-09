@@ -16,11 +16,11 @@ import os
 from collections import OrderedDict
 from datetime import datetime
 
-from .chart import hms, journey_chart, reference_list, run_chart
+from .chart import hms, journey_chart, plural, reference_list, run_chart
 from .convert import GAMES, META_LABEL, parse_save
 from .render import md_for_character
-from .timeline import (build_tree, first_seen, fork_count, group_runs,
-                       reference_index, snapshot)
+from .timeline import (build_tree, carried_only, carry_bosses, first_seen,
+                       fork_count, group_runs, reference_index, snapshot)
 
 ## @brief Evidence tags, spelled out. Same words the single-save export uses.
 SRC = {"flag": "confirmed", "soul": "soul held", "gate": "progression",
@@ -58,16 +58,21 @@ def read_file(path, base_dir):
 
 ##
 # @brief The one-line summary under a run's heading.
-def run_summary(rows):
+# @param carried The newest snapshot's carried boss set, from @ref carry_bosses.
+def run_summary(rows, carried=None):
     first, last = rows[0], rows[-1]
     bits = [f"{len(rows)} save{'' if len(rows) == 1 else 's'}",
             f"lv{first['level']} → lv{last['level']}"]
     if last["play_time"]:
         bits.append(f"{hms(first['play_time'])} → {hms(last['play_time'])} played")
     if last["bonfires"]:
-        bits.append(f"{len(last['bonfires'])} bonfires")
-    if last["bosses"]:
-        bits.append(f"{len(last['bosses'])} bosses")
+        bits.append(plural(len(last["bonfires"]), "bonfire"))
+    known = carried if carried else last["bosses"]
+    if known:
+        extra = len(known) - len(last["bosses"])
+        bits.append(plural(len(known), "boss")
+                    + (f" ({len(last['bosses'])} still provable in the newest save, "
+                       f"{extra} carried from earlier)" if extra else ""))
     if last["pickups"]:
         bits.append(f"{sum(last['pickups'].values())} of {last['pickup_total']} world items")
     if last["endings"]:
@@ -167,8 +172,11 @@ def run_section(key, rows, refs, base_dir):
     last = rows[-1]
     parents, restarts = build_tree(rows)
     forks = fork_count(parents)
+    carried = carry_bosses(rows, parents)
+    for row, got in zip(rows, carried):
+        row["carried_bosses"] = {b: ev for b, (ev, _at) in got.items()}
 
-    L = [f"## {last['title']} — {name}", "", run_summary(rows), ""]
+    L = [f"## {last['title']} — {name}", "", run_summary(rows, carried[-1]), ""]
     L += ["### Save Tree", ""]
     L.append("_Each box is one save file, numbered as in the references at the end. A "
              "snapshot's parent is the latest earlier one whose progress it still "
@@ -208,6 +216,21 @@ def run_section(key, rows, refs, base_dir):
         L.append("_The newest save could not be re-read for a full dump._")
     L.append("")
 
+    lost = carried_only(last, carried[-1])
+    if lost:
+        L += ["### Bosses Carried Forward", "",
+              "_Proven by an EARLIER save on this line and not by the newest one. A held "
+              "boss soul is proof of a kill, and spending the soul destroys the proof — "
+              "but a kill is permanent, so the evidence stands. Only this save's own "
+              "ancestors count; a boss killed on a different branch was never killed "
+              "here._", "",
+              "| Boss | Evidence | Proven in | Play Time |", "|---|---|---|---|"]
+        for boss, ev, at in lost:
+            src = rows[at]
+            L.append(f"| {boss} | {', '.join(SRC.get(e, e) for e in ev)} | "
+                     f"^{refs.get(src['path'], '?')} | {hms(src['play_time'])} |")
+        L.append("")
+
     tl = run_timeline(rows, refs)
     if tl:
         L += ["### Timeline", ""] + tl
@@ -230,6 +253,13 @@ def build_combined(folder, base_dir, meta=None):
 
     runs = group_runs(snaps)
     refs, order = reference_index(snaps)
+    # The carry has to happen before the journey chart, not inside the run sections:
+    # the chart is drawn first and would otherwise report the newest save's own count
+    # while the section below it reports the carried one.
+    for rows in runs.values():
+        parents, _restarts = build_tree(rows)
+        for row, got in zip(rows, carry_bosses(rows, parents)):
+            row["carried_bosses"] = {b: ev for b, (ev, _at) in got.items()}
     games = OrderedDict((s["title"], None) for s in
                         sorted(snaps, key=lambda s: s["mtime"]))
 

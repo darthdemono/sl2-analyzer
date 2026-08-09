@@ -11,11 +11,12 @@
  * Nothing is filename-driven — the game comes from the header, the character from the
  * save, the order from the game's own clock. Backups can be named anything.
  */
-import { hms, journeyChart, referenceList, runChart, stamp } from "./chart.js";
+import { hms, journeyChart, plural, referenceList, runChart, stamp } from "./chart.js";
 import { mdCharacter } from "./markdown.js";
 import { GAMES } from "./parser.js";
 import {
-  buildTree, firstSeen, forkCount, groupRuns, pairKey, referenceIndex, snapshot,
+  buildTree, carriedOnly, carryBosses, firstSeen, forkCount, groupRuns, pairKey,
+  referenceIndex, snapshot,
 } from "./timeline.js";
 
 /** Evidence tags, spelled out. Same words the single-save export uses. */
@@ -32,15 +33,21 @@ export function fileSnapshots(result, file) {
     snapshot(ch, file, slot, result.game, result.title));
 }
 
-/** The one-line summary under a run's heading. */
-function runSummary(rows) {
+/** The one-line summary under a run's heading. `carried` is the newest snapshot's
+ *  carried boss set, from carryBosses. */
+function runSummary(rows, carried) {
   const first = rows[0], last = rows[rows.length - 1];
   const bits = [`${rows.length} save${rows.length === 1 ? "" : "s"}`,
     `lv${first.level} → lv${last.level}`];
   if (last.play_time) bits.push(`${hms(first.play_time)} → ${hms(last.play_time)} played`);
-  if (last.bonfires.length) bits.push(`${last.bonfires.length} bonfires`);
-  const nb = Object.keys(last.bosses).length;
-  if (nb) bits.push(`${nb} bosses`);
+  if (last.bonfires.length) bits.push(plural(last.bonfires.length, "bonfire"));
+  const own = Object.keys(last.bosses).length;
+  const known = carried ? carried.size : own;
+  if (known) {
+    const extra = known - own;
+    bits.push(plural(known, "boss") + (extra
+      ? ` (${own} still provable in the newest save, ${extra} carried from earlier)` : ""));
+  }
   const picked = Object.values(last.pickups).reduce((a, b) => a + b, 0);
   if (Object.keys(last.pickups).length) {
     bits.push(`${picked} of ${last.pickup_total} world items`);
@@ -144,8 +151,10 @@ function runSection(key, rows, refs, charFor) {
   const last = rows[rows.length - 1];
   const { parents, restarts } = buildTree(rows);
   const forks = forkCount(parents);
+  const carried = carryBosses(rows, parents);
 
-  const L = [`## ${last.title} — ${name}`, "", runSummary(rows), "", "### Save Tree", ""];
+  const L = [`## ${last.title} — ${name}`, "", runSummary(rows, carried[carried.length - 1]),
+    "", "### Save Tree", ""];
   L.push("_Each box is one save file, numbered as in the references at the end. A "
     + "snapshot's parent is the latest earlier one whose progress it still entirely "
     + "contains — event flags never clear, so a fork (the same save played on twice) "
@@ -177,6 +186,22 @@ function runSection(key, rows, refs, charFor) {
   }
   L.push("");
 
+  const lost = carriedOnly(last, carried[carried.length - 1]);
+  if (lost.length) {
+    L.push("### Bosses Carried Forward", "",
+      "_Proven by an EARLIER save on this line and not by the newest one. A held boss "
+      + "soul is proof of a kill, and spending the soul destroys the proof — but a kill "
+      + "is permanent, so the evidence stands. Only this save's own ancestors count; a "
+      + "boss killed on a different branch was never killed here._", "",
+      "| Boss | Evidence | Proven in | Play Time |", "|---|---|---|---|");
+    for (const [boss, ev, at] of lost) {
+      const src = rows[at];
+      L.push(`| ${boss} | ${ev.map((e) => SRC[e] || e).join(", ")} | `
+        + `^${refs.get(src.path) ?? "?"} | ${hms(src.play_time)} |`);
+    }
+    L.push("");
+  }
+
   const tl = runTimeline(rows, refs);
   if (tl.length) L.push("### Timeline", "", ...tl);
   return L;
@@ -201,6 +226,15 @@ export function buildCombined(entries, meta = null, now = new Date()) {
 
   const runs = groupRuns(snaps);
   const { refs, order } = referenceIndex(snaps);
+  // The carry has to happen before the journey chart, not inside the run sections: the
+  // chart is drawn first and would otherwise report the newest save's own count while
+  // the section below it reports the carried one.
+  for (const rows of runs.values()) {
+    const { parents } = buildTree(rows);
+    carryBosses(rows, parents).forEach((got, i) => {
+      rows[i].carried_bosses = Object.fromEntries([...got].map(([b, [ev]]) => [b, ev]));
+    });
+  }
   const titles = [];
   for (const s of snaps.slice().sort((a, b) => a.mtime - b.mtime)) {
     if (!titles.includes(s.title)) titles.push(s.title);

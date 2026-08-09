@@ -437,6 +437,11 @@ def load_ds2_boss_souls(base_dir):
 #  Route + King's Ring page.
 ## @brief Bonfire present ⇒ these bosses dead (the bonfire is only reachable past them).
 DS2_BOSS_GATE = {
+    # No-Man's Wharf is only reachable through Heide's Tower of Flame, and the way out
+    # of Heide's opens when the Dragonrider dies — a fog gate, not a suggested order.
+    # This is the one MID-game gate here; the rest of DS2's middle is four parallel,
+    # largely skippable paths, which is why the others below are all endgame.
+    "Unseen Path to Heide": ("Dragonrider",),
     "Undead Crypt Entrance": ("Looking Glass Knight", "Demon of Song"),
     "Throne Floor": ("Looking Glass Knight", "Demon of Song", "Velstadt, the Royal Aegis"),
 }

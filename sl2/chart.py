@@ -23,6 +23,13 @@ def label(lines):
     return mm("<br/>".join(l for l in lines if l))
 
 
+## @brief "1 boss" / "2 bosses". A fresh save really does hold one of things, and a
+#  count that reads "1 bosses" makes the whole document look generated.
+def plural(n, word):
+    end = "" if n == 1 else ("es" if word.endswith(("s", "x", "ch")) else "s")
+    return f"{n} {word}{end}"
+
+
 ##
 # @brief Format a play time as H:MM:SS, or an em dash when the game does not store one.
 def hms(sec):
@@ -95,8 +102,11 @@ def journey_chart(runs, refs):
         span = f"^{nums[0]}" if len(nums) == 1 else f"^{nums[0]}–^{nums[-1]}"
         got = [f"{len(rows)} save{'' if len(rows) == 1 else 's'} · {span}",
                f"lv{last['level']} · {hms(last['play_time'])}"]
-        if last["bosses"]:
-            got.append(f"{len(last['bosses'])} bosses")
+        # The carried set when the run section worked one out — a boss whose soul was
+        # spent is still a boss killed, and the journey chart should say so.
+        known = last.get("carried_bosses") or last["bosses"]
+        if known:
+            got.append(plural(len(known), "boss"))
         if last["endings"]:
             got.append("FINISHED: " + " · ".join(sorted(last["endings"])))
         body = label(["%s — %s" % (last["title"], name)] + got)
