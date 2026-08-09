@@ -16,7 +16,8 @@ import os
 from collections import OrderedDict
 from datetime import datetime
 
-from .chart import hms, journey_chart, plural, reference_list, run_chart
+from .chart import (hms, journey_chart, plural, rank, rank_cell, rank_label,
+                    reference_list, run_chart)
 from .convert import GAMES, META_LABEL, parse_save
 from .render import md_for_character
 from .timeline import (build_tree, carried_only, carry_bosses, first_seen,
@@ -62,7 +63,7 @@ def read_file(path, base_dir):
 def run_summary(rows, carried=None):
     first, last = rows[0], rows[-1]
     bits = [f"{len(rows)} save{'' if len(rows) == 1 else 's'}",
-            f"lv{first['level']} → lv{last['level']}"]
+            f"{rank(first)} → {rank(last)}"]
     if last["play_time"]:
         bits.append(f"{hms(first['play_time'])} → {hms(last['play_time'])} played")
     if last["bonfires"]:
@@ -89,22 +90,23 @@ def run_summary(rows, carried=None):
 def run_timeline(rows, refs):
     L = []
     ref = lambda r: f"^{refs.get(r['path'], '?')}"
+    lv = rank_label(rows[0]["game"]) if rows else "Lv"
 
     bosses = first_seen(rows, lambda r: r["bosses"])
     if bosses:
         L += ["#### Bosses — first appearance", "",
-              "| Play Time | Lv | Boss | Evidence | Save |", "|---|---|---|---|---|"]
+              "| Play Time | %s | Boss | Evidence | Save |" % lv, "|---|---|---|---|---|"]
         for boss, r in bosses:
             ev = ", ".join(SRC.get(e, e) for e in sorted(r["bosses"][boss]))
-            L.append(f"| {hms(r['play_time'])} | {r['level']} | {boss} | {ev} | {ref(r)} |")
+            L.append(f"| {hms(r['play_time'])} | {rank_cell(r)} | {boss} | {ev} | {ref(r)} |")
         L.append("")
 
     covs = first_seen(rows, lambda r: r["covenants"])
     if covs:
         L += ["#### Covenants — first found", "",
-              "| Play Time | Lv | Covenant | Progress | Save |", "|---|---|---|---|---|"]
+              "| Play Time | %s | Covenant | Progress | Save |" % lv, "|---|---|---|---|---|"]
         for cov, r in covs:
-            L.append(f"| {hms(r['play_time'])} | {r['level']} | {cov} | "
+            L.append(f"| {hms(r['play_time'])} | {rank_cell(r)} | {cov} | "
                      f"{', '.join(r['covenants'][cov])} | {ref(r)} |")
         L.append("")
 
@@ -113,9 +115,9 @@ def run_timeline(rows, refs):
     if rewards:
         L += ["#### Rewards — first obtained", "",
               "_A floor: only rewards actually collected are visible._", "",
-              "| Play Time | Lv | Source | Reward | Save |", "|---|---|---|---|---|"]
+              "| Play Time | %s | Source | Reward | Save |" % lv, "|---|---|---|---|---|"]
         for pair, r in rewards:
-            L.append(f"| {hms(r['play_time'])} | {r['level']} | {pair[0]} | {pair[1]} "
+            L.append(f"| {hms(r['play_time'])} | {rank_cell(r)} | {pair[0]} | {pair[1]} "
                      f"| {ref(r)} |")
         L.append("")
 
@@ -129,7 +131,7 @@ def run_timeline(rows, refs):
                 continue
             seen.update(new)
             total += len(new)
-            L.append(f"**{hms(r['play_time'])} · lv{r['level']} · {ref(r)}** — "
+            L.append(f"**{hms(r['play_time'])} · {rank(r)} · {ref(r)}** — "
                      f"{total} total (+{len(new)})")
             L += ["", *[f"- {a}: {n}" if a else f"- {n}" for a, n in sorted(new)], ""]
 
@@ -139,9 +141,9 @@ def run_timeline(rows, refs):
         L += ["#### Estus — reinforcement", "",
               "_Each step is one Undead Bone Shard burned. The level is stored in the "
               "flask's own item id, so this is read, not inferred._", "",
-              "| Play Time | Lv | Estus | Save |", "|---|---|---|---|"]
+              "| Play Time | %s | Estus | Save |" % lv, "|---|---|---|---|"]
         for r in est:
-            L.append(f"| {hms(r['play_time'])} | {r['level']} | +{r['estus']} | {ref(r)} |")
+            L.append(f"| {hms(r['play_time'])} | {rank_cell(r)} | +{r['estus']} | {ref(r)} |")
         L.append("")
 
     if any(r["pickups"] for r in rows):
@@ -154,7 +156,7 @@ def run_timeline(rows, refs):
                       if c > prev.get(a, 0)]
             if not gained:
                 continue
-            L.append(f"**{hms(r['play_time'])} · lv{r['level']} · {ref(r)}** — "
+            L.append(f"**{hms(r['play_time'])} · {rank(r)} · {ref(r)}** — "
                      f"{sum(r['pickups'].values())} total "
                      f"(+{sum(n for _a, n in gained)})")
             L += ["", *[f"- {a}: +{n} (now {r['pickups'][a]})" for a, n in gained], ""]

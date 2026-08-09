@@ -68,6 +68,10 @@ const decryptNone = (blob) => blob.subarray(16);
 
 // ── Detection ─────────────────────────────────────────────────────────────
 const DS2_SIGNATURE = [0x31, 0x34, 0x65, 0x35, 0x30, 0x33, 0x63, 0x62]; // "14e503cb"
+// One Sekiro character slot: 0x100000 of payload behind the 16-byte MD5. Its entry
+// COUNT identifies nothing — 11 on the published layout, 12 on the current patch,
+// which adds a reserved all-zero twelfth entry. See SDT_SLOT_ENTRY_SIZE in detect.py.
+const SDT_SLOT_ENTRY_SIZE = 0x100010;
 function sigMatch(data, bytes) {
   for (let i = 0; i < bytes.length; i++) if (data[24 + i] !== bytes[i]) return false;
   return true;
@@ -85,6 +89,9 @@ function detectGame(data, entries) {
     }
     throw new ParseError("Dark Souls II save found, but neither the Scholar nor the vanilla key decrypts it.");
   }
+  // Sekiro's entry count is shared with DS1 and with DS3/ER, so the slot SIZE settles
+  // it: DSR 0x60030, PtDE 0x60014, DS3 0xC0030, ER 0x280010, Sekiro 0x100010.
+  if (n >= 11 && entries[0].size === SDT_SLOT_ENTRY_SIZE) return "sdt";
   if (n === 11) {
     let allZero = true;
     for (let i = 24; i < 32; i++) if (data[i] !== 0) { allZero = false; break; }
@@ -126,7 +133,8 @@ function findKeyGoods(goods) {
   return goods.filter(([n]) => n.includes("Key") || DS1_PROGRESSION.has(n));
 }
 
-const BOSS_SOUL_DB_DIR = { dsr: "ds1", ptde: "ds1", ds3: "ds3", er: "er" };
+// Sekiro's table maps its Memory items, the same kind of proof-of-kill token.
+const BOSS_SOUL_DB_DIR = { dsr: "ds1", ptde: "ds1", ds3: "ds3", er: "er", sdt: "sdt" };
 const BOSS_PREREQ = {
   ds3: {
     "Soul of Cinder": ["Iudex Gundyr", "Vordt of the Boreal Valley",
@@ -198,6 +206,10 @@ function bossRoster(game, dbs) {
   if (game === "dsr" || game === "ptde") {
     for (const b of Object.keys(dbs.ds1.bossFlags || {})) names.add(b);
   }
+  // Sekiro's flag table is shipped for its NAMES — the flags themselves are not read
+  // (nobody has located the region in the file), but a boss the tool can name belongs
+  // in the denominator. It adds the two the Memory table alone would miss.
+  if (game === "sdt") for (const b of Object.keys(dbs.sdt.bossFlags || {})) names.add(b);
   return names;
 }
 function covenantRoster(game, dbs) {
@@ -1050,9 +1062,13 @@ function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, coven
   let anyFound = false;
   for (const [area, items] of Object.entries(pickupDb || {})) {
     const got = [], missing = [];
-    for (const [dist, bit, item] of items) {
+    for (const [dist, bit, item, where] of items) {
       const val = u8(buf, base + dist);
-      (val != null && (val & (1 << bit)) ? got : missing).push(item);
+      // A missing item carries WHERE it is, when the table knows one: the list is a
+      // to-do list, and "Titanite Shard" on its own is not one. About a quarter of the
+      // flags have no location and stay a bare name.
+      const label = where ? `${item} — ${where}` : item;
+      (val != null && (val & (1 << bit)) ? got : missing).push(label);
     }
     anyFound = anyFound || got.length > 0;
     picks.push([area, got.length, items.length, missing]);
@@ -1179,6 +1195,123 @@ function erParse(buf, iddb, name, level) {
   };
 }
 
+// ── Sekiro ────────────────────────────────────────────────────────────────
+// Port of sl2/sdt.py; if an offset changes there it must change here too. Sekiro is
+// unencrypted, its fields do NOT move between patches, and its item records carry a
+// type code — so there is no content scan and no cross-type mis-naming to defend.
+const SDT_SLOT_COUNT = 10;
+const SDT_STEAM_OFF = 0x33E54, SDT_NG_OFF = 0x33F34, SDT_PLAYTIME_OFF = 0x33F80;
+const SDT_ATTACK_OFF = 0x3449C, SDT_SEN_OFF = 0x344D0;
+// Max HP and max Posture are each stored TWICE, and neither sits where the published
+// source says: both groups are [0][current][max][max], and alfizari's editor names the
+// CURRENT field. A differential settles it — 0x3446C moved 32 -> 160 across a 42-minute
+// window while 0x34470 and 0x34474 both held at 320. Read only where the two copies
+// agree. See SDT_HP_OFF / sdt_twin in sl2/sdt.py.
+const SDT_HP_OFF = 0x34470, SDT_HP_ALT = 0x34474;
+const SDT_POSTURE_OFF = 0x3448C, SDT_POSTURE_ALT = 0x34490;
+// Attack power on a character who has consumed no Memory — measured on a real save
+// that is minutes from the opening, which is what makes it a base and not a guess.
+const SDT_ATTACK_BASE = 1, SDT_ATTACK_MAX = 98, SDT_NG_MAX = 99;
+const SDT_LISTS = [["inv", 0x8F70C, 0x7000], ["key", 0x9670C, 0x2000],
+  ["storage", 0x987A0, 0x9000], ["storage", 0xA1958, 0x4000]];
+const SDT_RECORD = 16;
+const SDT_CAT = { 0x8: "weapons", 0x9: "armors", 0xB: "goods" };
+const SDT_ID_MASK = 0x00FFFFFF;
+const SDT_ARTS_MAX = 9999;
+// Goods id blocks, read off db_sdt/goods.json in order. Mirrors SDT_GOODS_RANGES.
+const SDT_GOODS_RANGES = [[500, 1999, "consumables"], [2000, 2999, "key"],
+  [3000, 3999, "consumables"], [4000, 4499, "beads"], [5100, 5499, "memories"],
+  [5500, 5999, "key"], [6000, 6999, "upgrade"], [9000, 9999, "key"]];
+
+function sdtGoodsCat(iid) {
+  for (const [lo, hi, cat] of SDT_GOODS_RANGES) if (iid >= lo && iid <= hi) return cat;
+  return "goods";
+}
+
+/** Resolve one item id to [name, category, internal]; the type nibble scopes the table. */
+function sdtResolve(cat, iid, db) {
+  let name = (db.names[cat] || new Map()).get(iid);
+  if (name != null) {
+    if (cat === "weapons") return [name, db.prosthetics.has(iid) ? "prosthetics" : (iid <= SDT_ARTS_MAX ? "arts" : "skills"), false];
+    if (cat === "goods") return [name, sdtGoodsCat(iid), false];
+    return [name, cat, false];
+  }
+  name = (db.dev[cat] || new Map()).get(iid);
+  return name != null ? [name, "internal", true] : [null, null, false];
+}
+
+/** Walk the four fixed item regions; yields [which list, name, category, qty, internal]. */
+function* sdtItems(buf, db) {
+  for (const [which, start, length] of SDT_LISTS) {
+    for (let off = start; off < start + length; off += SDT_RECORD) {
+      const handle = u32(buf, off);
+      if (!handle) continue;
+      const cat = SDT_CAT[(handle >>> 28) & 0xF];
+      if (cat === undefined) continue;
+      const iid = u32(buf, off + 4);
+      if (iid == null) continue;
+      const [name, renderCat, internal] = sdtResolve(cat, iid & SDT_ID_MASK, db);
+      yield [which, name, renderCat, u32(buf, off + 8), internal];
+    }
+  }
+}
+
+/** A field the game stores twice, or null unless both copies agree. See sdt_twin. */
+function sdtTwin(buf, off, alt) {
+  const value = u32(buf, off);
+  return value && value === u32(buf, alt) ? value : null;
+}
+
+/** Memories already consumed, read back from Attack Power. See sdt_memories_spent. */
+function sdtMemoriesSpent(attack) {
+  if (attack == null || attack < SDT_ATTACK_BASE || attack > SDT_ATTACK_MAX) return null;
+  return attack - SDT_ATTACK_BASE;
+}
+
+/** Parse one Sekiro slot. No name and no attributes — the game has neither. */
+function sdtParse(buf, db) {
+  const inv = {}, keyItems = [], memories = [];
+  let unknown = 0, internal = 0;
+  for (const [which, name, cat, qty, isInternal] of sdtItems(buf, db)) {
+    if (name == null) { unknown++; continue; }
+    if (isInternal) { internal++; continue; }
+    const row = [name, qty];
+    // The box wins over the category: a key item sitting in storage is in storage,
+    // and saying otherwise would report it as carried.
+    if (which === "storage") (inv.storage || (inv.storage = [])).push(row);
+    else if (which === "key" || cat === "key") keyItems.push(row);
+    else {
+      (inv[cat] || (inv[cat] = [])).push(row);
+      if (cat === "memories") memories.push(row);
+    }
+  }
+  const playTime = u32(buf, SDT_PLAYTIME_OFF), steamId = u64(buf, SDT_STEAM_OFF);
+  // An unused slot is all zeros, which is the only occupancy test there is: the game
+  // publishes no slot list, and the Steam id is read for this and nothing else.
+  if (!Object.keys(inv).length && !keyItems.length && !playTime && !steamId) return null;
+  let attack = u32(buf, SDT_ATTACK_OFF);
+  if (attack != null && attack > SDT_ATTACK_MAX) attack = null;
+  const ng = u8(buf, SDT_NG_OFF);
+  const ch = {
+    tier: "full", game: "sdt",
+    // Sekiro profiles carry no name; SDT_NOTE says what that means, once.
+    name: "(unnamed)",
+    klass: null, stats: {}, level: null, soul_memory: null, humanity: null,
+    stamina: null,
+    hp: sdtTwin(buf, SDT_HP_OFF, SDT_HP_ALT),
+    posture: sdtTwin(buf, SDT_POSTURE_OFF, SDT_POSTURE_ALT),
+    ng_plus: ng != null && ng <= SDT_NG_MAX ? ng : null,
+    play_time: playTime,
+    souls: u32(buf, SDT_SEN_OFF),
+    attack,
+    boss_souls: memories, key_items: keyItems,
+    inv, unknown_count: unknown, internal_count: internal,
+  };
+  const spent = sdtMemoriesSpent(attack);
+  if (spent != null) ch.memories = { spent, held: memories.length, cumulative: !!ch.ng_plus };
+  return ch;
+}
+
 // ── Game table + driver ──────────────────────────────────────────────────
 export const GAMES = {
   ds2sotfs: { title: "Dark Souls II: Scholar of the First Sin", tier: "full", slots: [1, 11] },
@@ -1187,6 +1320,7 @@ export const GAMES = {
   ptde: { title: "Dark Souls: Prepare to Die Edition", tier: "full", slots: [0, 10] },
   ds3: { title: "Dark Souls III", tier: "full", slots: [0, 10] },
   er: { title: "Elden Ring", tier: "full", slots: [0, 10] },
+  sdt: { title: "Sekiro: Shadows Die Twice", tier: "full", slots: [0, SDT_SLOT_COUNT] },
 };
 
 /**
@@ -1263,6 +1397,17 @@ export function parseSave(data, dbs) {
       if (!active) continue;
       const slot = decryptNone(blobOf(data, entries[i]));
       const ch = erParse(slot, dbs.er.items, name, level);
+      if (ch) {
+        attachDefeatedBosses(ch, dbs);
+        attachProgressTotals(ch, dbs);
+        characters.push({ slot: label(i), ch });
+      }
+    }
+  } else if (game === "sdt") {
+    for (let i = meta.slots[0]; i < meta.slots[1]; i++) {
+      if (i >= entries.length) continue;
+      const slot = decryptNone(blobOf(data, entries[i]));
+      const ch = sdtParse(slot, dbs.sdt);
       if (ch) {
         attachDefeatedBosses(ch, dbs);
         attachProgressTotals(ch, dbs);

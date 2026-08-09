@@ -17,11 +17,15 @@ const DS2_FILES = { weapons: "weapons", armors: "armors", rings: "rings", spells
 const DS1_FILES = { MeleeWeapons: "weapons", Armor: "armors", Rings: "rings", Consumables: "goods" };
 const DS3_FILES = { weapons: "weapons", armors: "armors", rings: "rings", goods: "goods", bolts: "bolts", spells: "spells" };
 const ER_FILES = ["weapons", "armors", "talismans", "goods", "ashes"];
+// Sekiro: decimal id-keyed, one file per item type, plus a dev-name file per type kept
+// SEPARATE on purpose — those are engine strings, not item names. See load_sdt_db.
+const SDT_FILES = ["weapons", "armors", "goods"];
 
 /** Detected per-slot game id → the db_* family it reads. Mirrors the Python routing. */
-export const DB_FAMILY = { dsr: "ds1", ptde: "ds1", ds2sotfs: "ds2", ds2vanilla: "ds2", ds3: "ds3", er: "er" };
+export const DB_FAMILY = { dsr: "ds1", ptde: "ds1", ds2sotfs: "ds2", ds2vanilla: "ds2",
+  ds3: "ds3", er: "er", sdt: "sdt" };
 
-export const ALL_FAMILIES = ["ds1", "ds2", "ds3", "er"];
+export const ALL_FAMILIES = ["ds1", "ds2", "ds3", "er", "sdt"];
 
 /** Little-endian byte-hex ("d0093500") → integer, matching Python from_bytes(...,"little"). */
 function hexLE(hx) {
@@ -149,7 +153,29 @@ async function loadEr(getJSON) {
   return { items: table, bossSouls: bossSouls || {} };
 }
 
-const LOADERS = { ds1: loadDs1, ds2: loadDs2, ds3: loadDs3, er: loadEr };
+/** Decimal id-keyed {id: name} → Map(number → name). Sekiro's scheme, the simplest. */
+const toMap10 = (j) => {
+  const m = new Map();
+  if (j) for (const [k, v] of Object.entries(j)) m.set(Number(k), v);
+  return m;
+};
+
+async function loadSdt(getJSON) {
+  const paths = [...SDT_FILES.map((c) => `db_sdt/${c}.json`),
+    ...SDT_FILES.map((c) => `db_sdt/${c}_devnames.json`),
+    "db_sdt/prosthetics.json", "db_sdt/boss_souls.json", "db_sdt/boss_flags.json"];
+  const got = await jgetAll(getJSON, paths);
+  const names = {}, dev = {};
+  SDT_FILES.forEach((cat, i) => {
+    names[cat] = toMap10(got[i]);
+    dev[cat] = toMap10(got[i + SDT_FILES.length]);
+  });
+  const rest = SDT_FILES.length * 2;
+  return { names, dev, prosthetics: new Set(toMap10(got[rest]).keys()),
+           bossSouls: got[rest + 1] || {}, bossFlags: got[rest + 2] || {} };
+}
+
+const LOADERS = { ds1: loadDs1, ds2: loadDs2, ds3: loadDs3, er: loadEr, sdt: loadSdt };
 
 /**
  * An unloaded family still has to answer every lookup parseSave makes, so a family
@@ -165,6 +191,7 @@ const EMPTY = {
                 bossRoute: {}, pickups: {}, ringEffects: {}, endings: {},
                 bonfireTotal: 0 }),
   er: () => ({ items: {}, bossSouls: {} }),
+  sdt: () => ({ names: {}, dev: {}, prosthetics: new Set(), bossSouls: {}, bossFlags: {} }),
 };
 
 /**
@@ -204,5 +231,10 @@ export function dbPathsFor(family) {
       "db_ds3/lord_cinders.json", "db_ds3/boss_route.json", "db_ds3/item_pickups.json",
       "db_ds3/ring_effects.json", "db_ds3/endings.json"];
   }
-  return [...ER_FILES.map((c) => `db_er/${c}.json`), "db_er/boss_souls.json"];
+  if (family === "er") {
+    return [...ER_FILES.map((c) => `db_er/${c}.json`), "db_er/boss_souls.json"];
+  }
+  return [...SDT_FILES.map((c) => `db_sdt/${c}.json`),
+    ...SDT_FILES.map((c) => `db_sdt/${c}_devnames.json`),
+    "db_sdt/prosthetics.json", "db_sdt/boss_souls.json", "db_sdt/boss_flags.json"];
 }

@@ -3,7 +3,7 @@
 // md_for_character + convert's header; verified against the Python .md output by
 // scratch/md_harness.mjs (timestamp line excluded).
 
-import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, guessBuild, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, DS2_GAMES, fmt, fmtPlaytime, countDupes } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, CURRENCY, DS2_GREAT_SOULS, SRC, guessBuild, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, DS2_GAMES, fmt, fmtPlaytime, countDupes, memoriesLine } from "./tables.js";
 
 export const REPO_URL = "https://github.com/darthdemono/sl2-analyzer";
 // DS1 reads each bonfire's own record (so it knows the kindle level and can list a
@@ -24,6 +24,7 @@ const HOW = {
   dsr: "the save is locked the same way (AES-128 encryption, key shipped inside the game), so the tool unlocks it first. The character block does not sit at a fixed spot — it shifts as the save grows — so the tool locates it by a fixed marker (a 'magic' byte pattern) that always sits beside it, then reads the level, stats, and souls at known distances from that marker. The inventory is found by a second, separate marker, and every item ID is matched to its real name",
   ptde: "this original edition does not encrypt its save at all, so there is nothing to unlock. It stores a character the same way Remastered does but without that version's marker, so the tool finds the character by locating the name text and reads the level, stats, souls, and inventory that sit at known distances around it",
   ds3: "the save is locked with AES-128 encryption, key shipped in the game, so the tool unlocks it first. The stats do not sit at a fixed position, and that position moves between game patches, so instead of trusting a location the tool searches for the stat block by its content: it looks for the run of nine numbers that, added together, equal the character's stored level — a rule the game itself follows, which makes a wrong match almost impossible. Items are found by scanning the slot for known IDs and matched to names",
+  sdt: "the save is not encrypted and, unlike every other game here, its fields do not move between patches — so play time, journey (New Game+) count, Attack Power and Sen are read straight from fixed positions. The item lists are read the same way: each entry stores a type code beside its item ID, so a piece of armour can never be named as a weapon, and a prosthetic tool's upgrade tier is its own ID (there is no '+N' to work out). Sekiro has no character name and no attributes to level, so neither appears; Attack Power doubles as a count of the Memories already spent, which is how bosses whose token is long gone are still counted",
   er: "the save is not encrypted, so the tool reads it directly. Like Dark Souls III, the stats are found by content rather than a fixed spot — the tool looks for the eight numbers that add up to the character's level — which matters more here because that stat block sits in a different place for every character. Every item the character owns is read from the game's item array and matched to its real name",
 };
 
@@ -31,6 +32,11 @@ const ER_NOTE = "_Elden Ring identity, attributes, and runes are read directly; 
 
 // The Lords-of-Cinder line: how many of the four are on the throne, which ones the
 // mapped flags name, and the counts behind the number. See lords_line in sl2_to_md.py.
+// Sekiro's caveat: the item lists are complete and the two stat maxima are pinned, so
+// what is left is one uncertain field and the event-flag region, which nobody has
+// located in the file. Verbatim from SDT_NOTE in convert.py.
+const SDT_NOTE = "_Sekiro has no character name and no attributes: both are absent from the game, not missing here. The item lists (carried, key items and the storage box) are read whole and named by type, so nothing in them is guessed. Max HP and max Posture come from the second of each field's two copies, because the offsets the published editor labels as maxima are the CURRENT values \u2014 a save pair either side of taking damage settled that. **Spirit Emblems** is not read as a number of its own: the documented field holds 15 across saves taken before and after the character gained a prosthetic, so it is the carry cap rather than the count \u2014 and emblems you actually hold are an ordinary inventory item, listed with everything else. **Sculptor's Idols** and boss-defeat **flags** are not read either: the bit arithmetic is the same as Dark Souls III's, but where the flag region sits inside the save has never been published, so the bosses below come from Memories alone._";
+
 function lordsLine(lords) {
   // Mid-dot separated: "Aldrich, Devourer of Gods" has a comma of its own.
   const named = lords.named && lords.named.length ? ` — ${lords.named.join(" · ")}` : "";
@@ -61,9 +67,12 @@ export function mdCharacter(ch, slot) {
   if (ch.ng_plus != null) L.push(`- **Playthrough:** ${ch.ng_plus === 0 ? "New Game" : `New Game +${ch.ng_plus}`}`);
   if (ch.soul_memory != null) L.push(`- **Soul Memory:** ${fmt(ch.soul_memory)}  _(total souls earned — main progress metric)_`);
   if (ch.play_time) L.push(`- **Play Time:** ${fmtPlaytime(ch.play_time)}`);
-  if (ch.souls != null) L.push(`- **${ch.game === "er" ? "Runes" : "Souls"} held:** ${fmt(ch.souls)}`);
+  if (ch.souls != null) L.push(`- **${CURRENCY[ch.game] || "Souls"} held:** ${fmt(ch.souls)}`);
+  if (ch.attack != null) L.push(`- **Attack Power:** ${ch.attack}`);
+  if (ch.memories) L.push(`- **Memories:** ${memoriesLine(ch.memories)}`);
   if (ch.humanity != null) L.push(`- **Humanity:** ${ch.humanity}`);
   if (ch.hp != null) L.push(`- **Max HP:** ${fmt(ch.hp)}`);
+  if (ch.posture != null) L.push(`- **Max Posture:** ${fmt(ch.posture)}`);
   if (ch.embered != null) L.push(ch.embered
     ? "- **Embered:** Yes  _(Max HP above includes the +30% ember bonus)_"
     : "- **Embered:** No  _(hollow — Max HP above is the base value)_");
@@ -138,7 +147,8 @@ export function mdCharacter(ch, slot) {
 
   // Boss souls get a top section only where the inventory does NOT already have a
   // boss-souls category (DS2 and DS3 do) — printing both is the same list twice.
-  if (ch.boss_souls && ch.boss_souls.length && !(ch.inv.bosssouls || []).length) {
+  if (ch.boss_souls && ch.boss_souls.length && !(ch.inv.bosssouls || []).length
+      && !(ch.inv.memories || []).length) {
     L.push(ch.game === "er"
       ? "### Remembrances Held  _(major bosses defeated, not yet traded)_"
       : "### Boss Souls Held  _(bosses defeated, soul not yet consumed)_", "", ...bullets(ch.boss_souls), "");
@@ -182,11 +192,25 @@ export function mdCharacter(ch, slot) {
     L.push(`### Items Collected (${got} of ${total} tracked)  _(${DS3_PICKUP_NOTE})_`, "",
       ...ch.pickups.map(([area, c, tot, missing]) => {
         let row = `- ${area}: ${c}/${tot}`;
-        // Same rule as bonfires — an area you have started lists what is left in
+        // Same rule as bonfires — an area you have started counts what is left in
         // it; an untouched one would print a walkthrough back at you.
-        if (c && missing && missing.length) row += `  _(missing: ${countDupes(missing).join(" · ")})_`;
+        if (c && missing && missing.length) row += `  _(${missing.length} still out there)_`;
         return row;
       }), "");
+    // The list itself is folded away. It carries a location per item, which makes it a
+    // to-do list rather than a tally — and also long enough to bury the numbers above
+    // it if it were printed inline.
+    const todo = ch.pickups.filter(([, c, , missing]) => c && missing && missing.length);
+    if (todo.length) {
+      L.push("<details>",
+        "<summary>Where the missing items are — the ones with a known location</summary>",
+        "");
+      for (const [area, , , missing] of todo) {
+        L.push(`**${area}** — ${missing.length} missing`, "",
+          ...countDupes(missing).map((item) => `- ${item}`), "");
+      }
+      L.push("</details>", "");
+    }
   }
   if (ch.questlines && Object.keys(ch.questlines).length) {
     // Not all of these are NPCs — the same reward flags cover a few landmark
@@ -254,6 +278,9 @@ export function mdCharacter(ch, slot) {
     }
   }
   if (ch.unknown_count) L.push(`_${ch.unknown_count} inventory item(s) had IDs not in the name database (upgraded / infused variants) and were omitted._`, "");
+  if (ch.internal_count) {
+    L.push(`_${ch.internal_count} further entr${ch.internal_count === 1 ? "y" : "ies"} carried only an engine development name — placeholder rows and debug items rather than anything the game hands you — and were left out._`, "");
+  }
   return L.join("\n");
 }
 
@@ -270,6 +297,7 @@ export function buildMarkdown(result, filename) {
   if (!result.characters.length) body.push("_No populated character slots found._");
   for (const { slot, ch } of result.characters) { body.push(mdCharacter(ch, slot)); body.push("---", ""); }
   if (result.game === "er") body.push(ER_NOTE, "");
+  if (result.game === "sdt") body.push(SDT_NOTE, "");
   // The save version is the one footer line that is about the FILE rather than the
   // tool; it sits here because it belongs to no single character. See footer_for.
   const ver = result.saveVersion != null ? [`- **Save format version:** ${result.saveVersion}`] : [];

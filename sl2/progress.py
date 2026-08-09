@@ -48,7 +48,10 @@ def find_boss_souls(goods):
 ## @brief Per-game folder holding a boss-soul → boss-name table (boss_souls.json).
 #  DS2 runs its own richer multi-source inference; these cover the games whose only
 #  proof-of-kill floor is the boss souls / remembrances the character still holds.
-BOSS_SOUL_DB_DIR = {"dsr": "db_ds1", "ptde": "db_ds1", "ds3": "db_ds3", "er": "db_er"}
+#  Sekiro's table maps its Memory items, which are the same kind of token — and the
+#  only one in the series whose spending leaves a trace (see sdt_memories_spent).
+BOSS_SOUL_DB_DIR = {"dsr": "db_ds1", "ptde": "db_ds1", "ds3": "db_ds3", "er": "db_er",
+                    "sdt": "db_sdt"}
 
 
 ## @brief Load a game's boss-soul → boss-name table. Cached per (base_dir, subdir).

@@ -5,12 +5,12 @@
 // There is nothing cross-origin to think about: the page fetches only itself and its
 // own tables, so everything it asks for is cacheable.
 
-const VERSION = "v6";
+const VERSION = "v7";
 const CACHE = `sl2-analyzer-${VERSION}`;
 
-// The app shell. Item tables are not listed: there are 40 of them across four games
-// and a visitor needs one game's worth, so they are cached as they are actually
-// requested rather than all downloaded up front.
+// The app shell. Item tables are not listed: there are ~50 of them across five game
+// families and a visitor needs one family's worth, so they are cached as they are
+// actually requested rather than all downloaded up front.
 const SHELL = [
   "./",
   "index.html",

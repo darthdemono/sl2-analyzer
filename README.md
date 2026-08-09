@@ -27,10 +27,13 @@ Not every Souls save is mapped to the same depth in public tooling, so each game
 | Dark Souls II (vanilla) | `DARKSII0000.sl2` | Yes | **full** | identity, stats, souls, full inventory, deep progress |
 | Dark Souls III | `DS30000.sl2` | Yes | **full** | identity, stats, souls, full inventory, deepest progress |
 | Elden Ring | `ER0000.sl2` | Yes | **full\*** | identity, attributes, runes, remembrances, owned items (\*item list partial) |
+| Sekiro: Shadows Die Twice | `S0000.sl2` | Yes | **full** | play time, journey, Sen, Attack Power, max HP & Posture, every item carried and stored, bosses from Memories |
 
-All six FromSoftware `.sl2` variants are supported, and you never tell the tool which game it is: it works that out from the bytes itself.
+All seven FromSoftware `.sl2` variants are supported, and you never tell the tool which game it is: it works that out from the bytes itself.
 
 Vanilla Dark Souls II used to be the one wall, because the Scholar key does not decrypt it and I could not find its own key anywhere. The key turned out to be published after all, in TKGP's SoulsFormats (`SFUtil.GetDS2SaveKey`). Everything else about the two releases is identical — same BND4 layout, same field offsets, same item ids — so once the right key goes in, vanilla reads exactly as deep as Scholar does. Both are told apart automatically by which key decrypts the block.
+
+**Sekiro is the odd one out and it is the odd one out in the tool's favour.** Nothing is encrypted, nothing moves between patches, and a prosthetic tool's upgrade tier is a separate item ID, so there is no `+N` arithmetic to get wrong. It also has no character name, no attributes and no levelling — the game has none of them, so none appear, and the report says so rather than printing a blank. What it *does* have is the one trick nothing else here can do: **Attack Power goes up by exactly one per Memory consumed**, so `attack - 1` is a count of the boss tokens already spent. Every other game in this repo goes blind the moment you consume a soul. This one does not.
 
 The asterisk on Elden Ring is honest too. Identity, every attribute, runes held, and remembrances are read straight from the save. The item *list* is partial: owned items come from the GaItem array, so armour, talismans, goods, and base weapons resolve, but a reinforced or affinity weapon bakes the upgrade into its id and misses the base-id table. Per-item quantities are not read either. What is listed is really owned. It is just not the complete stash.
 
@@ -38,33 +41,34 @@ The asterisk on Elden Ring is honest too. Identity, every attribute, runes held,
 
 What each game actually surfaces. A blank cell means the field is not readable from that game's save with anything published today, so it is omitted rather than faked.
 
-| | DS1 (PtDE / DSR) | DS2 (both releases) | DS3 | Elden Ring |
-|---|:---:|:---:|:---:|:---:|
-| Name, level, attributes | yes | yes | yes | yes |
-| Souls / runes held | yes | yes | yes | yes |
-| Soul Memory | — | yes | — | — |
-| Max HP | yes | yes | yes | yes |
-| Max FP | — | — | yes | — |
-| Stamina | yes | derived | yes | — |
-| Derived stats | equip load, attunement slots | full panel, verified byte-exact | slots, equip load, item discovery | — |
-| Starting class | yes | yes | — | — |
-| Gender | yes | yes | — | — |
-| Covenant worn | — | yes | yes | — |
-| Covenants found + rank | — | yes (rank 0–3) | yes (join + rank rewards) | — |
-| Play time | yes | yes | yes | — |
-| Deaths | yes | yes | — | — |
-| Hollowing | humanity | yes | embered flag | — |
-| Playthrough (NG+) | DSR only | yes | yes | — |
-| Inventory, named | yes | yes, with `+N` and infusion | yes | partial |
-| Equipped gear | — | — | weapons, armour, rings, ammo | — |
-| Bonfires | 43, named, with kindle level | 77, named, by area | 77, named, by area | — |
-| Boss defeats by flag | 12 | 6 | 25 + 26 victory flags | — |
-| Boss defeats by held soul | yes | yes | yes | yes |
-| Boss defeats by gate / NG+ | yes | yes | yes | gate only |
-| Which missing boss is reachable now | — | — | yes, from the route graph | — |
-| NPC questline rewards | — | — | 57 NPCs, 101 rewards | — |
-| World items picked up | — | — | 426, named, in 6 areas | — |
-| Cinders of a Lord placed | — | — | count always, 3 of 4 named | — |
+| | DS1 (PtDE / DSR) | DS2 (both releases) | DS3 | Elden Ring | Sekiro |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Name, level, attributes | yes | yes | yes | yes | the game has none |
+| Souls / runes held | yes | yes | yes | yes | yes (Sen) |
+| Soul Memory | — | yes | — | — | — |
+| Max HP | yes | yes | yes | yes | yes |
+| Max FP | — | — | yes | — | — |
+| Stamina | yes | derived | yes | — | max Posture instead |
+| Derived stats | equip load, attunement slots | full panel, verified byte-exact | slots, equip load, item discovery | — | — |
+| Starting class | yes | yes | — | — | — |
+| Gender | yes | yes | — | — | — |
+| Covenant worn | — | yes | yes | — | — |
+| Covenants found + rank | — | yes (rank 0–3) | yes (join + rank rewards) | — | — |
+| Play time | yes | yes | yes | — | yes |
+| Deaths | yes | yes | — | — | — |
+| Hollowing | humanity | yes | embered flag | — | — |
+| Playthrough (NG+) | DSR only | yes | yes | — | yes |
+| Inventory, named | yes | yes, with `+N` and infusion | yes | partial | yes, incl. key items and the storage box |
+| Equipped gear | — | — | weapons, armour, rings, ammo | — | — |
+| Bonfires | 43, named, with kindle level | 77, named, by area | 77, named, by area | — | idols not read (region unmapped) |
+| Boss defeats by flag | 12 | 6 | 25 + 26 victory flags | — | — (region unmapped) |
+| Boss defeats by held soul | yes | yes | yes | yes | yes (Memories) |
+| Boss defeats after the token is **spent** | — | — | — | — | **yes, from Attack Power** |
+| Boss defeats by gate / NG+ | yes | yes | yes | gate only | — |
+| Which missing boss is reachable now | — | — | yes, from the route graph | — | — |
+| NPC questline rewards | — | — | 57 NPCs, 101 rewards | — | — |
+| World items picked up | — | — | 426, named, in 6 areas | — | — |
+| Cinders of a Lord placed | — | — | count always, 3 of 4 named | — | — |
 
 ---
 
@@ -76,7 +80,7 @@ Everything below is plain UTF-8 JSON: no build step, no dependency on the Python
 
 ### Item name tables
 
-Four games, three ID schemes, because the games do not agree with each other.
+Five game families, four ID schemes, because the games do not agree with each other.
 
 | Folder | Files | IDs | Key scheme |
 |---|---|---:|---|
@@ -84,12 +88,15 @@ Four games, three ID schemes, because the games do not agree with each other.
 | `db_ds2/` | `weapons`, `armors`, `rings`, `spells`, `bolts`, `upgrade`, `consumables`, `online`, `emotes`, `key`, `bosssouls` | 1,336 | **id-keyed**, little-endian hex with spaces: `{"40 42 0F 00": "Dagger"}` |
 | `db_ds3/` | `weapons`, `armors`, `rings`, `spells`, `goods`, `bolts` | 3,288 | **name-keyed**, decimal integer: `{"Torch": 90000}` |
 | `db_er/` | `weapons`, `armors`, `talismans`, `goods`, `ashes` | 2,668 | **id-keyed**, 8-digit hex: `{"000F4240": "Dagger"}` |
+| `db_sdt/` | `weapons`, `armors`, `goods` (+ a `_devnames` file each) | 471 named, 98 dev-named | **id-keyed**, decimal as a string: `{"70500": "Lazulite Shuriken"}` |
 
 Three details that will bite you if you assume they work like each other:
 
 **DS2 is id-keyed on purpose.** One DS2 item name owns several IDs — a base form plus its reinforced, infused, and variant forms. There are four separate "Prisoner's Hood" IDs. A name-keyed file collapses those to one and silently drops whichever variant the save actually holds, so the key is the ID and every variant gets its own line. The hex keys carry spaces because they were transcribed that way from the SOTFS compendium; strip whitespace before decoding (Python's `bytes.fromhex` already ignores it, JavaScript does not).
 
 **DS1 and DS3 numbers repeat across categories,** which is why the tables are kept per category instead of merged into one flat map. Category scoping is what stops an armour ID resolving to a weapon.
+
+**Sekiro puts the type in the record, not the ID.** Its item records are `[u32 handle][u32 item id][u32 quantity][u32 index]`, and the *handle's* top nibble is the type: `0x8` weapon, `0x9` armour, `0xB` good, `0x0` an empty slot. Mask the item ID with `0x00FFFFFF` and look it up in that type's table only, and a cross-type collision is impossible by construction. The `_devnames` files are kept **separate on purpose**: they hold Paramdex's machine-translated Japanese development strings for the IDs with no English name, and most of them are engine internals ("ID monitoring item 1", six copies of "bare hands") rather than anything a player is handed. Merging them would put debug rows beside real items under the same heading. This tool counts them and does not print them; if you want them, they are right there in their own file.
 
 **Elden Ring encodes the type in the ID itself.** The top nibble is the item type: `0x0` weapons, `0x1` armour, `0x2` talismans, `0x4` goods, `0x8` Ashes of War. The key keeps that nibble, so a lookup is scoped by construction and cross-type collisions cannot happen. If you only want the master list, concatenating the five files is safe.
 
@@ -98,6 +105,7 @@ Upgrade arithmetic, where the games bake it into the ID rather than storing it s
 - **DS1 and DS3:** `id = base + infusion*100 + level`, base ends in `000`. A Deep Battle Axe +1 in DS3 is `7010000 + 900 + 1 = 7010901`. DS1 rings are stored at 1/1000 of their real ID, so they resolve through `id // 1000`.
 - **DS2:** the ID does *not* move. A +10 weapon keeps its base ID; reinforcement is the low byte of the uint32 at record `+12` and infusion is the byte at `+13` (`1` Fire, `2` Magic, `3` Lightning, `4` Dark, `5` Poison, `6` Bleed, `7` Raw, `8` Enchanted, `9` Mundane).
 - **Elden Ring:** reinforced and affinity IDs step by `ER_WEAPON_BASE_STEP`, and the base is recovered with `id - id % step`. The exact upgrade level is not read.
+- **Sekiro:** there is no arithmetic at all. Each prosthetic upgrade tier is its own item ID — `70000` Loaded Shuriken, `70100` Spinning Shuriken, `70500` Lazulite Shuriken — so a straight lookup already names the exact tier.
 
 ### Progress tables
 
@@ -112,17 +120,21 @@ These are the interesting ones, and they took a lot more work than the item list
 | `db_ds2/bonfire_areas.json` | `{id_hex: area}` | 77 | The same IDs mapped to their area |
 | `db_ds2/boss_flags.json` | `{world_offset_hex: boss}` | 6 | The six DS2 boss-defeat flags that could be isolated |
 | `db_ds2/boss_souls.json` | `{soul_item: boss}` | 43 | Every main-game and DLC boss soul |
-| `db_ds2/images.json` | `{item_name: filename}` | 600 | Verified fextralife image filenames, for a UI |
 | `db_ds3/bonfires.json` | `{area: [[dist, bit, name]]}` | 77 in 14 areas | Every DS3 and DLC bonfire, as a save byte-offset and bit |
 | `db_ds3/boss_flags.json` | `{boss: [dist, bit]}` | 25 | Boss-defeat flags, same addressing |
 | `db_ds3/boss_victory.json` | `{boss: [dist, bit]}` | 26 | The `63xx` boss-victory flags — a second kill signal that, unlike the per-map flags, survives an NG+ reset |
-| `db_ds3/lord_cinders.json` | `{lord: [dist, bit]}` | 3 | The flag set when a Lord's Cinders go on the Firelink throne. Abyss Watchers, Yhorm and Aldrich are each pinned by their own differential; the Twin Princes still need theirs |
+| `db_ds3/lord_cinders.json` | `{lord: [dist, bit]}` | 4 | The flag set when a Lord's Cinders go on the Firelink throne. Each pinned by its own save pair either side of the offering |
+| `db_ds3/endings.json` | `{ending: [dist, bit]}` | 4 | Which endings a character has reached. All four live in one byte, one bit each |
 | `db_ds3/boss_souls.json` | `{soul_item: boss}` | 22 | Boss soul → boss |
-| `db_ds3/covenants.json` | `{covenant: [[dist, bit, what it proves]]}` | 8 / 18 flags | Join and rank-reward flags per covenant |
-| `db_ds3/questlines.json` | `{npc: [[dist, bit, reward]]}` | 57 / 101 flags | NPC quest reward flags |
-| `db_ds3/item_pickups.json` | `{area: [[dist, bit, item]]}` | 6 areas / 426 items | Every one-off world item in the six areas whose flag-group base could be derived, as a save byte-offset and bit. An area is absent when its base is unknown — never guessed |
+| `db_ds3/covenants.json` | `{covenant: [[dist, bit, what it proves]]}` | 9 / 19 flags | Join and rank-reward flags per covenant |
+| `db_ds3/questlines.json` | `{npc: [[dist, bit, reward]]}` | 56 / 100 flags | NPC quest reward flags |
+| `db_ds3/item_pickups.json` | `{area: [[dist, bit, item, where]]}` | 14 areas / 937 items | Every one-off world item, as a save byte-offset and bit, with the place it lies for the three quarters of them the annotations cover. An area is absent when its flag-group base is unknown — never guessed |
 | `db_ds3/boss_route.json` | `{boss: [gate_area, [predecessors]]}` | 26 | The hard route gates, for working out which missing boss is reachable now |
 | `db_er/boss_souls.json` | `{remembrance: boss}` | 14 | Remembrance → the boss that drops it |
+| `db_sdt/boss_souls.json` | `{memory_item: boss}` | 17 | Memory → the boss that drops it. Sekiro's Memories are the boss-soul analogue, and a cleaner one: one per major boss, no ambiguity |
+| `db_sdt/boss_flags.json` | `{boss: flag_id}` | 15 | Boss-defeat event flag IDs. Shipped for the **names** — the flags themselves are not read, because where Sekiro's flag region sits in the save has never been published. See below |
+| `db_sdt/idols.json` | `{area: [[flag_id, name]]}` | 55 in 8 areas | Every Sculptor's Idol, by flag ID. Same situation: correct IDs, no known place in the file to read them from |
+| `db_sdt/prosthetics.json` | `{id: name}` | 40 | The `7xxxx` weapon range — every prosthetic tool and every upgrade tier, used to split them out of the weapons table |
 
 The DS3 tables store `[dist, bit]` rather than a flag ID, because the ID-to-byte conversion is not obvious and doing it once at generation time means a consumer does not need the formula. `dist` is a byte offset from the start of that slot's event-flag region and `bit` is the bit index within the byte, MSB-first. The formula that produced them is documented below, so you can regenerate the tables for any other flag you care about.
 
@@ -188,13 +200,15 @@ The keys are not secrets. FromSoftware ships them inside the games, so "decrypti
 | Dark Souls II (vanilla) | `B7FD463E4A9C1102DF1739E5F3B2A50F` |
 | Dark Souls Remastered | `0123456789ABCDEFFEDCBA9876543210` |
 | Dark Souls III | `FD464D695E69A39A10E319A7ACE8B7FA` |
-| PtDE, Elden Ring | not encrypted |
+| PtDE, Elden Ring, Sekiro | not encrypted |
 
 The vanilla DS2 key is the one that is hard to find; it lives in TKGP's SoulsFormats as `SFUtil.GetDS2SaveKey`, distinct from `GetScholarSaveKey`. The source that supplied it also warns that vanilla and Scholar slot sizes and internal offsets differ. That is **false** for the save file. I checked rather than believed it: identical BND4 entry count and sizes except one non-character block, name at the same offset, and DS2's own level identity holding on both. There is exactly one DS2 offset map.
 
 ### The container
 
 A `.sl2` is a `BND4` archive. Inside sit a handful of entries — one per character slot, plus a header slot and some world slots — each wrapped as `[16B MD5 checksum][16B IV][payload]`.
+
+Which game an archive belongs to is decided from the header, and for three of them the entry **count** is not enough. DS2's two releases share a signature and are split by which key decrypts; DS3 and Elden Ring both carry 12 entries and are split by size. **Sekiro is split by size too, and its count is a trap**: the published layout says 11 entries (DS1's count), while the current patch writes 12 (DS3's and Elden Ring's), the twelfth being a reserved block that reads all zeros. The slot size settles it and is unambiguous — DSR `0x60030`, PtDE `0x60014`, DS3 `0xC0030`, Sekiro `0x100010`, Elden Ring `0x280010`.
 
 One catch worth knowing if you build on this: the cipher is raw **AES-128-CBC with no padding**. The browser's own `WebCrypto` cannot do that; its AES-CBC forces PKCS#7 and throws on Souls ciphertext. That is why the web app ships its own small AES-128 implementation instead of using the platform one.
 
@@ -211,6 +225,8 @@ Where an offset is stable, read it. Where it moves, find the block by a fact onl
 | Elden Ring | `sum(8 attributes) - 79 == in-slot level` |
 
 DSR anchors on a fixed magic byte pattern instead. PtDE has no such pattern, so it anchors on the character name and reuses DSR's distances — the two releases share an identical stat layout.
+
+Sekiro needs none of this. Its fields do not move between patches, so they are read where they are: play time (`uint32` seconds) at `0x33F80`, journey count at `0x33F34`, Attack Power at `0x3449C`, Sen at `0x344D0`, all relative to the slot payload. There is no slot-occupancy array published anywhere, so an occupied slot is told from an empty one by its own content — the owner's Steam ID sits at `0x33E54` and an unused slot is all zeros. (That ID is read for this and nothing else; it is never printed.)
 
 **The trap this cannot catch:** the identity is order-independent, so a permuted label mapping passes it silently. DS3 shipped with a wrong storage order that the sum check happily accepted, and it was only caught against a real lopsided build. Memory order is not screen order. In DS3, Vitality is stored **last, alone, at +40**, after the other eight. In DS2, Intelligence is `+44`, Faith `+46`, and Adaptability `+48` — not contiguous, and not in display order. Verify against a character with visibly uneven stats, never a maxed or fresh one.
 
@@ -243,7 +259,24 @@ Verified across all sixteen map groups. Read it at `ds3_event_flag_base(slot) + 
 | `50006` (NPC rewards) | 86639 | Hawkwood's Heavy Gem, flag `50006070` |
 | `6` (covenants) | 879 | Rosaria's Fingers emblem, flag `6760` |
 
-The bulk world-pickup groups (`530xx`–`555xx`) are **not** derivable this way without their own anchor, and three separate scoring methods failed on them. Never ship a base picked by score — a wrong one invents item pickups out of nothing.
+Six of the bulk world-pickup groups (`530xx`–`555xx`) came from a harder version of the same idea — **windowed timing**. Scoring a candidate base on "how many flagged items does this character own" fails, and failed three separate ways; the question that works is temporal. An item whose first-held snapshot the backup ladder knows must have its flag read 0 in *every* earlier save and 1 in *every* later one, and exactly one base per group survives that.
+
+Those six then gave up the structure for the other eight. Line each derived base up against the CE table's slot for the **same map** and the difference is a constant, six times out of six:
+
+| Pickup group | Map group | k (map) | k (pickup) | Δ |
+|---|---|---:|---:|---:|
+| `53300` Road of Sacrifices | `13300` | 9 | 75 | 66 |
+| `53500` Cathedral of the Deep | `13500` | 12 | 78 | 66 |
+| `53700` Irithyll | `13700` | 15 | 81 | 66 |
+| `53800` Catacombs of Carthus | `13800` | 16 | 82 | 66 |
+| `53900` Irithyll Dungeon | `13900` | 17 | 83 | 66 |
+| `54000` Cemetery of Ash | `14000` | 18 | 84 | 66 |
+
+So a map's pickup group sits 66 grid slots past its own map group, and `base = (k_map + 66) * 0x500 + 111` predicts the rest. Predicting is not proving, and the proof is the part worth copying: **monotonicity does not discriminate** — the region is sparse enough that neighbouring slots also never clear a bit — so each candidate was checked against the area's *own bonfire flags*, which come from a different table that is not in doubt. A correct base makes the item count move when the bonfire count moves, and all eight do. Lothric Castle sits at 0 items and 0 bonfires until 33:31, then goes 25/2 → 50/4 → 50/5. The Dreg Heap's first item and first bonfire land in the same snapshot.
+
+The best evidence was the thing that looked wrong. Two Painted World flags fire at 10:03, hours before the DLC should be reachable — and the Ariandel **Snowfield bonfire lights in that same snapshot**, with both items sitting a few steps from it. A wrong base does not manufacture a coincidence that specific.
+
+Three groups (`53400`, `53600`, `54004` — twelve flags between them) have no row in the map-group table, so there is no slot to offset from and they stay unmapped. Never ship a base picked by score; a wrong one invents item pickups out of nothing.
 
 ### DS1 event flags
 
@@ -265,6 +298,8 @@ DS1 bonfires are **not** flags. They are a `NetBonfireDb` record list, 20 bytes 
 **DS1** — gender at `magic-237` (`1` = Male, note this is the **opposite polarity to DS2**); deaths at slot-absolute `0x1F118` (PtDE) / `0x1F2D8` (DSR), guarded on a `0xFFFFFFFF` sentinel at `+4`; play time in the load-screen roster, BND4 entry 10, record stride `0x170`, name at `+0`, level at `+36`, play time as a `uint32` of **seconds** at `+40`, block starting at `0x28` (PtDE) / `0xC0` (DSR).
 
 **DS2** — the Jappi88 editor's `SaveBlocks[0]` position 0 equals our slot flat `+32`, which translates every offset that editor publishes. Class `+1024`, covenant `+189`, gender `+378` (`1` = Female), hollowing `+379`, deaths `+104` (mirrored at `+184` and `+7272`). Play time is *not* in the character block — it is in the header title record at `+66`, name at `+0`, level at `+74`, records at `1286 + 496*(entry-1)`. World state for status entry `i` lives in entry `i + 10`. Item records are 16 bytes; the count is the **low uint16** of the field at `+8`, because special items pack state into the high two bytes (the Estus Flask keeps its charge pair there).
+
+**Sekiro** — the four item lists are flat arrays of 16-byte records at fixed slot offsets: carried inventory `0x8F70C` (`0x7000` long, with a `uint16` item count at `0x8F700`), key items `0x9670C` (`0x2000`), and the storage box in two regions, `0x987A0` (`0x9000`) and `0xA1958` (`0x4000`). Max HP is at `0x34470` and max Posture at `0x3448C`, each stored twice (`+4` again) inside a `[0][current][max][max]` group — **not** at the offsets the published editor labels, which are the current values. Three more labels in the published sources are worth correcting: `0x344D0` is **Sen**, not "Souls" (Sekiro has no souls); the spirit-emblem field is a `uint16`, not a byte (one byte only appears to work because the in-game cap is 99); and that field is the carry cap rather than the count, so it is not read at all.
 
 **DS3** — everything equipment-related sits at a fixed distance from the Vigor anchor even though the anchor itself moves. EquipGameData at `vigor + 664`; from that base, armour at `+0x20/+0x24/+0x28/+0x2C`, rings at `+0x34/+0x38/+0x3C/+0x40`, ammo at `+0x08/+0x0C/+0x10/+0x14`, and the six weapon slots *interleaved and starting before it*: `LH1 -0x10, RH1 -0x0C, LH2 -0x08, RH2 -0x04, LH3 +0x00, RH3 +0x04`. Armour, ammo and weapons hold GaItem **handles** that resolve through the GaItem array; rings do not appear in that array at all, and instead a ring's handle encodes its ID directly — `id = (handle & 0x0FFFFFFF) | 0x20000000`. Covenant is a worn accessory, so it is a `uint32` handle at `vigor + 3944` whose low 28 bits are the covenant item ID. Embered is a lone boolean at `vigor + 188`. Max HP at `vigor - 40`, max FP at `vigor - 28` (each stores a current/max pair; those are the max copies). Play time is in the roster descriptor at `+38`, a `uint32` of seconds.
 
@@ -290,9 +325,12 @@ Every game gets the baseline: **boss souls and remembrances still held.** You ca
 - **Boss route awareness.** Missing bosses split into "available now" — every hard predecessor dead and the gating area already reached — and the rest. The route graph is game structure, not a save read, and the area half is what stops a DLC boss reading as reachable before you have entered the DLC.
 - **Bosses defeated, from 25 defeat flags,** computed from the authoritative flag list rather than hand-checked. Every computed offset independently reproduced the older hand-verified table, which is mutual confirmation, and the rebuild added Ancient Wyvern, which the old one missed. This is what catches bosses that drop no soul, like Iudex Gundyr, which the soul floor could never see.
 - **Bosses defeated again, from a second and independent set of 26 victory flags.** The per-map defeat flags reset when you start NG+; these do not, which is why a finished character reads a full roster where the map flags read nothing. They also cover Stray Demon, which the map table has no entry for. Every one of them was checked against a 36-save ladder and first appears in exactly the snapshot the boss died in.
-- **Cinders of a Lord placed on the throne.** Three lords so far — Abyss Watchers, Yhorm and Aldrich — each pinned by its own save pair either side of the offering. The Twin Princes are not guessed at, even though the obvious bit is sitting right there in the same byte: the three known IDs do not run in offering order, so their spacing is a pattern rather than evidence. The *count* does not wait on it, because a lord's cinders sit in your inventory from the kill until the offering, so "placed" is (lords dead − cinders held) and needs no new flag at all.
+- **Cinders of a Lord placed on the throne, all four named.** Each was pinned by its own save pair either side of the offering. The four turned out to be the four *odd* IDs in one byte, which is what finally settled the last seat rather than the spacing, since the bits are keyed to the lord and not to the order you offer them in. The *count* never waited on any of it: a lord's cinders sit in your inventory from the kill until the offering, so "placed" is (lords dead − cinders held) and needs no flag at all.
+- **Which ending you took.** All four sit in a single byte, one bit each, pinned by finishing the same pre-ending save three different ways and partitioning the flips by which endings hold them — a flip in all three is generic, a flip in exactly one is that ending's own flag. The fourth is named by elimination and is the one field here never observed set, which the change log says out loud.
 - **NPC questlines.** 57 NPCs, 101 reward flags — what Hawkwood, Greirat, Siegward, Leonhard, Yuria and the rest have actually handed over. On a real early save this reads eleven coherent NPCs and zero late-game or DLC false positives.
-- **World items collected, 426 of them across six areas.** Not a count — every one-off pickup in Road of Sacrifices, Cathedral of the Deep, Irithyll, Catacombs of Carthus, Irithyll Dungeon and Cemetery of Ash, named, with what you have *not* picked up listed beside what you have. The six flag-group bases were derived by windowed timing against a 46-save ladder: an item whose first-held snapshot is known must have its flag clear in every earlier save and set in every later one. Exactly one base out of 130,560 survives per group, and all six landed on the published `k*0x500 + 111` grid, which nothing in the search knew about. The other areas are **absent from the table rather than guessed**, so the section counts what is tracked and says so.
+- **World items collected — 937 of them, across all fourteen areas, and it tells you where the missing ones are.** Not a count. Every one-off pickup in the game is named, and what you have *not* found is listed beside what you have, most entries carrying the spot it lies in: *Titanite Shard — on the balcony with the Tower on the Wall bonfire*. That turns the negative space from a tally into somewhere to go.
+
+  Six of the fourteen flag-group bases were derived by **windowed timing** against a 46-save ladder: an item whose first-held snapshot is known must have its flag clear in every earlier save and set in every later one, and exactly one base out of 130,560 survives per group. Those six then exposed the structure for the rest — each pickup group sits exactly 66 slots past its own map group on the published `k*0x500 + 111` grid — and the remaining eight were predicted from it and then *tested against the area's own bonfire flags*, an independent signal: a correct base makes the item count move when the bonfire count moves. Three small groups have no map row to offset from and stay **absent from the table rather than guessed**, so the section still counts what is tracked and says so.
 - **Covenants found**, with join and rank-reward flags, alongside the covenant currently worn.
 - **Equipped gear** — both hands' weapons with their reinforcement level, all four armour slots, all four rings, and ammo. Every slot is gated on the resolved ID landing in the right category, so a stray handle drops out instead of printing a weapon in a helmet slot.
 - **Embered, play time, max FP, NG+.** Reaching NG+ proves every unskippable boss on the road to Soul of Cinder dead, even ones whose souls were long since spent.
@@ -304,9 +342,21 @@ Every game gets the baseline: **boss souls and remembrances still held.** You ca
 - **Class, covenant with rank, gender, hollowing, deaths, play time**, all pinned with differential saves rather than guessed. An unknown covenant ID is dropped rather than shown wrong.
 - **A full derived-stats panel** — stamina, equip load, agility with its roll i-frames, poise, attack ratings, elemental defences — every one verified byte-exact against a real in-game screen.
 
+Two of DS2's boss numbers were wrong until recently, and both were found by reading the output rather than the code. `Alsanna, Silent Oracle` and `Nadalia, Bride of Ash` were in the boss-soul table, so they inflated the denominator *and* sat in the missing list as bosses you had not killed — but Alsanna is an NPC who hands you her soul and Nadalia is never fought at all. And the Dragonrider had no gate, despite No-Man's Wharf being reachable only through his fog gate; the Wharf's own bonfire now infers him. That is the one mid-game DS2 gate, for the reason above.
+
 Only 6 of DS2's ~41 boss flags are mapped, and that is not for lack of trying. The community's 41-boss save set is one mule teleported to each arena with that boss resurrected, so only the six it actually resurrects produce a differential; the rest are dead in every folder. Several scanners were written to attack this from other angles and all of them came back negative. It needs a playthrough that kills one boss per save, and nothing else will do.
 
 **Dark Souls 1 (both releases) reads far more than the soul floor.** Bonfires are not flags there — the game keeps a record list carrying each one's state — so DS1 is the only game that can tell you a bonfire is *discovered but never lit*, and how far each one is kindled. Twelve bosses have usable defeat flags. Alongside those: play time and soul level from the load-screen roster, total deaths, gender, and the derived values that are pure attribute functions. The other fifteen bosses stay on the soul and NG+ floor, because their rows in the published flag list are enum indices, not event flags.
+
+**Sekiro breaks the floor's one real limitation, and it is the most interesting thing in this section.** Its Memories are the boss-soul analogue — one per major boss, no ambiguity in the mapping, consumed at an idol like a soul — so on the face of it Sekiro gets the same floor as everything else, and loses the kill the moment you spend the token. Except that consuming a Memory raises **Attack Power by exactly one**, and Attack Power is a stored field. So the spent tokens are still countable: `attack - 1` is how many Memories have gone, and `that + the Memories still held` is how many Memory-dropping bosses are dead. Nothing else in this repo can turn a consumed boss token back into a count.
+
+The base being 1 rather than 0 is a measurement, not an assumption — it was read off a real save minutes from the opening, holding no Memory, no gourd and one key item. Two limits are printed alongside the number rather than buried: bosses that drop no Memory are not counted either way, and past journey 0 the figure covers every lap, because Attack Power carries into New Game+ while the Memories do not.
+
+**Two of Sekiro's published stat labels are wrong, and a save pair proved it.** Max HP and max Posture each sit in a four-word group shaped `[0][current][max][max]`, and the editor everyone works from names the *current* field of each. On one save that is invisible. Across two, taken 42 minutes apart, the word at `0x3446C` moved 32 → 160 while the pair beside it held at 320 — so the maximum is the pair, not the label. Posture is the same shape one group along, which is also why all three of its words read the same: posture is a pool that depletes, so an undamaged character is at full. Both are read from the second copy and only where the two copies agree.
+
+**Spirit Emblems is not read as a stat**, and three saves are why: the field holds 15 before the character had a prosthetic, after four more items, and again after acquiring the Shinobi Prosthetic — the point at which emblems become a thing you can hold at all. 15 is the starting carry cap. A field that never moves is a cap, not a count. Nothing is lost either way: emblems you actually hold are an ordinary inventory item with a quantity, so they are already in the item list.
+
+What Sekiro does **not** get at all is flags. Its within-group bit arithmetic is byte-for-byte identical to DS3's, and the boss and idol flag IDs are known (they are in `db_sdt/`, shipped for their names) — but where the flag region sits inside a Sekiro save has not been published by anyone, and it is not guessed here. So the Sculptor's Idols are absent, and the boss list is Memories alone.
 
 **Elden Ring** gets the soul floor plus the endgame-gate idea. Hold the Remembrance of Hoarah Loux and Maliketh, the Fire Giant, and Morgott fall with it, because that chain is forced. Only strictly-linear, cannot-skip endgame chains qualify, for the same reason DS2's gates are endgame-only.
 
@@ -320,8 +370,8 @@ The page is one static bundle. There is no backend, no upload, no analytics call
 
 Instead of generic charts, each character is drawn as a replica of that game's own **Level-Up screen** — the screen you already know from playing it:
 
-- **A framed stat panel, skinned per game.** DS1 and Elden Ring get the gold menu; DS2 the cold steel-blue; DS3 the ashen grey. A metallic title bar carries the name, slot, and support tier; the left column lists level, souls or runes, max HP and FP, then the attributes in the game's own on-screen order.
-- **Derived stats where they exist** — the full verified panel for DS2, the three closed-form values for DS3, equip load and attunement slots for DS1. Fields the real screen shows but the save cannot prove (weapon AR, bonuses, resistances) are left off, not faked.
+- **A framed stat panel, skinned per game.** DS1 and Elden Ring get the gold menu; DS2 the cold steel-blue; DS3 the ashen grey; Sekiro sumi ink and washi paper with a single vermilion accent, because its menus are brush-and-paper and the only colour on them is the seal red. A metallic title bar carries the name, slot, and support tier; the left column lists level, souls or runes, max HP and FP, then the attributes in the game's own on-screen order.
+- **Derived stats where they exist** — the full verified panel for DS2, the three closed-form values for DS3, equip load and attunement slots for DS1, and none at all for Sekiro, which says in the panel that the game has no attributes rather than leaving the column blank. Fields the real screen shows but the save cannot prove (weapon AR, bonuses, resistances) are left off, not faked.
 - **An Attribute Scaling reference**, folded away beside the sheet: what each attribute governs in that game and where it soft-caps, next to your own value. It is documented mechanics rather than anything read from the save, and it says so.
 - **Bonfire completion as a fraction.** "22 of 77", with a bar. The denominator is real because the bonfire tables are complete for every game that has one. Bosses deliberately get no such fraction — those tables are a mapped subset, so a percentage would imply a roster the data cannot back.
 - **A tab per character** when a save holds more than one, so a ten-slot mule is readable instead of ten stacked sheets. Arrow keys move between them.
@@ -349,6 +399,8 @@ Nothing is filename-driven. Which game a file holds comes from its header, which
 **Runs, not files.** Saves are grouped into runs by (game, character, slot), so one folder of DS3 backups is one run, and an all-characters mule is ten. Each run gets its own section: a full dump of its newest save, then when each boss, bonfire, covenant, reward and world item first appeared.
 
 **The backup ladder is a tree, and the tool works out the shape.** Sorted by time your backups look like one line, but reloading an earlier save and playing on *forks* the run — the four Dark Souls III endings are exactly that, one pre-ending save finished four ways. Lineage is recoverable because event flags never clear: a snapshot's parent is the latest earlier one whose progress it still entirely contains, so a sibling branch (holding a flag this one lacks) fails that test and both land on the shared ancestor. Only one-way signals are compared — bonfires, flag-proven bosses, endings, world pickups, level, Estus. Souls are spent, covenants are switched and embered is consumed, so none of those get a vote; any one of them would fork the tree on every death.
+
+**A floor that only ever falls is not good enough when you have the whole ladder.** Held-soul evidence proves a kill and is destroyed the moment you spend the soul, so a later save reports *fewer* bosses than an earlier one on the same run. That is honest for one file and wasteful for a document holding both, so the combined view carries every kill forward down each line of descent and shows its work: which boss, what proved it, and which save still holds the proof. Ancestors only — a boss killed on a sibling branch was never killed on this one. The single-save export is left alone, because that file genuinely no longer proves it.
 
 Two things it refuses to fake. A save that could not descend from anything before it becomes a **separate line** rather than an invented edge — it holds *less* progress than saves that came earlier, so it is a different playthrough that happens to share a name. And a New Game+ lap is allowed to shed the flags a lap resets, but never its endings, which is what keeps two saves finished differently from collapsing into one line.
 
@@ -675,11 +727,11 @@ sl2/              the Python package, one module per layer and one per game
   keys.py         the five AES keys (all of them ship inside the games)
   bnd4.py         the BND4 archive every .sl2 is
   crypto.py       per-game decryption
-  detect.py       which game a file is, from its signature and entry count
-  itemdb.py       the three item-id schemes
+  detect.py       which game a file is, from its signature, entry count and slot size
+  itemdb.py       the item-id schemes
   progress.py     the shared progress floor: boss souls, key items, NG+ clears
   roster.py       the header roster: names, and DS3 play time
-  ds1.py ds2.py ds3.py er.py   one module per game family
+  ds1.py ds2.py ds3.py er.py sdt.py   one module per game family
   totals.py       the "of N" denominators (needs every game's tables, hence its own file)
   timeline.py     runs, snapshot lineage and what each save achieved (no rendering)
   chart.py        the Mermaid journey / save-tree charts and the reference list
@@ -697,7 +749,7 @@ manifest.webmanifest / icon.svg   installable-app metadata
 app/
   aes.js          AES-128-CBC decrypt, no padding (WebCrypto refuses raw CBC)
   reader.js       bounds-checked buffer reads, the JS mirror of the Python helpers
-  parser.js       the reader ported to the browser, all six save variants
+  parser.js       the reader ported to the browser, all seven save variants
   db.js           loads the item / progress databases, per game and in parallel
   tables.js       shared lookup tables, formatters, per-game attribute order and theme
   render.js       the per-game Level-Up screen replicas (framed panels, DS2 derived stats)
@@ -711,6 +763,7 @@ db_ds1/*.json     DS1 items (shared by DSR and PtDE), bonfires, boss flags, boss
 db_ds2/*.json     DS2 items, bonfires + areas, boss flags, boss souls
 db_ds3/*.json     DS3 items, bonfires, boss flags, boss souls, covenants, questlines, endings
 db_er/*.json      Elden Ring items by type nibble, remembrance map
+db_sdt/*.json     Sekiro items by type, Memory→boss map, idol and boss flag ids
 requirements.txt  the one Python dependency
 ```
 
@@ -737,6 +790,7 @@ I did not reverse-engineer these formats from scratch, and I am not going to pre
 - DSR, DS3, and ER keys, decryption, and header layout: [jtesta/souls_givifier](https://github.com/jtesta/souls_givifier) (GPL-3.0).
 - DS3 stat offsets, play time, and the event-flag region: [alfizari/Dark-Souls-3-Save-Editor-PS4-PC](https://github.com/alfizari/Dark-Souls-3-Save-Editor-PS4-PC).
 - DS3 bonfire, boss, and item-pickup flag lists: [FrankvdStam/SoulSplitter](https://github.com/FrankvdStam/SoulSplitter) (GPLv3) and [The-Grand-Archives/Dark-Souls-III-CT-TGA](https://github.com/The-Grand-Archives/Dark-Souls-III-CT-TGA).
+- DS3 item-lot locations — where each world pickup actually lies: [thefifthmatt/SoulsRandomizers](https://github.com/thefifthmatt/SoulsRandomizers) annotation data, joined on the identity `flag id = 50000000 + item-lot id`.
 - DSR and DS1 offsets and item tables: [alfizari/Dark-Souls-Remastered-Save-Editor](https://github.com/alfizari/Dark-Souls-Remastered-Save-Editor), plus [tarvitz/dsfp](https://github.com/tarvitz/dsfp) for the PtDE roster and deaths struct.
 - DS1 item IDs, bonfire IDs, and flag addressing: Paramdex and the soulsmodding wiki.
 

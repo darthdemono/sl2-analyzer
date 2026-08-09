@@ -126,13 +126,20 @@ CAT_TITLE = {"weapons": "Weapons", "armors": "Armor", "rings": "Rings",
              "upgrade": "Upgrade Materials", "consumables": "Consumables",
              "online": "Summon & Covenant Items", "goods": "Consumables & Goods",
              "ashes": "Ashes of War", "emotes": "Gestures",
-             "bosssouls": "Boss Souls", "items": "Items Owned"}
+             "bosssouls": "Boss Souls", "items": "Items Owned",
+             # Sekiro's own six. Its storage box stands alone because an item in the
+             # box is owned but not carried, and only a read that keeps them apart can
+             # say which.
+             "arts": "Combat Arts", "prosthetics": "Prosthetic Tools",
+             "skills": "Skills & Techniques", "beads": "Prayer Beads & Gourd Seeds",
+             "memories": "Memories & Remnants", "storage": "Storage (item box)"}
 
 
 ## @brief Print order for inventory categories, mirroring the in-game item menu.
 #  (`goods` is the lumped consumables bucket the non-DS2 games still use.)
-CAT_ORDER = ["weapons", "armors", "rings", "talismans", "spells", "bolts", "upgrade",
-             "consumables", "goods", "ashes", "online", "bosssouls", "emotes", "items"]
+CAT_ORDER = ["weapons", "arts", "prosthetics", "skills", "armors", "rings", "talismans",
+             "spells", "bolts", "upgrade", "consumables", "beads", "goods", "ashes",
+             "online", "bosssouls", "memories", "emotes", "items", "storage"]
 
 
 ##
@@ -151,6 +158,30 @@ def guess_build(stats):
     if g("Dexterity") >= g("Strength") + 6:
         return "dexterity-focused melee"
     return "quality / balanced melee"
+
+
+## @brief What a game calls the money in your pocket. Souls unless it says otherwise.
+CURRENCY = {"er": "Runes", "sdt": "Sen"}
+
+
+##
+# @brief Sekiro's Memory line: how many boss Memories have been spent, and what that
+#        makes the kill count.
+# @details Worth its own function because it is the one place in this tool where a
+# CONSUMED progress token is still countable. Attack Power rises by exactly one per
+# Memory consumed, so the arithmetic recovers what every other game's soul floor loses
+# the moment the soul is spent. Both of its limits are printed, not buried: the count
+# is a floor for bosses that drop no Memory at all, and past journey 0 it covers every
+# lap rather than this one, because Attack Power carries over and the Memories do not.
+# @param m The @c ch["memories"] dict from @ref sl2.sdt.sdt_parse.
+def memories_line(m):
+    total = m["spent"] + m["held"]
+    lap = ("across every journey so far — Attack Power carries into New Game+ while "
+           "the Memories do not" if m["cumulative"] else
+           "this journey; a boss that drops no Memory is not counted either way")
+    return (f"{total} Memory-dropping boss{'' if total == 1 else 'es'} defeated"
+            f"  _({m['spent']} Memor{'y' if m['spent'] == 1 else 'ies'} already spent, "
+            f"read back from Attack Power, plus {m['held']} still held — {lap})_")
 
 
 ## @brief Format a value, or "—" when it is unknown (None).
@@ -240,11 +271,17 @@ def md_for_character(ch, slot_no):
     if ch.get("play_time"):
         L.append(f"- **Play Time:** {fmt_playtime(ch['play_time'])}")
     if ch["souls"] is not None:
-        L.append(f"- **{'Runes' if ch['game'] == 'er' else 'Souls'} held:** {fmt(ch['souls'])}")
+        L.append(f"- **{CURRENCY.get(ch['game'], 'Souls')} held:** {fmt(ch['souls'])}")
+    if ch.get("attack") is not None:
+        L.append(f"- **Attack Power:** {ch['attack']}")
+    if ch.get("memories"):
+        L.append(f"- **Memories:** {memories_line(ch['memories'])}")
     if ch["humanity"] is not None:
         L.append(f"- **Humanity:** {ch['humanity']}")
     if ch["hp"] is not None:
         L.append(f"- **Max HP:** {fmt(ch['hp'])}")
+    if ch.get("posture") is not None:
+        L.append(f"- **Max Posture:** {fmt(ch['posture'])}")
     if ch.get("embered") is not None:
         L.append("- **Embered:** Yes  _(Max HP above includes the +30% ember bonus)_"
                  if ch["embered"] else
@@ -354,8 +391,9 @@ def md_for_character(ch, slot_no):
     # Boss souls / remembrances that live in their own top section (every game but
     # DS2, whose boss souls are a proper inventory category — see below).
     # Boss souls get a top section only where the inventory does NOT already have a
-    # boss-souls category (DS2 and DS3 do) — printing both is the same list twice.
-    if ch["boss_souls"] and not ch["inv"].get("bosssouls"):
+    # category holding them (DS2 and DS3 have `bosssouls`, Sekiro has `memories`) —
+    # printing both is the same list twice.
+    if ch["boss_souls"] and not (ch["inv"].get("bosssouls") or ch["inv"].get("memories")):
         header = ("### Remembrances Held  _(major bosses defeated, not yet traded)_"
                   if ch["game"] == "er"
                   else "### Boss Souls Held  _(bosses defeated, soul not yet consumed)_")
@@ -406,12 +444,26 @@ def md_for_character(ch, slot_no):
         L += [f"### Items Collected ({got} of {total} tracked)  _({DS3_PICKUP_NOTE})_", ""]
         for area, c, tot, missing in ch["pickups"]:
             row = f"- {area}: {c}/{tot}"
-            # Same rule as bonfires — an area you have started lists what is left in
+            # Same rule as bonfires — an area you have started counts what is left in
             # it; an untouched one would print a walkthrough back at you.
             if c and missing:
-                row += f"  _(missing: {' · '.join(count_dupes(missing))})_"
+                row += f"  _({len(missing)} still out there)_"
             L.append(row)
         L.append("")
+        # The list itself is folded away. It carries a location per item, which makes
+        # it a to-do list rather than a tally — and also long enough to bury the
+        # numbers above it if it were printed inline.
+        todo = [(area, missing) for area, c, _t, missing in ch["pickups"] if c and missing]
+        if todo:
+            L += ["<details>",
+                  "<summary>Where the missing items are — the ones with a known "
+                  "location</summary>", ""]
+            for area, missing in todo:
+                L.append(f"**{area}** — {len(missing)} missing")
+                L.append("")
+                L += [f"- {item}" for item in count_dupes(missing)]
+                L.append("")
+            L += ["</details>", ""]
     if ch.get("questlines"):
         # Not all of these are NPCs — the same reward flags cover a few landmark
         # pickups and enemy drops, so the heading says rewards, not questlines.
@@ -490,4 +542,9 @@ def md_for_character(ch, slot_no):
     if ch["unknown_count"]:
         L += [f"_{ch['unknown_count']} inventory item(s) had IDs not in the name "
               "database (upgraded / infused variants) and were omitted._", ""]
+    if ch.get("internal_count"):
+        L += [f"_{ch['internal_count']} further entr"
+              f"{'y' if ch['internal_count'] == 1 else 'ies'} carried only an engine "
+              "development name — placeholder rows and debug items rather than "
+              "anything the game hands you — and were left out._", ""]
     return "\n".join(L)

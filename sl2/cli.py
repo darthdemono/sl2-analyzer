@@ -20,18 +20,27 @@ def _save_globs():
     appdata = os.environ.get("APPDATA")
     if appdata:                                        # native Windows
         globs.append(os.path.join(appdata, "*", "*.sl2"))
-    roaming = "drive_c/users/steamuser/AppData/Roaming/*/*.sl2"
-    user_roaming = "drive_c/users/*/AppData/Roaming/*/*.sl2"
+        globs.append(os.path.join(appdata, "*", "*", "*.sl2"))
+    # Most games write %APPDATA%/<game>/<file>.sl2; Sekiro puts a Steam-id folder in
+    # between, so every prefix is searched at both depths.
+    roaming = ["drive_c/users/steamuser/AppData/Roaming/*/*.sl2",
+               "drive_c/users/steamuser/AppData/Roaming/*/*/*.sl2"]
+    user_roaming = ["drive_c/users/*/AppData/Roaming/*/*.sl2",
+                    "drive_c/users/*/AppData/Roaming/*/*/*.sl2"]
     # Steam through Proton.
     for steam in (".local/share/Steam", ".steam/steam", ".steam/root"):
-        globs.append(os.path.join(home, steam, "steamapps/compatdata/*/pfx", roaming))
-    # Heroic (Epic / GOG) Wine prefixes.
-    for heroic in ("Games/Heroic/Prefixes/default/*/pfx",
+        for tail in roaming:
+            globs.append(os.path.join(home, steam, "steamapps/compatdata/*/pfx", tail))
+    # Heroic (Epic / GOG) Wine prefixes. Heroic names a prefix after the game, so the
+    # per-game folder is a wildcard too.
+    for heroic in ("Games/Heroic/Prefixes/default/*/pfx", "Games/Heroic/Prefixes/*/pfx",
                    ".config/heroic/prefixes/default/*/pfx", "Games/Heroic/*/pfx"):
-        globs.append(os.path.join(home, heroic, roaming))
+        for tail in roaming:
+            globs.append(os.path.join(home, heroic, tail))
     # Lutris and a plain ~/.wine prefix (user-named, not always "steamuser").
-    globs.append(os.path.join(home, ".local/share/lutris/*/pfx", user_roaming))
-    globs.append(os.path.join(home, ".wine", user_roaming))
+    for tail in user_roaming:
+        globs.append(os.path.join(home, ".local/share/lutris/*/pfx", tail))
+        globs.append(os.path.join(home, ".wine", tail))
     return globs
 
 
@@ -65,7 +74,7 @@ def auto_find_save():
 def main():
     ap = argparse.ArgumentParser(
         description="FromSoftware .sl2 save -> Markdown or JSON playthrough summary "
-                    "(DS PtDE/Remastered, DS2 vanilla/SOTFS, DS3, Elden Ring)",
+                    "(DS PtDE/Remastered, DS2 vanilla/SOTFS, DS3, Sekiro, Elden Ring)",
         epilog="Metadata example: --meta source=Steam --meta os='Nobara 43' "
                "--meta launcher=Heroic --meta proton='GE-Proton 9-20' "
                "--meta dlc='Ashes of Ariandel' --meta dlc='The Ringed City'. "

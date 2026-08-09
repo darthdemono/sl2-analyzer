@@ -74,7 +74,8 @@ const FAMILY = { dsr: "ds1", ptde: "ds1", ds2vanilla: "ds2sotfs" };
 export const statFamily = (game) => FAMILY[game] || game;
 
 /** Detected per-slot game id → visual theme family (dsr/ptde collapse to ds1). */
-export const GAME_THEME = { dsr: "ds1", ptde: "ds1", ds2sotfs: "ds2", ds2vanilla: "ds2", ds3: "ds3", er: "er" };
+export const GAME_THEME = { dsr: "ds1", ptde: "ds1", ds2sotfs: "ds2", ds2vanilla: "ds2",
+  ds3: "ds3", er: "er", sdt: "sdt" };
 
 // Soft-cap / per-level breakpoint reference per attribute, per game. Documented
 // scaling RATES and soft-cap levels — a game-mechanics fact, NOT a per-character
@@ -137,10 +138,35 @@ export const capFirst = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 export const CAT_TITLE = { weapons: "Weapons", armors: "Armor", rings: "Rings", talismans: "Talismans",
   spells: "Spells", bolts: "Ammunition", upgrade: "Upgrade Materials", consumables: "Consumables",
   online: "Summon & Covenant Items", goods: "Consumables & Goods", ashes: "Ashes of War",
-  emotes: "Gestures", bosssouls: "Boss Souls", items: "Items Owned" };
+  emotes: "Gestures", bosssouls: "Boss Souls", items: "Items Owned",
+  // Sekiro's own six. Its storage box stands alone because an item in the box is
+  // owned but not carried, and only a read that keeps them apart can say which.
+  arts: "Combat Arts", prosthetics: "Prosthetic Tools", skills: "Skills & Techniques",
+  beads: "Prayer Beads & Gourd Seeds", memories: "Memories & Remnants",
+  storage: "Storage (item box)" };
 
-export const CAT_ORDER = ["weapons", "armors", "rings", "talismans", "spells", "bolts", "upgrade",
-  "consumables", "goods", "ashes", "online", "bosssouls", "emotes", "items"];
+export const CAT_ORDER = ["weapons", "arts", "prosthetics", "skills", "armors", "rings",
+  "talismans", "spells", "bolts", "upgrade", "consumables", "beads", "goods", "ashes",
+  "online", "bosssouls", "memories", "emotes", "items", "storage"];
+
+/** What a game calls the money in your pocket. Souls unless it says otherwise. */
+export const CURRENCY = { er: "Runes", sdt: "Sen" };
+
+/**
+ * Sekiro's Memory line: how many boss Memories have been spent, and what that makes
+ * the kill count. The one place in this tool where a CONSUMED progress token is still
+ * countable — Attack Power rises by exactly one per Memory used, so the arithmetic
+ * recovers what every other game's soul floor loses. Mirrors memories_line.
+ */
+export function memoriesLine(m) {
+  const total = m.spent + m.held;
+  const lap = m.cumulative
+    ? "across every journey so far — Attack Power carries into New Game+ while the Memories do not"
+    : "this journey; a boss that drops no Memory is not counted either way";
+  return `${total} Memory-dropping boss${total === 1 ? "" : "es"} defeated`
+    + `  _(${m.spent} Memor${m.spent === 1 ? "y" : "ies"} already spent, read back from `
+    + `Attack Power, plus ${m.held} still held — ${lap})_`;
+}
 
 export const DS2_GREAT_SOULS = new Set(["Old Witch Soul", "Old Dead One Soul", "Old King Soul", "Old Paledrake Soul"]);
 

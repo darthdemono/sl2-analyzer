@@ -30,8 +30,28 @@ export function hms(sec) {
 }
 
 /**
+ * The number a game counts progress in, for a chart label or a table cell. Every game
+ * but one levels up, so "lv95" is the shorthand — but Sekiro has no level at all, and
+ * "lv0" would state a field the game does not have. Its equivalent is Attack Power,
+ * which only ever climbs (one point per Memory consumed). Mirrors rank in chart.py.
+ */
+export function rank(r) {
+  if (r.game === "sdt") return r.attack == null ? "atk —" : `atk ${r.attack}`;
+  return `lv${r.level}`;
+}
+
+/** The same value bare, for a table cell whose column is already labelled. */
+export function rankCell(r) {
+  if (r.game === "sdt") return r.attack == null ? "—" : String(r.attack);
+  return String(r.level);
+}
+
+/** Header for that column, given the run's game. */
+export const rankLabel = (game) => (game === "sdt" ? "Atk" : "Lv");
+
+/**
  * One run's snapshot tree. One node per save file, labelled with its reference number,
- * its level, and what it achieved that its parent had not. A node that achieved
+ * how far along it was, and what it achieved that its parent had not. A node that achieved
  * nothing still appears — it is a real save — but it says so with nothing.
  */
 export function runChart(rows, parents, restarts, refs) {
@@ -42,7 +62,7 @@ export function runChart(rows, parents, restarts, refs) {
     const prev = parents[i] === null ? null : rows[parents[i]];
     let head = `^${refs.get(r.path) ?? "?"} · ${hms(r.play_time)}`;
     if (r.slot && multiSlot) head += ` · slot ${r.slot}`;
-    const lines = [head, `lv${r.level}`];
+    const lines = [head, rank(r)];
     if (restarts.has(i)) lines.splice(1, 0, "SEPARATE LINE");
     L.push(`  n${i}["${label(lines.concat(achievements(r, prev)))}"]`);
   });
@@ -87,7 +107,7 @@ export function journeyChart(runs, refs) {
     const nums = [...new Set(rows.map((r) => refs.get(r.path) ?? 0))].sort((a, b) => a - b);
     const span = nums.length === 1 ? `^${nums[0]}` : `^${nums[0]}–^${nums[nums.length - 1]}`;
     const got = [`${rows.length} save${rows.length === 1 ? "" : "s"} · ${span}`,
-      `lv${last.level} · ${hms(last.play_time)}`];
+      `${rank(last)} · ${hms(last.play_time)}`];
     // The carried set when one was worked out — a boss whose soul was spent is still a
     // boss killed, and the journey chart should say so.
     const known = last.carried_bosses || last.bosses;

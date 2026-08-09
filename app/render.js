@@ -4,7 +4,7 @@
 // the save proves are shown — fields the screen has but we can't verify (weapon AR,
 // resistances, bonuses) are omitted, never faked. Names via textContent, never innerHTML.
 
-import { STAT_ABBR, statGovernsFor, statCapsFor, CAT_TITLE, CAT_ORDER, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, DS2_GAMES, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime, countDupes } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, statCapsFor, CAT_TITLE, CAT_ORDER, CURRENCY, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, DS2_GAMES, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime, countDupes, memoriesLine } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
 import { buildJsonText } from "./jsonout.js";
 
@@ -71,13 +71,17 @@ function orderedAttrKeys(game, stats) {
 function leftColumn(slot, ch) {
   const rows = [];
   if (ch.level != null) rows.push(statRow(null, ch.game === "er" ? "Level" : "Lv", ch.level, { big: true }));
-  if (ch.souls != null) rows.push(statRow("souls", ch.game === "er" ? "Runes" : "Souls", ch.souls));
+  if (ch.souls != null) rows.push(statRow("souls", CURRENCY[ch.game] || "Souls", ch.souls));
+  // Sekiro has no level and no attributes, so Attack Power is the only number its
+  // left column can carry — and it is the one that also counts Memories spent.
+  if (ch.attack != null) rows.push(statRow("atk", "Attack Power", ch.attack, { big: true }));
   if (ch.soul_memory != null) rows.push(statRow("mem", "Soul Memory", ch.soul_memory));
   if (ch.humanity != null) rows.push(statRow("hp", "Humanity", ch.humanity));
   // Max HP/FP live in the DS2 derived panel for DS2; every other game shows them here.
   if (!DS2_GAMES.has(ch.game)) {
     if (ch.hp != null) rows.push(statRow("hp", "Max HP", ch.hp));
     if (ch.fp != null) rows.push(statRow("mag", "Max FP", ch.fp));
+    if (ch.posture != null) rows.push(statRow("poise", "Max Posture", ch.posture));
   }
   const head = el("div", { class: "lp" }, ...rows);
   const gov = statGovernsFor(ch.game);
@@ -85,6 +89,8 @@ function leftColumn(slot, ch) {
   if (keys.length) {
     head.append(el("div", { class: "lp-div" }));
     for (const k of keys) head.append(attrRow(k, ch.stats[k], gov.has(k) ? `${k} — ${gov.get(k)}` : null));
+  } else if (ch.game === "sdt") {
+    head.append(el("p", { class: "lp-note", text: "Sekiro has no attributes and no character name — there is no level-up screen to mirror. Attack Power is raised by consuming a Memory, and max HP and Posture by prayer necklaces and gourd seeds. The Vitality level behind those two is in no published source, so it is left off." }));
   } else if (ch.tier === "inventory") {
     head.append(el("p", { class: "lp-note", text: "Attributes for this slot did not check out — an unrecognised patch or an edited save. A wrong number is worse than none, so they are left off. Everything below is still read from the file." }));
   }
@@ -198,6 +204,11 @@ function characterPanel(ch) {
   if (ch.endings && ch.endings.length) {
     rows.push(statRow(null, ch.endings.length === 1 ? "Ending" : "Endings", ch.endings.join(" · ")));
   }
+  if (ch.memories) {
+    // The count includes Memories already spent, which no other game here can see.
+    rows.push(statRow(null, "Memory bosses", `${ch.memories.spent + ch.memories.held}`,
+      { title: memoriesLine(ch.memories).replace(/[_*]/g, "") }));
+  }
   return rows.length ? el("div", { class: "lp" }, el("div", { class: "lp-h", text: "Character" }), ...rows) : null;
 }
 
@@ -252,7 +263,8 @@ function characterCard(slot, ch, bonfireTotal) {
 
   // Boss souls get their own panel only where the inventory has no boss-souls
   // category (DS2 and DS3 do) — otherwise the same list would render twice.
-  if (ch.boss_souls && ch.boss_souls.length && !(ch.inv.bosssouls || []).length) {
+  if (ch.boss_souls && ch.boss_souls.length && !(ch.inv.bosssouls || []).length
+      && !(ch.inv.memories || []).length) {
     card.append(section(ch.game === "er" ? "Remembrances Held" : "Boss Souls Held", [
       el("p", { class: "hint", text: ch.game === "er" ? "Major bosses dead. The remembrance is still unspent." : "Bosses dead. The soul is still in your pack, so the kill is certain." }),
       itemList(ch.boss_souls)]));
@@ -388,6 +400,7 @@ function characterCard(slot, ch, bonfireTotal) {
   }
   if (any) card.append(section("Inventory", [invCard]));
   if (ch.unknown_count) card.append(el("p", { class: "note", text: `${ch.unknown_count} item(s) carried IDs the name table does not have — upgraded or infused variants — and were left out.` }));
+  if (ch.internal_count) card.append(el("p", { class: "note", text: `${ch.internal_count} further entr${ch.internal_count === 1 ? "y" : "ies"} carried only an engine development name — placeholder rows and debug items rather than anything the game hands you — and were left out.` }));
   return card;
 }
 

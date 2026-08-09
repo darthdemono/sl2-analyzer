@@ -11,7 +11,7 @@
  * Nothing is filename-driven — the game comes from the header, the character from the
  * save, the order from the game's own clock. Backups can be named anything.
  */
-import { hms, journeyChart, plural, referenceList, runChart, stamp } from "./chart.js";
+import { hms, journeyChart, plural, rank, rankCell, rankLabel, referenceList, runChart, stamp } from "./chart.js";
 import { mdCharacter } from "./markdown.js";
 import { GAMES } from "./parser.js";
 import {
@@ -38,7 +38,7 @@ export function fileSnapshots(result, file) {
 function runSummary(rows, carried) {
   const first = rows[0], last = rows[rows.length - 1];
   const bits = [`${rows.length} save${rows.length === 1 ? "" : "s"}`,
-    `lv${first.level} → lv${last.level}`];
+    `${rank(first)} → ${rank(last)}`];
   if (last.play_time) bits.push(`${hms(first.play_time)} → ${hms(last.play_time)} played`);
   if (last.bonfires.length) bits.push(plural(last.bonfires.length, "bonfire"));
   const own = Object.keys(last.bosses).length;
@@ -60,14 +60,15 @@ function runSummary(rows, carried) {
 function runTimeline(rows, refs) {
   const L = [];
   const ref = (r) => `^${refs.get(r.path) ?? "?"}`;
+  const lv = rankLabel(rows.length ? rows[0].game : null);
 
   const bosses = firstSeen(rows, (r) => Object.keys(r.bosses));
   if (bosses.length) {
     L.push("#### Bosses — first appearance", "",
-      "| Play Time | Lv | Boss | Evidence | Save |", "|---|---|---|---|---|");
+      `| Play Time | ${lv} | Boss | Evidence | Save |`, "|---|---|---|---|---|");
     for (const [boss, r] of bosses) {
       const ev = [...r.bosses[boss]].sort().map((e) => SRC[e] || e).join(", ");
-      L.push(`| ${hms(r.play_time)} | ${r.level} | ${boss} | ${ev} | ${ref(r)} |`);
+      L.push(`| ${hms(r.play_time)} | ${rankCell(r)} | ${boss} | ${ev} | ${ref(r)} |`);
     }
     L.push("");
   }
@@ -75,9 +76,9 @@ function runTimeline(rows, refs) {
   const covs = firstSeen(rows, (r) => Object.keys(r.covenants));
   if (covs.length) {
     L.push("#### Covenants — first found", "",
-      "| Play Time | Lv | Covenant | Progress | Save |", "|---|---|---|---|---|");
+      `| Play Time | ${lv} | Covenant | Progress | Save |`, "|---|---|---|---|---|");
     for (const [cov, r] of covs) {
-      L.push(`| ${hms(r.play_time)} | ${r.level} | ${cov} | `
+      L.push(`| ${hms(r.play_time)} | ${rankCell(r)} | ${cov} | `
         + `${r.covenants[cov].join(", ")} | ${ref(r)} |`);
     }
     L.push("");
@@ -88,9 +89,9 @@ function runTimeline(rows, refs) {
   if (rewards.length) {
     L.push("#### Rewards — first obtained", "",
       "_A floor: only rewards actually collected are visible._", "",
-      "| Play Time | Lv | Source | Reward | Save |", "|---|---|---|---|---|");
+      `| Play Time | ${lv} | Source | Reward | Save |`, "|---|---|---|---|---|");
     for (const [pair, r] of rewards) {
-      L.push(`| ${hms(r.play_time)} | ${r.level} | ${pair[0]} | ${pair[1]} | ${ref(r)} |`);
+      L.push(`| ${hms(r.play_time)} | ${rankCell(r)} | ${pair[0]} | ${pair[1]} | ${ref(r)} |`);
     }
     L.push("");
   }
@@ -104,7 +105,7 @@ function runTimeline(rows, refs) {
       if (!fresh.length) continue;
       for (const [a, n] of fresh) seen.add(pairKey(a, n));
       total += fresh.length;
-      L.push(`**${hms(r.play_time)} · lv${r.level} · ${ref(r)}** — `
+      L.push(`**${hms(r.play_time)} · ${rank(r)} · ${ref(r)}** — `
         + `${total} total (+${fresh.length})`);
       // Keyed so this orders exactly like Python's sort over (area, name) tuples.
       const sorted = fresh.slice()
@@ -119,9 +120,9 @@ function runTimeline(rows, refs) {
     L.push("#### Estus — reinforcement", "",
       "_Each step is one Undead Bone Shard burned. The level is stored in the flask's "
       + "own item id, so this is read, not inferred._", "",
-      "| Play Time | Lv | Estus | Save |", "|---|---|---|---|");
+      `| Play Time | ${lv} | Estus | Save |`, "|---|---|---|---|");
     for (const r of est) {
-      L.push(`| ${hms(r.play_time)} | ${r.level} | +${r.estus} | ${ref(r)} |`);
+      L.push(`| ${hms(r.play_time)} | ${rankCell(r)} | +${r.estus} | ${ref(r)} |`);
     }
     L.push("");
   }
@@ -136,7 +137,7 @@ function runTimeline(rows, refs) {
         .filter(([a, c]) => c > (prev[a] || 0)).map(([a, c]) => [a, c - (prev[a] || 0)]);
       if (!gained.length) continue;
       const total = Object.values(r.pickups).reduce((a, b) => a + b, 0);
-      L.push(`**${hms(r.play_time)} · lv${r.level} · ${ref(r)}** — ${total} total `
+      L.push(`**${hms(r.play_time)} · ${rank(r)} · ${ref(r)}** — ${total} total `
         + `(+${gained.reduce((a, [, n]) => a + n, 0)})`);
       L.push("", ...gained.map(([a, n]) => `- ${a}: +${n} (now ${r.pickups[a]})`), "");
       prev = r.pickups;

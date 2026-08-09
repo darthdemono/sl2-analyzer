@@ -70,6 +70,7 @@ def snapshot(ch, path, slot_no, game, title):
         "embered": ch.get("embered"),
         "covenant": ch.get("covenant"),
         "ng_plus": ch.get("ng_plus"),
+        "attack": ch.get("attack"),
         "estus": estus_level(ch),
         "bonfires": bonfires,
         "bosses": {b: list(ev) for b, ev in (ch.get("bosses") or {}).items()},
@@ -118,6 +119,11 @@ def flag_bosses(s):
 # one-way signals. Souls are spent, a covenant is switched, embered is consumed and
 # hollowing goes down with an effigy: any one of those would fork the tree on every
 # death. Level, Estus and the flag-backed sets only ever climb.
+#
+# Sekiro's Attack Power is the same kind of signal and it is the ONLY one that game
+# offers: it has no level, no bonfires and no flags the tool can read, so without it a
+# Sekiro run would have nothing to reconstruct a lineage from. A Memory consumed is
+# never un-consumed, not even by a New Game+ lap.
 def progress(s):
     return {
         "bonfires": {tuple(b) for b in s["bonfires"]},
@@ -127,6 +133,7 @@ def progress(s):
         "covenants": set(s["covenants"]),
         "pickups": s["pickups"],
         "level": s["level"],
+        "attack": s["attack"] if s["attack"] is not None else -1,
         "estus": s["estus"] if s["estus"] is not None else -1,
         "ng_plus": s["ng_plus"] if s["ng_plus"] is not None else -1,
     }
@@ -152,6 +159,8 @@ def descends(a, b):
     if not pa["endings"] <= pb["endings"]:
         return False
     if pa["level"] > pb["level"] or pa["estus"] > pb["estus"]:
+        return False
+    if pa["attack"] > pb["attack"]:
         return False
     if pb["ng_plus"] > pa["ng_plus"]:
         return True
@@ -249,7 +258,8 @@ def fork_count(parents):
 def achievements(cur, prev, cap=3):
     was = progress(prev) if prev else {"bonfires": set(), "bosses": set(), "endings": set(),
                                        "cinders": set(), "covenants": set(), "pickups": {},
-                                       "level": 0, "estus": -1, "ng_plus": -1}
+                                       "level": 0, "attack": -1, "estus": -1,
+                                       "ng_plus": -1}
     out = []
     for end in sorted(set(cur["endings"]) - was["endings"]):
         out.append(f"ENDING: {end}")
@@ -264,6 +274,11 @@ def achievements(cur, prev, cap=3):
     if new_bosses:
         out.append("BOSS: " + " · ".join(new_bosses[:2])
                    + (f" +{len(new_bosses) - 2} more" if len(new_bosses) > 2 else ""))
+    # Sekiro's version of the same news, and the only one it can give: Attack Power
+    # goes up by one per Memory consumed, so a step here IS a boss whose token has
+    # already been spent — the kill the boss list can no longer see.
+    if cur["attack"] is not None and cur["attack"] > was["attack"] >= 0:
+        out.append(f"MEMORY SPENT: attack {was['attack']} → {cur['attack']}")
     new_cinders = sorted(set(cur["cinders"]) - was["cinders"])
     if new_cinders:
         out.append("CINDERS: " + " · ".join(new_cinders))

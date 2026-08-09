@@ -32,8 +32,8 @@
         "filename": { "type": "string", "description": "Basename of the .sl2 that was read." },
         "game": {
           "type": "string",
-          "enum": ["dsr", "ptde", "ds2vanilla", "ds2sotfs", "ds3", "er"],
-          "description": "Game id. dsr = Dark Souls Remastered, ptde = Prepare to Die Edition."
+          "enum": ["dsr", "ptde", "ds2vanilla", "ds2sotfs", "ds3", "er", "sdt"],
+          "description": "Game id. dsr = Dark Souls Remastered, ptde = Prepare to Die Edition, sdt = Sekiro: Shadows Die Twice."
         },
         "game_title": { "type": "string", "description": "Human-readable game name." },
         "support_tier": {
@@ -106,7 +106,7 @@
           "description": "This character's own tier. A single slot can degrade to 'inventory' while its siblings stay 'full' — an edited or unrecognised stat block drops stats for that slot rather than printing wrong ones."
         },
         "name": { "type": "string" },
-        "level": { "type": "integer", "description": "Soul level (rune level in Elden Ring)." },
+        "level": { "type": "integer", "description": "Soul level (rune level in Elden Ring). Absent for Sekiro, which has no level." },
         "klass": { "type": "string", "description": "Starting class. DS2 and DS1 only — DS3 and ER do not have a calibrated offset for it, so the key is absent rather than guessed." },
         "gender": { "type": "string", "enum": ["Male", "Female"], "description": "DS1 and DS2 only." },
         "covenant": { "type": "string", "description": "The covenant currently worn." },
@@ -118,9 +118,25 @@
         "humanity": { "type": "integer", "description": "DS1 only." },
         "hollow_lvl": { "type": "integer", "description": "DS2 only: hollowing level." },
         "embered": { "type": "boolean", "description": "DS3 only. When true the max HP below already includes the ~30% ember bonus." },
-        "hp": { "type": "integer", "description": "Max HP as stored." },
+        "hp": { "type": "integer", "description": "Max HP as stored. In Sekiro this is the second of the field's two copies, read only where both agree — the offset the published editor labels \"Max HP\" is the CURRENT value." },
+        "posture": { "type": "integer", "description": "Sekiro only: max Posture, read the same way as `hp` and from the same four-word shape one group along." },
         "fp": { "type": "integer", "description": "DS3 only: max FP." },
         "stamina": { "type": "integer" },
+        "attack": {
+          "type": "integer", "minimum": 0, "maximum": 98,
+          "description": "Sekiro only: Attack Power. Also a COUNT — it rises by exactly one per Memory consumed, so `attack - 1` is how many boss Memories have been spent (1 is the value on a character who has spent none)."
+        },
+        "memories": {
+          "type": "object",
+          "description": "Sekiro only: the boss count that survives spending the token. Every other game's boss floor goes blind the moment a soul is consumed; here the spent ones are still counted, because Attack Power counts them.",
+          "required": ["spent", "held", "cumulative"],
+          "additionalProperties": false,
+          "properties": {
+            "spent": { "type": "integer", "minimum": 0, "description": "Memories already consumed, read back from Attack Power." },
+            "held": { "type": "integer", "minimum": 0, "description": "Memories still in the inventory." },
+            "cumulative": { "type": "boolean", "description": "True past journey 0, where `spent` covers every lap rather than this one: Attack Power carries into New Game+ and the Memories do not." }
+          }
+        },
         "stats": {
           "type": "object",
           "description": "Attributes, keyed by the game's own names (Vigor, Endurance, … / Mind and Arcane in Elden Ring). Absent entirely at inventory tier.",
@@ -128,12 +144,13 @@
         },
         "inv": {
           "type": "object",
-          "description": "Inventory by category (weapons, armors, rings, spells, bolts, upgrade, consumables, online, emotes, bosssouls, talismans, ashes). Which categories exist depends on the game.",
+          "description": "Inventory by category (weapons, armors, rings, spells, bolts, upgrade, consumables, online, emotes, bosssouls, talismans, ashes; Sekiro adds arts, prosthetics, skills, beads, memories and storage). Which categories exist depends on the game.",
           "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/countedItem" } }
         },
         "key_items": { "type": "array", "items": { "$ref": "#/$defs/countedItem" }, "description": "Progression items: keys, tomes, coals, ashes." },
         "boss_souls": { "type": "array", "items": { "$ref": "#/$defs/countedItem" }, "description": "Boss souls / remembrances still held. Each one is proof of a kill; a consumed one is invisible." },
         "unknown_count": { "type": "integer", "minimum": 0, "description": "Items whose id is in the save but not in the name tables. Reported rather than hidden." },
+        "internal_count": { "type": "integer", "minimum": 0, "description": "Sekiro only: entries that resolved only to an engine development string — placeholder and debug rows, not items the game hands you. Counted rather than listed, so an uncertain name never sits beside a real one." },
         "equipped_weapons": { "type": "object", "additionalProperties": { "type": "string" }, "description": "DS3 only, keyed by slot (\"Right Hand\", \"Left Hand 2\", …). Names carry infusion and +N." },
         "equipped_armor": { "type": "object", "additionalProperties": { "type": "string" }, "description": "DS3 only: Head / Chest / Hands / Legs." },
         "equipped_rings": { "type": "array", "items": { "type": "string" }, "description": "DS3 only, up to four." },

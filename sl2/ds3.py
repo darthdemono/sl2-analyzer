@@ -979,9 +979,13 @@ def ds3_attach_flags(ch, buf, base, base_dir):
     picks, any_found = [], False
     for area, items in load_ds3_pickups(base_dir).items():
         got, missing = [], []
-        for dist, bit, item in items:
+        for dist, bit, item, where in items:
             val = u8(buf, base + dist)
-            (got if val is not None and val & (1 << bit) else missing).append(item)
+            # A missing item carries WHERE it is, when the table knows one: the list is
+            # a to-do list, and "Titanite Shard" on its own is not one. About a quarter
+            # of the flags have no location and stay a bare name.
+            label = f"{item} — {where}" if where else item
+            (got if val is not None and val & (1 << bit) else missing).append(label)
         any_found = any_found or bool(got)
         picks.append((area, len(got), len(items), missing))
     if any_found:

@@ -6,6 +6,7 @@ from .progress import BOSS_SOUL_DB_DIR, DS3_CINDER_ITEM, DS3_LORDS, MANDATORY_BO
 from .ds1 import load_ds1_boss_flags
 from .ds2 import DS2_COVENANT, DS2_GAMES, load_ds2_boss_souls, load_ds2_bosses
 from .ds3 import DS3_COVENANT, load_ds3_boss_flags, load_ds3_boss_route, load_ds3_boss_victory, load_ds3_covenants
+from .sdt import load_sdt_boss_flags
 
 
 ##
@@ -27,6 +28,11 @@ def boss_roster(game, base_dir):
         names |= set(load_ds3_boss_flags(base_dir)) | set(load_ds3_boss_victory(base_dir))
     if game in ("dsr", "ptde"):
         names |= set(load_ds1_boss_flags(base_dir))
+    if game == "sdt":
+        # The flag table's own names, even though its flags are not read yet: they are
+        # bosses the tool can NAME, which is exactly what the denominator counts. It
+        # adds the two the Memory table alone would miss (Emma and the ghost Monk).
+        names |= set(load_sdt_boss_flags(base_dir))
     return names
 
 

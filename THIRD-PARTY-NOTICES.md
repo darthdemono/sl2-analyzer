@@ -52,7 +52,8 @@ turn themselves off — leaving a parser with no relationship to any GPL project
 |---|---|
 | [jtesta/souls_givifier](https://github.com/jtesta/souls_givifier) | DSR, DS3 and Elden Ring AES keys; the IV-prefixed block layout; BND4 header structure. Facts only — the decryption here is ordinary `cryptography` library usage in Python and a from-scratch AES implementation in JavaScript (the S-boxes are generated from GF(2⁸), not transcribed). |
 | [TKGP/SoulsFormats](https://github.com/JKAnderson/SoulsFormats) | The vanilla Dark Souls II save key from `SFUtil.GetDS2SaveKey` — a single 16-byte constant. |
-| [FrankvdStam/SoulSplitter](https://github.com/FrankvdStam/SoulSplitter) | DS3 bonfire, boss and item-pickup event-flag ID lists, used as a reference to compute save offsets. Cross-checked 60/60 against the TGA Cheat Engine table. |
+| [FrankvdStam/SoulSplitter](https://github.com/FrankvdStam/SoulSplitter) | DS3 bonfire, boss and item-pickup event-flag ID lists, used as a reference to compute save offsets. Cross-checked 60/60 against the TGA Cheat Engine table. Also the Sekiro boss and Sculptor's Idol flag IDs in `db_sdt/`, and the decompiled `GetEventFlag` that shows Sekiro's bit arithmetic is DS3's. |
+| [thefifthmatt/SoulsRandomizers](https://github.com/thefifthmatt/SoulsRandomizers) | DS3 item-lot annotations — the location text for each world pickup, and the lot IDs that join to the pickup event flags. Used as reference data; no code from it is here. |
 
 ### MIT
 
@@ -61,12 +62,14 @@ turn themselves off — leaving a parser with no relationship to any GPL project
 | [alfizari/Dark-Souls-3-Save-Editor-PS4-PC](https://github.com/alfizari/Dark-Souls-3-Save-Editor-PS4-PC) | DS3 stat offsets, play time, and the event-flag region block walk. This is the one place an *algorithm* was ported rather than a constant read off — and it is MIT, which imposes nothing incompatible. |
 | [alfizari/Dark-Souls-2-Save-Editor-PS4-PC](https://github.com/alfizari/Dark-Souls-2-Save-Editor-PS4-PC) | DS2 offsets and item tables. |
 | [tarvitz/dsfp](https://github.com/tarvitz/dsfp) | The PtDE load-screen roster record and the deaths struct. |
+| [uberhalit/SimpleSekiroSavegameHelper](https://github.com/uberhalit/simplesekirosavegamehelper) | The Sekiro container layout: slot count, slot and settings block lengths, checksum positions, the settings-block field offsets, and the minimum file length. It credits "klm123" for some of those offsets. |
 
 ### Apache-2.0
 
 | Project | What was used |
 |---|---|
 | [alfizari/Dark-Souls-Remastered-Save-Editor](https://github.com/alfizari/Dark-Souls-Remastered-Save-Editor) | DSR and DS1 offsets, the gender byte, and item tables. |
+| [alfizari/Sekiro-Save-Editor](https://github.com/alfizari/Sekiro-Save-Editor) | Sekiro slot field offsets, the GaItem and item-list region offsets and record shapes, the item type nibbles, and English item names. **Its licence is ambiguous** — the repository carries Apache-2.0 while its README claims MIT — so it is listed under the more restrictive of the two rather than the more convenient one. Nothing here depends on which it is: what was taken is byte offsets and record sizes, which are measurements of a file format FromSoftware defined, and no code from it is reproduced. |
 
 ### No licence stated
 
@@ -76,10 +79,11 @@ factual information was taken from them, and none of their source is reproduced 
 | Source | What was used |
 |---|---|
 | [ClayAmore/ER-Save-Lib](https://github.com/ClayAmore/ER-Save-Lib) and [ER-Save-Editor](https://github.com/ClayAmore/ER-Save-Editor) | Elden Ring save structure: the GaItem array, the profile table, the "File version" word, and the in-save regulation block that carries the game patch. |
-| [Paramdex](https://github.com/soulsmods/Paramdex) and the soulsmodding wiki | DS1 item IDs, bonfire IDs, and the event-flag addressing formula. |
+| [Paramdex](https://github.com/soulsmods/Paramdex) and the soulsmodding wiki | DS1 item IDs, bonfire IDs, and the event-flag addressing formula. Also the complete Sekiro ID sets for `EquipParamWeapon`, `EquipParamProtector` and `EquipParamGoods`, and the machine-translated development names for the IDs with no English name — those are kept in their own `_devnames` files precisely because they are uncertain. |
+| The Save Wizard Sekiro code sheet, via alfizari's credits | Independent confirmation of the Sekiro slot stat offsets, and the play-time field: its "Playtime 999:59:59" entry writes `0x36EE7F` = 3,599,999 = 999×3600 + 59×60 + 59, which is what identifies the field as a `uint32` of seconds. |
 | [The-Grand-Archives/Dark-Souls-III-CT-TGA](https://github.com/The-Grand-Archives/Dark-Souls-III-CT-TGA) | DS3 and ER Cheat Engine tables, used for their ID→name dropdowns and the flag group base table. |
 | The Jappi88 DS2 save editor; the SOTFS Hex Code Compendium; the SOTFS and ER Cheat Engine tables | DS2 world-block offsets; DS2 and ER item name lists. |
-| [fextralife](https://darksouls2.wiki.fextralife.com/) and the Dark Souls wikidot | Derived-stat formulas, bonfire-to-area mappings, boss route ordering. DS2 item thumbnails in the web app are hot-linked to fextralife's CDN, not redistributed — only the filenames are stored, in `db_ds2/images.json`. |
+| [fextralife](https://darksouls2.wiki.fextralife.com/) and the Dark Souls wikidot | Derived-stat formulas, bonfire-to-area mappings, boss route ordering. (The web app used to hot-link DS2 item thumbnails from fextralife's CDN; that was removed along with `db_ds2/images.json`, so the page now makes no cross-origin request at all.) |
 
 ## Game content
 

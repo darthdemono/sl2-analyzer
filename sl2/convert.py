@@ -16,6 +16,7 @@ from .ds1 import ds1_augment, dsr_parse, ptde_parse
 from .ds2 import ds2_active_slots, ds2_augment, ds2_parse
 from .ds3 import DS3_DB_FILES, ds3_attach_flags, ds3_attach_ring_effects, ds3_event_flag_base, ds3_goods_cat, ds3_journey, ds3_parse, ds3_playtime
 from .er import er_parse, er_roster, load_er_db
+from .sdt import SDT_SLOT_COUNT, load_sdt_db, sdt_parse
 from .totals import attach_progress_totals
 from .render import md_for_character
 
@@ -108,6 +109,18 @@ GAMES = {
                   "block sits in a different place for every character. Every item "
                   "the character owns is read from the game's item array and matched "
                   "to its real name"},
+    "sdt": {"title": "Sekiro: Shadows Die Twice", "tier": "full", "db": "db_sdt",
+            "decrypt": decrypt_none, "slots": range(0, SDT_SLOT_COUNT),
+            "how": "the save is not encrypted and, unlike every other game here, its "
+                   "fields do not move between patches — so play time, journey (New "
+                   "Game+) count, Attack Power and Sen are read straight from fixed "
+                   "positions. The item lists are read the same way: each entry stores "
+                   "a type code beside its item ID, so a piece of armour can never be "
+                   "named as a weapon, and a prosthetic tool's upgrade tier is its own "
+                   "ID (there is no '+N' to work out). Sekiro has no character name and "
+                   "no attributes to level, so neither appears; Attack Power doubles as "
+                   "a count of the Memories already spent, which is how bosses whose "
+                   "token is long gone are still counted"},
 }
 
 
@@ -289,6 +302,26 @@ def parse_save(data, base_dir):
                 characters.append((i, ch))
         return SaveData(game, cfg, version, patch, characters)
 
+    # Sekiro: fixed offsets throughout, and the slot's own content decides whether it
+    # holds a character — the game publishes no occupancy array.
+    if game == "sdt":
+        db_dir = os.path.join(base_dir, cfg["db"])
+        iddb = load_sdt_db(db_dir)
+        if not any(iddb["names"].values()):
+            sys.exit(f"No item database found in {db_dir}")
+        for i in cfg["slots"]:
+            if i >= len(entries):
+                continue
+            slot = cfg["decrypt"](data[entries[i].offset:entries[i].offset + entries[i].size])
+            if slot is None:
+                continue
+            ch = sdt_parse(slot, iddb)
+            if ch is not None:
+                attach_defeated_bosses(ch, base_dir)
+                attach_progress_totals(ch, base_dir)
+                characters.append((i, ch))
+        return SaveData(game, cfg, version, patch, characters)
+
     # DS3: names from the header, inventory by id-scan, stats by content-scan.
     if game == "ds3":
         db_dir = os.path.join(base_dir, cfg["db"][0])
@@ -359,6 +392,25 @@ ER_NOTE = ("_Elden Ring identity, attributes, and runes are read directly; the "
            "parsed, so they are not listed. What is listed is really owned._")
 
 
+## @brief Sekiro's own caveat. The item lists are complete and the two stat maxima are
+#  now pinned, so what is left is one uncertain field and the event-flag region — which is
+#  what would name the Sculptor's Idols and the boss kills, and which nobody has located
+#  in the file.
+SDT_NOTE = ("_Sekiro has no character name and no attributes: both are absent from the "
+            "game, not missing here. The item lists (carried, key items and the storage "
+            "box) are read whole and named by type, so nothing in them is guessed. Max HP "
+            "and max Posture come from the second of each field's two copies, because the "
+            "offsets the published editor labels as maxima are the CURRENT values — a "
+            "save pair either side of taking damage settled that. **Spirit Emblems** is "
+            "not read as a number of its own: the documented field holds 15 across saves "
+            "taken before and after the character gained a prosthetic, so it is the carry "
+            "cap rather than the count — and emblems you actually hold are an ordinary "
+            "inventory item, listed with everything else. **Sculptor's Idols** and "
+            "boss-defeat **flags** are not read either: the bit arithmetic is the same as "
+            "Dark Souls III's, but where the flag region sits inside the save has never "
+            "been published, so the bosses below come from Memories alone._")
+
+
 ##
 # @brief Build the Markdown document for one save file.
 # @param data     The full file bytes.
@@ -388,6 +440,8 @@ def render_markdown(save, filename, meta=None):
         body += ["---", ""]
     if save.game == "er":
         body += [ER_NOTE, ""]
+    if save.game == "sdt":
+        body += [SDT_NOTE, ""]
     return "\n".join(head + body
                      + footer_for(cfg, len(save.characters), save.version, save.patch,
                                   meta))

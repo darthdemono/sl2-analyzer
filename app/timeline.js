@@ -50,6 +50,7 @@ export function snapshot(ch, file, slot, game, title) {
     path: file.path, file: file.file, mtime: file.mtime, size: file.size,
     game, title, slot, name: ch.name || "?", tier: ch.tier,
     play_time: ch.play_time || 0, level: ch.level || 0, souls: ch.souls || 0,
+    attack: ch.attack == null ? null : ch.attack,
     soul_memory: ch.soul_memory == null ? null : ch.soul_memory,
     deaths: ch.deaths == null ? null : ch.deaths,
     hollow_lvl: ch.hollow_lvl == null ? null : ch.hollow_lvl,
@@ -93,9 +94,20 @@ export function groupRuns(snaps) {
  *  separator that a character name might contain, and it parses straight back. */
 export const runKey = (s) => JSON.stringify([s.game, s.name, s.slot]);
 
-/** An (area, name) bonfire pair as a string key. JSON compares char by char, which
- *  orders exactly like Python's tuple comparison over the same two strings. */
-export const pairKey = (a, n) => JSON.stringify([a, n]);
+/**
+ * An (area, name) bonfire pair as a string key, joined on NUL.
+ *
+ * It has to sort exactly like the Python tuple, and JSON does NOT — it is right until
+ * one element is a PREFIX of another, where JSON puts the closing quote (0x22) against
+ * the next real character and can order the pair backwards. "Farron Keep" and "Farron
+ * Keep Perimeter" are a real pair that does it. NUL is below every character a name can
+ * contain, so the shorter element sorts first, which is Python's rule for a prefix.
+ * (A null area joins as the empty string, and every key in that run then starts with
+ * NUL, so they still order among themselves the way Python orders (None, name).)
+ */
+export const PAIR_SEP = "\u0000";
+export const pairKey = (a, n) => [a, n].join(PAIR_SEP);
+export const pairName = (key) => key.split(PAIR_SEP)[1];
 
 /** Python sorts strings by code point; so must this, or the two orders drift. */
 export function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
@@ -118,6 +130,10 @@ export function progress(s) {
     covenants: new Set(Object.keys(s.covenants)),
     pickups: s.pickups,
     level: s.level,
+    // Sekiro's only one-way signal: it has no level, no bonfires and no flags
+    // this tool reads, and a Memory consumed is never un-consumed — not even
+    // by a New Game+ lap. See progress() in sl2/timeline.py.
+    attack: s.attack == null ? -1 : s.attack,
     estus: s.estus == null ? -1 : s.estus,
     ng_plus: s.ng_plus == null ? -1 : s.ng_plus,
   };
@@ -136,6 +152,7 @@ export function descends(a, b) {
   if (pa.ng_plus > pb.ng_plus) return false;
   if (!subset(pa.endings, pb.endings)) return false;
   if (pa.level > pb.level || pa.estus > pb.estus) return false;
+  if (pa.attack > pb.attack) return false;
   if (pb.ng_plus > pa.ng_plus) return true;
   for (const k of RESETTABLE) if (!subset(pa[k], pb[k])) return false;
   return Object.entries(pa.pickups).every(([area, n]) => n <= (pb.pickups[area] || 0));
@@ -215,7 +232,8 @@ const diff = (a, b) => sortedSet(new Set([...a].filter((x) => !b.has(x))));
 export function achievements(cur, prev, cap = 3) {
   const was = prev ? progress(prev) : {
     bonfires: new Set(), bosses: new Set(), endings: new Set(), cinders: new Set(),
-    covenants: new Set(), pickups: {}, level: 0, estus: -1, ng_plus: -1,
+    covenants: new Set(), pickups: {}, level: 0, attack: -1, estus: -1,
+    ng_plus: -1,
   };
   const cp = progress(cur);
   const out = [];
@@ -238,7 +256,7 @@ export function achievements(cur, prev, cap = 3) {
   if (nv.length) out.push("COVENANT: " + nv.slice(0, 2).join(" · "));
   const nf = diff(cp.bonfires, was.bonfires);
   if (nf.length) {
-    const named = nf.slice(0, 2).map((k) => JSON.parse(k)[1]).join(" · ");
+    const named = nf.slice(0, 2).map(pairName).join(" · ");
     out.push(nf.length <= 2
       ? `+${nf.length} bonfire${nf.length === 1 ? "" : "s"}: ${named}`
       : `+${nf.length} bonfires`);

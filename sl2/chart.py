@@ -41,6 +41,30 @@ def hms(sec):
 
 
 ##
+# @brief The number a game counts progress in, for a snapshot's label or table cell.
+# @details Every game but one levels up, so "lv95" is the obvious shorthand — but
+# Sekiro has no level at all, and printing "lv0" for it would state a field the game
+# does not have. Its equivalent is Attack Power, which only ever climbs (one point per
+# Memory consumed), so that is what its charts and tables count in.
+# @param r A snapshot. @return e.g. @c "lv95" or @c "atk 7".
+def rank(r):
+    if r["game"] == "sdt":
+        return "atk —" if r["attack"] is None else f"atk {r['attack']}"
+    return f"lv{r['level']}"
+
+
+## @brief The same value bare, for a table cell whose column is already labelled.
+def rank_cell(r):
+    return "—" if r["game"] == "sdt" and r["attack"] is None else str(
+        r["attack"] if r["game"] == "sdt" else r["level"])
+
+
+## @brief Header for that column, given the run's game.
+def rank_label(game):
+    return "Atk" if game == "sdt" else "Lv"
+
+
+##
 # @brief One run's snapshot tree, as a Mermaid flowchart.
 # @details One node per save file, labelled with its reference number, the level it was
 # at, and what it achieved that its parent had not. A node that achieved nothing still
@@ -59,7 +83,7 @@ def run_chart(rows, parents, restarts, refs, theme=None):
         head = f"^{refs.get(r['path'], '?')} · {hms(r['play_time'])}"
         if r["slot"] and any(x["slot"] != r["slot"] for x in rows):
             head += f" · slot {r['slot']}"
-        lines = [head, "lv%d" % r["level"]]
+        lines = [head, rank(r)]
         if i in restarts:
             lines.insert(1, "SEPARATE LINE")
         body = label(lines + achievements(r, prev))
@@ -101,7 +125,7 @@ def journey_chart(runs, refs):
         nums = sorted({refs.get(r["path"], 0) for r in rows})
         span = f"^{nums[0]}" if len(nums) == 1 else f"^{nums[0]}–^{nums[-1]}"
         got = [f"{len(rows)} save{'' if len(rows) == 1 else 's'} · {span}",
-               f"lv{last['level']} · {hms(last['play_time'])}"]
+               f"{rank(last)} · {hms(last['play_time'])}"]
         # The carried set when the run section worked one out — a boss whose soul was
         # spent is still a boss killed, and the journey chart should say so.
         known = last.get("carried_bosses") or last["bosses"]

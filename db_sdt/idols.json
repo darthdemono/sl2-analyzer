@@ -1,0 +1,238 @@
+{
+ "Ashina Outskirts": [
+  [
+   11100000,
+   "Dilapidated Temple"
+  ],
+  [
+   11100001,
+   "Outskirts Wall - Gate Path"
+  ],
+  [
+   11100002,
+   "Outskirts Wall - Stairway"
+  ],
+  [
+   11100003,
+   "Underbridge Valley"
+  ],
+  [
+   11100004,
+   "Ashina Castle Fortress"
+  ],
+  [
+   11100005,
+   "Ashina Castle Gate"
+  ],
+  [
+   11100006,
+   "Ashina Outskirts"
+  ],
+  [
+   11100007,
+   "Flames of Hatred"
+  ]
+ ],
+ "Hirata Estate": [
+  [
+   11000000,
+   "Dragonspring - Hirata Estate"
+  ],
+  [
+   11000001,
+   "Estate Path"
+  ],
+  [
+   11000002,
+   "Bamboo Thicket Slope"
+  ],
+  [
+   11000003,
+   "Hirata Estate - Main Hall"
+  ],
+  [
+   11000004,
+   "Hirata Estate - Hidden Temple"
+  ],
+  [
+   11000005,
+   "Hirata Audience Chamber"
+  ]
+ ],
+ "Ashina Castle": [
+  [
+   11110000,
+   "Ashina Castle"
+  ],
+  [
+   11110001,
+   "Upper Tower - Antechamber"
+  ],
+  [
+   11110002,
+   "Castle Tower Lookout"
+  ],
+  [
+   11110003,
+   "Upper Tower - Kuro's Room"
+  ],
+  [
+   11110004,
+   "Great Serpent Shrine"
+  ],
+  [
+   11110005,
+   "Abandoned Dungeon Entrance"
+  ],
+  [
+   11110006,
+   "Old Grave"
+  ],
+  [
+   11110007,
+   "Upper Tower - Ashina Dojo"
+  ],
+  [
+   11120000,
+   "Near Secret Passage"
+  ],
+  [
+   11120001,
+   "Ashina Reservoir"
+  ]
+ ],
+ "Abandoned Dungeon": [
+  [
+   11300000,
+   "Underground Waterway"
+  ],
+  [
+   11300001,
+   "Bottomless Hole"
+  ]
+ ],
+ "Senpou Temple, Mt. Kongo": [
+  [
+   12000000,
+   "Senpou Temple, Mt. Kongo"
+  ],
+  [
+   12000001,
+   "Shugendo"
+  ],
+  [
+   12000002,
+   "Temple Grounds"
+  ],
+  [
+   12000003,
+   "Main Hall"
+  ],
+  [
+   12000004,
+   "Inner Sanctum"
+  ],
+  [
+   12000005,
+   "Sunken Valley Cavern"
+  ],
+  [
+   12000006,
+   "Bell Demon's Temple"
+  ]
+ ],
+ "Sunken Valley": [
+  [
+   11700000,
+   "Sunken Valley"
+  ],
+  [
+   11700001,
+   "Gun Fort"
+  ],
+  [
+   11700002,
+   "Riven Cave"
+  ],
+  [
+   11700003,
+   "Guardian Ape's Watering Hole"
+  ],
+  [
+   11700007,
+   "Under-Shrine Valley"
+  ],
+  [
+   11700008,
+   "Bodhisattva Valley"
+  ]
+ ],
+ "Ashina Depths": [
+  [
+   11500000,
+   "Hidden Forest"
+  ],
+  [
+   11500001,
+   "Mibu Village"
+  ],
+  [
+   11500002,
+   "Water Mill"
+  ],
+  [
+   11500003,
+   "Wedding Cave Door"
+  ],
+  [
+   11700004,
+   "Poison Pool"
+  ],
+  [
+   11700005,
+   "Ashina Depths"
+  ],
+  [
+   11700006,
+   "Guardian Ape's Burrow"
+  ]
+ ],
+ "Fountainhead Palace": [
+  [
+   12500000,
+   "Fountainhead Palace"
+  ],
+  [
+   12500001,
+   "Vermilion Bridge"
+  ],
+  [
+   12500002,
+   "Flower Viewing Stage"
+  ],
+  [
+   12500003,
+   "Great Sakura"
+  ],
+  [
+   12500004,
+   "Palace Grounds"
+  ],
+  [
+   12500005,
+   "Sanctuary"
+  ],
+  [
+   12500006,
+   "Mibu Manor"
+  ],
+  [
+   12500007,
+   "Feeding Grounds"
+  ],
+  [
+   12500008,
+   "Near Pot Noble"
+  ]
+ ]
+}

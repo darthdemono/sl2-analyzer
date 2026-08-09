@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SL2 Analyzer · FromSoftware save viewer</title>
-<meta name="description" content="Drop a Dark Souls, Dark Souls II, Dark Souls III or Elden Ring .sl2 save and read the whole playthrough: attributes, souls, every item carried, bonfires lit and bosses the save still proves are dead. Parsed in your browser. Nothing is uploaded.">
+<meta name="description" content="Drop a Dark Souls, Dark Souls II, Dark Souls III, Sekiro or Elden Ring .sl2 save and read the whole playthrough: attributes, souls, every item carried, bonfires lit and bosses the save still proves are dead. Parsed in your browser. Nothing is uploaded.">
 <link rel="canonical" href="https://sl2-analyzer.darthdemono.com/">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
@@ -65,6 +65,15 @@
     --rule: rgba(217, 192, 122, 0.32); --rule-soft: rgba(217, 192, 122, 0.14);
     --font-title: 'Cinzel', serif; --glow: 0 0 34px rgba(217, 192, 122, 0.17);
     --wash: radial-gradient(120% 100% at 50% -5%, rgba(217,192,122,.10), transparent 62%);
+  }
+  /* Sekiro — sumi ink and washi paper, one vermilion accent. No gold: the game's
+     menus are brush-and-paper, and the only colour on them is the seal red. */
+  .t-sdt {
+    --panel: rgba(10, 10, 11, 0.66); --ink: #cfc7b8; --ink-dim: #8a8377;
+    --accent: #b4452f; --accent-2: #7d3122; --val: #f2ece0;
+    --rule: rgba(207, 199, 184, 0.20); --rule-soft: rgba(207, 199, 184, 0.09);
+    --font-title: 'EB Garamond', serif; --glow: 0 0 24px rgba(180, 69, 47, 0.13);
+    --wash: radial-gradient(120% 90% at 50% -10%, rgba(180,69,47,.06), transparent 58%);
   }
 
   * { box-sizing: border-box; }
@@ -337,13 +346,14 @@
   <details class="how frame" open>
     <summary>What it supports</summary>
     <div class="how-body">
-      <p>All six <code>.sl2</code> variants, and you never tell it which game it is — that comes out of the bytes. Each one renders in its own status screen, skinned to that game.</p>
+      <p>All seven <code>.sl2</code> variants, and you never tell it which game it is — that comes out of the bytes. Each one renders in its own status screen, skinned to that game.</p>
       <ul>
         <li><b>Dark Souls Remastered</b> — identity, class, gender, every attribute, souls, humanity, play time, deaths, the full inventory, held boss souls, twelve boss-defeat flags, and all 43 bonfires with how far each one is kindled. Dark Souls is the only game here that records a bonfire you found but never lit, so it is the only one that can tell you.</li>
         <li><b>Dark Souls: Prepare to Die</b> — the same, at the same depth. The two releases keep the same stat block; only where it sits differs.</li>
         <li><b>Dark Souls II: Scholar of the First Sin</b> — attributes, class, covenant with rank, gender, hollowing, deaths, play time, and an inventory that names infusions and reinforcement levels. All 77 bonfires by area, and bosses defeated from three separate signals that have to agree.</li>
         <li><b>Dark Souls II (vanilla, pre-Scholar)</b> — the same depth as Scholar. The two releases differ by one encryption key and nothing else; everything inside sits in the same place.</li>
         <li><b>Dark Souls III</b> — the deepest read here. Attributes, souls, play time, embered state, NG+, the full inventory, equipped weapons with their infusion and <code>+N</code>, armour, rings and ammo. All 77 bonfires by name. Bosses from two independent flag sets, so a New Game+ character still reads correctly. Covenants joined, rewards from 57 NPCs, which Lords of Cinder are on the throne, 426 world items picked up across six areas — and, of the bosses still alive, which ones you can actually reach right now.</li>
+        <li><b>Sekiro: Shadows Die Twice</b> — the odd one out. No character name, no attributes, no levelling: the game has none of them, so none appear. What it does have is the one thing nothing else here can do — Attack Power goes up by exactly one per Memory consumed, so the bosses whose token you spent hours ago are still counted. Play time, journey, Sen, max HP and Posture, everything carried, the key items and the storage box, each named against its own type table. Sculptor's Idols are not read: the bit arithmetic is Dark Souls III's, but where the flag region sits in a Sekiro save has never been published by anyone.</li>
         <li><b>Elden Ring</b> — identity, attributes and runes in full; owned weapons, armour and ashes named by type, so an armour can never resolve to a weapon; remembrances held and the bosses they prove dead. Talismans, spells and goods live in a part of the save that shifts between patches and is not parsed, so the item list is partial. It says so where the list is.</li>
       </ul>
       <p>A slot drops to <b>inventory only</b> rather than print an attribute it cannot verify. A save holding several characters gets a tab each, and every export button writes the whole file — every slot, not the one you happen to be looking at.</p>
@@ -354,7 +364,7 @@
     <summary>How it works</summary>
     <div class="how-body">
       <p>A <code>.sl2</code> is one packed archive of blocks — most of them encrypted, one per character, a few more for the world. The page unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off positions the community mapped over years. Where does your save go? Nowhere. It is parsed in this tab and forgotten when you close it, and the page asks no other server for anything at all.</p>
-      <p>The parsing runs on a background thread, so a nine-megabyte save does not freeze the page, and only the tables for the game you dropped get fetched instead of all four games' worth. After the first visit it works <b>offline</b> — the page, its code and the tables it has already used are cached, so you can read a save on a plane.</p>
+      <p>The parsing runs on a background thread, so a nine-megabyte save does not freeze the page, and only the tables for the game you dropped get fetched instead of every game's worth. After the first visit it works <b>offline</b> — the page, its code and the tables it has already used are cached, so you can read a save on a plane.</p>
       <p>Three ways to take the reading with you. <b>Copy Markdown</b> puts all of it on your clipboard, which is the format to paste into an LLM — it cannot open a <code>.sl2</code>, but it reads Markdown fine. <b>Download .md</b> is that same text as a file. <b>Download .json</b> is the same data written for a program instead of a person, against a <a href="schema.json">published schema</a>, and byte-for-byte identical to what the command-line tool writes. A harness holds those two together on every save, so nothing can tell which one produced a file. One thing to know before you consume it: a field is there only if it was read. Dark Souls III keeps no death counter, so a DS3 character has no <code>deaths</code> key at all — not a zero, not a null. That way you can always tell "the game does not record this" from "it really is none".</p>
       <p>Every game hides its data somewhere else, so each one is read differently.</p>
       <ul>
@@ -362,6 +372,7 @@
         <li><b>Dark Souls Remastered / Prepare to Die:</b> the character block moves as the save grows, so a fixed offset is worthless. Remastered is found by a marker that always sits beside it; Prepare to Die has no such marker, so it is found by your character's own name.</li>
         <li><b>Dark Souls III:</b> the stats move between patches, so the block is located by content rather than position — the nine numbers that add up to your level. That is the game's own formula, so a false match is close to impossible.</li>
         <li><b>Elden Ring:</b> the same trick with eight numbers, plus every owned item read straight out of the game's item array.</li>
+        <li><b>Sekiro:</b> the easy one, for once. Nothing is encrypted and nothing moves between patches, so the fields are read where they are. Each item record carries a type code beside its ID, which is why a piece of armour can never come back named as a weapon.</li>
       </ul>
       <p>Two rules, and neither one bends.</p>
       <p><b>It never prints a number it cannot verify.</b> If a stat block fails its own check, that slot drops to inventory-only and the attributes are simply gone. A missing field costs you nothing. A wrong one quietly tells you your character is something it is not, and you would have no way of knowing. So the field goes.</p>
