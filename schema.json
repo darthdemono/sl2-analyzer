@@ -48,6 +48,18 @@
         "game_patch": {
           "type": "string",
           "description": "Elden Ring only: the version of the regulation the save carries, e.g. \"1.16.0\". No other game stores one."
+        },
+        "steam_account_id": {
+          "type": "integer",
+          "description": "The Steam account that wrote this save (the low 32 bits of its SteamID64). DS3, Sekiro and Elden Ring record it; DS1 and DS2 do not store it at all, so it is absent for them."
+        },
+        "steam_id64": {
+          "type": "string",
+          "description": "The same account as a full SteamID64. A STRING, not a number: the value exceeds the integer a JSON parser is obliged to represent exactly, and a consumer reading it into a double would lose the last digits."
+        },
+        "save_folder": {
+          "type": "string",
+          "description": "The folder name the game will look for this save under, derived from the owning account: hex for DS3, decimal for Sekiro. The game loads a save only from this folder, so a save under any other account's folder will not be seen. Absent where the convention is unverified (Elden Ring) or no account is stored."
         }
       }
     },

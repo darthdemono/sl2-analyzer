@@ -126,6 +126,15 @@ def build_json(save, filename, meta=None):
         source["save_format_version"] = save.version
     if save.patch is not None:
         source["game_patch"] = save.patch
+    # The owning Steam account, where the game records one. The account id is a plain
+    # uint32, but the SteamID64 is emitted as TEXT on purpose: it is larger than the
+    # integer a JSON parser is obliged to represent exactly, and a consumer reading it
+    # into a double would silently lose the last digits.
+    if save.owner is not None:
+        source["steam_account_id"] = save.owner[0]
+        source["steam_id64"] = save.owner[1]
+    if save.folder is not None:
+        source["save_folder"] = save.folder
 
     doc = OrderedDict([
         ("$schema", SCHEMA_URL),

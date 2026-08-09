@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SL2 Analyzer · FromSoftware save viewer</title>
-<meta name="description" content="Drop a Dark Souls, Dark Souls II, Dark Souls III, Sekiro or Elden Ring .sl2 save and read the whole playthrough: attributes, souls, every item carried, bonfires lit and bosses the save still proves are dead. Parsed in your browser. Nothing is uploaded.">
+<meta name="description" content="Drop a Dark Souls, Dark Souls II, Dark Souls III, Sekiro or Elden Ring .sl2 save and read the whole playthrough: attributes, souls, every item carried, bonfires lit, bosses the save still proves are dead, and the Steam account the file belongs to.">
 <link rel="canonical" href="https://sl2-analyzer.darthdemono.com/">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#08080a">
 <meta property="og:type" content="website">
 <meta property="og:title" content="SL2 Analyzer · FromSoftware save viewer">
-<meta property="og:description" content="A Souls save is a locked box. Drop one in and read the whole playthrough: attributes, inventory, bonfires, bosses. Parsed in your browser, never uploaded.">
+<meta property="og:description" content="A Souls save is a locked box. Drop one in and read the whole playthrough: attributes, inventory, bonfires, bosses, and the account that owns the file.">
 <meta property="og:url" content="https://sl2-analyzer.darthdemono.com/">
 <!-- Social cards must be raster: no major platform renders an SVG og:image. -->
 <meta property="og:image" content="https://sl2-analyzer.darthdemono.com/og.png">
@@ -20,7 +20,7 @@
 <meta property="og:image:alt" content="SL2 Analyzer — a bonfire with the coiled sword">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="SL2 Analyzer · FromSoftware save viewer">
-<meta name="twitter:description" content="A Souls save is a locked box. Drop one in and read the playthrough. Parsed in your browser, never uploaded.">
+<meta name="twitter:description" content="A Souls save is a locked box. Drop one in and read the playthrough.">
 <meta name="twitter:image" content="https://sl2-analyzer.darthdemono.com/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -340,7 +340,7 @@
 <header>
   <h1>SL2<span class="dot"> · </span>Analyzer</h1>
   <p class="tag-line">A Souls save is a locked box. Encrypted, undocumented, and useless to you as a file. Drop one here and it opens into the screen the game would have shown you: level and attributes, souls held, every item carried, every bonfire lit, and every boss the save can still prove is dead. It reads the file. It never guesses.</p>
-  <span class="privacy">Read in your browser, never uploaded · makes no request to anyone</span>
+  <span class="privacy">Seven save formats · reads the file, never writes to it</span>
 </header>
 <main>
   <details class="how frame" open>
@@ -363,7 +363,7 @@
   <details class="how frame" open>
     <summary>How it works</summary>
     <div class="how-body">
-      <p>A <code>.sl2</code> is one packed archive of blocks — most of them encrypted, one per character, a few more for the world. The page unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off positions the community mapped over years. Where does your save go? Nowhere. It is parsed in this tab and forgotten when you close it, and the page asks no other server for anything at all.</p>
+      <p>A <code>.sl2</code> is one packed archive of blocks — most of them encrypted, one per character, a few more for the world. The page unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off positions the community mapped over years. It only ever reads: point it at your live save if you like, the worst case is a bad report rather than a broken character.</p>
       <p>The parsing runs on a background thread, so a nine-megabyte save does not freeze the page, and only the tables for the game you dropped get fetched instead of every game's worth. After the first visit it works <b>offline</b> — the page, its code and the tables it has already used are cached, so you can read a save on a plane.</p>
       <p>Three ways to take the reading with you. <b>Copy Markdown</b> puts all of it on your clipboard, which is the format to paste into an LLM — it cannot open a <code>.sl2</code>, but it reads Markdown fine. <b>Download .md</b> is that same text as a file. <b>Download .json</b> is the same data written for a program instead of a person, against a <a href="schema.json">published schema</a>, and byte-for-byte identical to what the command-line tool writes. A harness holds those two together on every save, so nothing can tell which one produced a file. One thing to know before you consume it: a field is there only if it was read. Dark Souls III keeps no death counter, so a DS3 character has no <code>deaths</code> key at all — not a zero, not a null. That way you can always tell "the game does not record this" from "it really is none".</p>
       <p>Every game hides its data somewhere else, so each one is read differently.</p>

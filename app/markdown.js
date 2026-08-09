@@ -302,6 +302,12 @@ export function buildMarkdown(result, filename) {
   // tool; it sits here because it belongs to no single character. See footer_for.
   const ver = result.saveVersion != null ? [`- **Save format version:** ${result.saveVersion}`] : [];
   if (result.gamePatch != null) ver.push(`- **Game patch:** ${result.gamePatch}  _(from the save's own regulation)_`);
+  if (result.steam != null) {
+    ver.push(`- **Steam account:** ${result.steam[0]}  _(SteamID64 ${result.steam[1]} — the account this save was written by)_`);
+  }
+  if (result.saveFolder != null) {
+    ver.push(`- **Save folder:** \`${result.saveFolder}\`  _(the game loads this save only from a folder of this name)_`);
+  }
   const footer = ["<details>",
     "<summary>About this file — how it was produced, and how far to trust it</summary>", "",
     `- **Game:** ${result.title}`, `- **Support tier:** ${result.tier || "full"}`,

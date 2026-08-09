@@ -87,6 +87,13 @@ export function buildJson(result, filename, meta = null) {
   // DS2 has no version word and only Elden Ring carries a regulation version.
   if (result.saveVersion != null) source.save_format_version = result.saveVersion;
   if (result.gamePatch != null) source.game_patch = result.gamePatch;
+  // The SteamID64 is emitted as TEXT because it is larger than the integer a JSON
+  // parser is obliged to represent exactly; the account id proper is a plain uint32.
+  if (result.steam != null) {
+    source.steam_account_id = result.steam[0];
+    source.steam_id64 = result.steam[1];
+  }
+  if (result.saveFolder != null) source.save_folder = result.saveFolder;
 
   const doc = {
     $schema: SCHEMA_URL,

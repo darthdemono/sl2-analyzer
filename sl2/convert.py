@@ -166,6 +166,87 @@ def save_format_version(data, entries, cfg, game):
     return None
 
 
+##
+# @brief Where each game stores the Steam account that owns the save: (menu entry,
+#        offset of the @c uint64 inside it).
+# @details Found by scanning every entry of every fixture for a well-formed SteamID64
+# and checking the hit against the account the save's own folder is named for. DS3 and
+# ER keep it at the very front of the menu block, Sekiro a little further in.
+# @note DS1 and DS2 are ABSENT because they genuinely do not store it — an exact byte
+# search for both the SteamID64 and the bare account id, over PtDE, DSR, vanilla DS2 and
+# Scholar saves whose owning account is known from the folder name, finds nothing. Those
+# two games pick the save folder from whichever account is logged in and never write it
+# down, which is also why their saves move between accounts and these ones do not.
+STEAM_ID_GAMES = {"ds3": (10, 0x04), "er": (10, 0x04), "sdt": (10, 0x24)}
+
+
+##
+# @brief High dword of every individual-account SteamID64 (universe 1, type 1,
+#        instance 1). The low dword is the account id proper.
+# @details Reading the field as two halves rather than one @c uint64 is deliberate and
+# has to be matched in the JS port: a SteamID64 is larger than JavaScript's exact
+# integer range, so forming the 64-bit value in a double loses the last digits. Both
+# ports read two @c uint32 and assemble the printable forms from those. Requiring this
+# exact constant in the high half is also the validity gate: it is what separates the
+# real field from an arbitrary word, so an unrecognised layout omits the field instead
+# of printing a nonsense account.
+STEAM_ID64_HIGH = 0x01100001
+
+
+## @brief Games whose save folder is named with the SteamID64 in HEX rather than
+#  decimal. Verified against the folders on disk: DS3 sits in `011000013fc93365`,
+#  Sekiro in the decimal `76561199030416229`. DS2 names its folder the same hex way but
+#  is NOT listed, because it stores no account to derive one from. ER is not listed
+#  either: no ER folder was on hand, so its convention is unchecked and unclaimed.
+STEAM_FOLDER_HEX = {"ds3"}
+
+
+## @brief Games whose save folder is named with the decimal SteamID64.
+STEAM_FOLDER_DEC = {"sdt"}
+
+
+##
+# @brief The Steam account that owns this save, or None.
+# @details Returns @c (account_id, steam_id64_text) — the account id as a plain int and
+# the full SteamID64 rendered as text, because the number is too large to survive a
+# JavaScript double and the two front ends have to agree byte for byte.
+# @param data The full file bytes. @param entries BND4 entries. @param game The game key.
+def steam_owner(data, entries, game):
+    where = STEAM_ID_GAMES.get(game)
+    if where is None:
+        return None
+    entry, off = where
+    if len(entries) <= entry:
+        return None
+    e = entries[entry]
+    buf = GAMES[game]["decrypt"](data[e.offset:e.offset + e.size])
+    if buf is None:
+        return None
+    low, high = u32(buf, off), u32(buf, off + 4)
+    if low is None or high != STEAM_ID64_HIGH or low == 0:
+        return None
+    return low, str((high << 32) | low)
+
+
+##
+# @brief The folder name the game will look for this save under, or None where the
+#        convention has not been verified for that game.
+# @details The account is baked into the save, and the game only reads a save back out
+# of the folder named for that account — so a save moved to another account's folder,
+# or a save whose account id changed underneath it, will not load. That is the whole
+# reason this is worth printing.
+# @param game The game key. @param owner The @ref steam_owner pair.
+def steam_folder(game, owner):
+    if owner is None:
+        return None
+    account, _ = owner
+    if game in STEAM_FOLDER_HEX:
+        return f"{STEAM_ID64_HIGH:08x}{account:08x}"
+    if game in STEAM_FOLDER_DEC:
+        return str((STEAM_ID64_HIGH << 32) | account)
+    return None
+
+
 ## @brief Elden Ring ships its regulation (the game's own param data) inside the save,
 #  in BND4 entry 11 behind a " GER" magic — and that block is versioned.
 ER_REG_ENTRY = 11
@@ -220,13 +301,22 @@ META_LABEL = {"dlc": "DLC", "os": "OS", "cpu": "CPU", "gpu": "GPU", "ram": "RAM"
 # @param cfg The GAMES entry. @param n Characters rendered.
 # @param version The save-format version, or None where the game has no known field.
 # @param patch The game patch (ER only, from its regulation version), or None.
+# @param owner The Steam account pair from @ref steam_owner, or None.
+# @param folder The folder name from @ref steam_folder, or None.
 # @param meta Caller-supplied environment (store, launcher, OS, …), or None. It is
 #        printed under its own heading and labelled as SUPPLIED, because none of it
 #        is read from the save — the save cannot know which launcher started it.
-def footer_for(cfg, n, version=None, patch=None, meta=None):
+def footer_for(cfg, n, version=None, patch=None, owner=None, folder=None, meta=None):
     ver = [f"- **Save format version:** {version}"] if version is not None else []
     if patch is not None:
         ver.append(f"- **Game patch:** {patch}  _(from the save's own regulation)_")
+    if owner is not None:
+        account, sid = owner
+        ver.append(f"- **Steam account:** {account}  _(SteamID64 {sid} — the account "
+                   f"this save was written by)_")
+    if folder is not None:
+        ver.append(f"- **Save folder:** `{folder}`  _(the game loads this save only "
+                   f"from a folder of this name)_")
     env = []
     if meta:
         env = ["", "**Setup**  _(supplied by the caller — not read from the save, "
@@ -249,13 +339,15 @@ def footer_for(cfg, n, version=None, patch=None, meta=None):
 #  a key name. @c characters is a list of @c (entry index, character dict) pairs, the
 #  entry index being what the slot number is derived from.
 class SaveData:
-    __slots__ = ("game", "cfg", "version", "patch", "characters")
+    __slots__ = ("game", "cfg", "version", "patch", "owner", "folder", "characters")
 
-    def __init__(self, game, cfg, version, patch, characters):
+    def __init__(self, game, cfg, version, patch, characters, owner=None, folder=None):
         self.game = game            # game id, e.g. "ds3"
         self.cfg = cfg              # its GAMES entry
         self.version = version      # save-format version, or None
         self.patch = patch          # ER regulation version, or None
+        self.owner = owner          # (account id, SteamID64 text), or None
+        self.folder = folder        # the folder name that account implies, or None
         self.characters = characters
 
 
@@ -277,6 +369,8 @@ def parse_save(data, base_dir):
     cfg = GAMES[game]
     version = save_format_version(data, entries, cfg, game)
     patch = er_game_patch(data, entries) if game == "er" else None
+    owner = steam_owner(data, entries, game)
+    folder = steam_folder(game, owner)
     characters = []
 
     # Elden Ring: identity + stats (content-scan) + owned items (GaItem walk).
@@ -300,7 +394,7 @@ def parse_save(data, base_dir):
                 attach_defeated_bosses(ch, base_dir)
                 attach_progress_totals(ch, base_dir)
                 characters.append((i, ch))
-        return SaveData(game, cfg, version, patch, characters)
+        return SaveData(game, cfg, version, patch, characters, owner, folder)
 
     # Sekiro: fixed offsets throughout, and the slot's own content decides whether it
     # holds a character — the game publishes no occupancy array.
@@ -320,7 +414,7 @@ def parse_save(data, base_dir):
                 attach_defeated_bosses(ch, base_dir)
                 attach_progress_totals(ch, base_dir)
                 characters.append((i, ch))
-        return SaveData(game, cfg, version, patch, characters)
+        return SaveData(game, cfg, version, patch, characters, owner, folder)
 
     # DS3: names from the header, inventory by id-scan, stats by content-scan.
     if game == "ds3":
@@ -348,7 +442,7 @@ def parse_save(data, base_dir):
                 ds3_attach_flags(ch, slot, flag_base, base_dir)
                 attach_progress_totals(ch, base_dir)
                 characters.append((i, ch))
-        return SaveData(game, cfg, version, patch, characters)
+        return SaveData(game, cfg, version, patch, characters, owner, folder)
 
     # Full / inventory tier: decrypt each slot and parse it.
     db_dir = os.path.join(base_dir, cfg["db"][0])
@@ -376,7 +470,7 @@ def parse_save(data, base_dir):
             attach_defeated_bosses(ch, base_dir)
             attach_progress_totals(ch, base_dir)
             characters.append((i, ch))
-    return SaveData(game, cfg, version, patch, characters)
+    return SaveData(game, cfg, version, patch, characters, owner, folder)
 
 
 ## @brief Elden Ring's item-coverage caveat. ER is the one game whose item list is
@@ -443,6 +537,6 @@ def render_markdown(save, filename, meta=None):
         body += [SDT_NOTE, ""]
     return "\n".join(head + body
                      + footer_for(cfg, len(save.characters), save.version, save.patch,
-                                  meta))
+                                  save.owner, save.folder, meta))
 
 

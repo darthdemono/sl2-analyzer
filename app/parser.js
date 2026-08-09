@@ -1394,6 +1394,47 @@ function erGamePatch(data, entries) {
   return `${Math.floor(v / 10000000)}.${String(minor).padStart(2, "0")}.${Math.floor(v / 10000) % 10}`;
 }
 
+// Where each game stores the Steam account that owns the save: [menu entry, offset of
+// the uint64]. DS1 and DS2 are absent because they genuinely do not store it — an exact
+// byte search over saves whose owning account is known from the folder name finds
+// nothing in either. See STEAM_ID_GAMES in sl2/convert.py.
+const STEAM_ID_GAMES = { ds3: [10, 0x04], er: [10, 0x04], sdt: [10, 0x24] };
+
+// High dword of every individual-account SteamID64. Requiring it is the validity gate,
+// and reading the field as two halves is what keeps this port honest: a SteamID64 is
+// bigger than Number.MAX_SAFE_INTEGER, so u64() would round off the last digits and the
+// browser would disagree with the CLI. The decimal form is built with BigInt instead.
+const STEAM_ID64_HIGH = 0x01100001;
+const STEAM_FOLDER_HEX = new Set(["ds3"]);
+const STEAM_FOLDER_DEC = new Set(["sdt"]);
+
+/** The owning Steam account as [accountId, steamId64Text], or null. */
+function steamOwner(data, entries, game) {
+  const where = STEAM_ID_GAMES[game];
+  if (!where) return null;
+  const [entry, off] = where;
+  if (entries.length <= entry) return null;
+  const dec = game === "ds3" ? (b) => decryptIvPrefixed(b, DS3_KEY) : decryptNone;
+  const buf = dec(blobOf(data, entries[entry]));
+  if (buf === null) return null;
+  const low = u32(buf, off), high = u32(buf, off + 4);
+  if (low == null || high !== STEAM_ID64_HIGH || low === 0) return null;
+  return [low, ((BigInt(high) << 32n) | BigInt(low)).toString()];
+}
+
+/** The folder name the game will look for this save under, or null. */
+function steamFolder(game, owner) {
+  if (owner === null) return null;
+  const account = owner[0];
+  if (STEAM_FOLDER_HEX.has(game)) {
+    return STEAM_ID64_HIGH.toString(16).padStart(8, "0") + (account >>> 0).toString(16).padStart(8, "0");
+  }
+  if (STEAM_FOLDER_DEC.has(game)) {
+    return ((BigInt(STEAM_ID64_HIGH) << 32n) | BigInt(account)).toString();
+  }
+  return null;
+}
+
 /**
  * Parse a whole save into characters. `dbs` is the preloaded database bundle
  * (see db.js). Returns {game, title, characters:[{slot, ch}], bonfireTotal}.
@@ -1497,7 +1538,9 @@ export function parseSave(data, dbs) {
   const bonfireTotal = (dbs[fam] && dbs[fam].bonfireTotal) || 0;
   const saveVersion = saveFormatVersion(data, entries, game, meta.slots);
   const gamePatch = game === "er" ? erGamePatch(data, entries) : null;
-  return { game, title: meta.title, tier: meta.tier, characters, bonfireTotal, saveVersion, gamePatch };
+  const steam = steamOwner(data, entries, game);
+  const saveFolder = steamFolder(game, steam);
+  return { game, title: meta.title, tier: meta.tier, characters, bonfireTotal, saveVersion, gamePatch, steam, saveFolder };
 }
 
 export { ParseError };

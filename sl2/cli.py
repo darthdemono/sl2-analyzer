@@ -141,6 +141,7 @@ def main():
 
     name = os.path.basename(sl2)
     save = parse_save(data, base_dir)
+    warn_foreign_folder(sl2, save)
     if fmt == "json":
         text = json.dumps(build_json(save, name, meta), ensure_ascii=False,
                           indent=args.indent or None)
@@ -149,6 +150,35 @@ def main():
         text = render_markdown(save, name, meta)
 
     write_out(args.out, text)
+
+
+##
+# @brief Warn when a save is sitting in a folder belonging to a different account.
+# @details DS3, Sekiro and Elden Ring write the owning account into the save, and the
+# game only reads a save back from the folder named for that account — so a save whose
+# account id changed underneath it (a Steam emulator reconfigured, a different profile)
+# will not load, and the game says nothing useful about why. Comparing the two is free
+# once both are known.
+# @note Deliberately printed to STDERR and never into the document: the browser cannot
+# see a dropped file's folder, and the two front ends have to stay byte-identical.
+# @param path The save file's path. @param save The parsed @ref sl2.convert.SaveData.
+def warn_foreign_folder(path, save):
+    if save.folder is None:
+        return
+    here = os.path.basename(os.path.dirname(os.path.abspath(path)))
+    # Only complain when the folder is clearly one of the game's own account folders:
+    # same width as the real thing and made of the right digits. A save copied into a
+    # working directory is not a mismatch, it is just somewhere else — and the width
+    # test is what stops an ordinary folder that happens to spell hex ("beef", "decade")
+    # from being read as somebody's account.
+    if not here or here.lower() == save.folder.lower() or len(here) != len(save.folder):
+        return
+    if not all(c in "0123456789abcdefABCDEF" for c in here):
+        return
+    print(f"Warning: this save was written by Steam account {save.owner[0]} and the "
+          f"game will only load it from a folder named '{save.folder}', but it is in "
+          f"'{here}'. Under the account that owns '{here}' the game will not see it.",
+          file=sys.stderr)
 
 
 ## @brief Write the document, making the output folder if it does not exist yet.
