@@ -4,7 +4,7 @@
 // the save proves are shown — fields the screen has but we can't verify (weapon AR,
 // resistances, bonuses) are omitted, never faked. Names via textContent, never innerHTML.
 
-import { STAT_ABBR, statGovernsFor, statCapsFor, CAT_TITLE, CAT_ORDER, CURRENCY, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, DS2_GAMES, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime, countDupes, memoriesLine } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, statCapsFor, CAT_TITLE, CAT_ORDER, CURRENCY, DS2_GREAT_SOULS, SRC, attrOrderFor, GAME_THEME, DS2_GAMES, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, fmt, fmtPlaytime, countDupes, memoriesLine, vitalityNecklaces, catTitle } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
 import { buildJsonText } from "./jsonout.js";
 
@@ -75,6 +75,11 @@ function leftColumn(slot, ch) {
   // Sekiro has no level and no attributes, so Attack Power is the only number its
   // left column can carry — and it is the one that also counts Memories spent.
   if (ch.attack != null) rows.push(statRow("atk", "Attack Power", ch.attack, { big: true }));
+  // The other upgrade track, and the other spent-token count: Prayer Necklaces used.
+  if (ch.vitality != null) rows.push(statRow("hp", "Vitality", ch.vitality,
+    { big: true, title: vitalityNecklaces(ch.vitality) }));
+  if (ch.skill_points != null) rows.push(statRow("mag", "Skill Points", ch.skill_points,
+    { title: "Spendable at a Sculptor's Idol. Points already spent are not stored, so this is what is banked, not what has been earned." }));
   if (ch.soul_memory != null) rows.push(statRow("mem", "Soul Memory", ch.soul_memory));
   if (ch.humanity != null) rows.push(statRow("hp", "Humanity", ch.humanity));
   // Max HP/FP live in the DS2 derived panel for DS2; every other game shows them here.
@@ -90,7 +95,7 @@ function leftColumn(slot, ch) {
     head.append(el("div", { class: "lp-div" }));
     for (const k of keys) head.append(attrRow(k, ch.stats[k], gov.has(k) ? `${k} — ${gov.get(k)}` : null));
   } else if (ch.game === "sdt") {
-    head.append(el("p", { class: "lp-note", text: "Sekiro has no attributes and no character name — there is no level-up screen to mirror. Attack Power is raised by consuming a Memory, and max HP and Posture by prayer necklaces and gourd seeds. The Vitality level behind those two is in no published source, so it is left off." }));
+    head.append(el("p", { class: "lp-note", text: "Sekiro has no attributes and no character name — there is no level-up screen to mirror. Attack Power is raised by consuming a Memory, and Vitality — which is what raises max HP and Posture — by Prayer Necklaces. Both are shown above, and both count a token that was consumed hours ago: the item list cannot see a spent Memory or a used necklace, but these two numbers can." }));
   } else if (ch.tier === "inventory") {
     head.append(el("p", { class: "lp-note", text: "Attributes for this slot did not check out — an unrecognised patch or an edited save. A wrong number is worse than none, so they are left off. Everything below is still read from the file." }));
   }
@@ -396,11 +401,12 @@ function characterCard(slot, ch, bonfireTotal) {
                                      ["Boss Souls", items.filter((it) => !DS2_GREAT_SOULS.has(it[0]))]]) {
         if (group.length) { invCard.append(el("h5", { text: title }), itemList(group)); any = true; }
       }
-    } else { invCard.append(el("h5", { text: CAT_TITLE[cat] || cat }), itemList(items)); any = true; }
+    } else { invCard.append(el("h5", { text: catTitle(ch.game, cat) || cat }), itemList(items)); any = true; }
   }
   if (any) card.append(section("Inventory", [invCard]));
   if (ch.unknown_count) card.append(el("p", { class: "note", text: `${ch.unknown_count} item(s) carried IDs the name table does not have — upgraded or infused variants — and were left out.` }));
   if (ch.internal_count) card.append(el("p", { class: "note", text: `${ch.internal_count} further entr${ch.internal_count === 1 ? "y" : "ies"} carried only an engine development name — placeholder rows and debug items rather than anything the game hands you — and were left out.` }));
+  if (ch.suppressed_count) card.append(el("p", { class: "note", text: `${ch.suppressed_count} further entr${ch.suppressed_count === 1 ? "y" : "ies"} were engine state rather than inventory — Sekiro has no armour system, so the character's own body models sit in the protector table, and the "Virtual Weapon:" rows restate a Combat Art already listed under its own name. Counted here, not printed.` }));
   return card;
 }
 

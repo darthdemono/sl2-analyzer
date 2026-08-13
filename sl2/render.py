@@ -135,6 +135,18 @@ CAT_TITLE = {"weapons": "Weapons", "armors": "Armor", "rings": "Rings",
              "memories": "Memories & Remnants", "storage": "Storage (item box)"}
 
 
+##
+# @brief Per-game overrides for a category heading, where the shared name is wrong for
+#        that game. @c "Armor" is wrong for Sekiro under any reading: the game has no
+#        armour system, and the rows that survive the suppression filter are cosmetic
+#        attire, so the heading says what they are.
+CAT_TITLE_GAME = {"sdt": {"armors": "Attire"}}
+
+
+def cat_title(game, cat):
+    return CAT_TITLE_GAME.get(game, {}).get(cat, CAT_TITLE[cat])
+
+
 ## @brief Print order for inventory categories, mirroring the in-game item menu.
 #  (`goods` is the lumped consumables bucket the non-DS2 games still use.)
 CAT_ORDER = ["weapons", "arts", "prosthetics", "skills", "armors", "rings", "talismans",
@@ -184,6 +196,22 @@ def memories_line(m):
             f"read back from Attack Power, plus {m['held']} still held — {lap})_")
 
 
+##
+# @brief What a Vitality figure says about Prayer Necklaces used.
+# @details The Memory trick again, on Sekiro's other upgrade track: a necklace is
+# consumed on use, so nothing in the inventory records that it was ever held, but
+# Vitality rises by exactly one each time and a fresh character reads 1. So the
+# subtraction recovers a spent token the item list cannot see. It carries into New
+# Game+ the same way Attack Power does, which is why the count is never claimed to
+# belong to this journey.
+# @param vitality The stored Vitality. @return The parenthetical, without brackets.
+def vitality_necklaces(vitality):
+    used = vitality - 1
+    return ("no Prayer Necklace used yet" if used == 0 else
+            f"{used} Prayer Necklace{'' if used == 1 else 's'} used — four Prayer Beads "
+            f"each, read back from Vitality across every journey so far")
+
+
 ## @brief Format a value, or "—" when it is unknown (None).
 def fmt(value):
     return "—" if value is None else f"{value:,}" if isinstance(value, int) else str(value)
@@ -210,6 +238,13 @@ DS3_BONFIRE_NOTE = "bonfires lit, inferred from each area's flag bits — a floo
 # DS2 reads the world block's own discovered-bonfire array, so it names every one it
 # found; the areas are a grouping of that list, not an inference.
 DS2_BONFIRE_NOTE = "each bonfire the save records as discovered, by area — a floor"
+
+
+# Sekiro's equivalent of a bonfire is a Sculptor's Idol, so it gets its own heading as
+# well as its own note. It also RESETS on a new journey, which no other game's bonfire
+# section has to say — DS1/DS2/DS3 all carry theirs across NG+.
+SDT_BONFIRE_NOTE = ("each idol's own flag bit, by area — a floor, and one that starts "
+                    "again on a new journey")
 
 
 # Only six areas have a derived flag-group base, so this counts what is TRACKED, not
@@ -274,6 +309,12 @@ def md_for_character(ch, slot_no):
         L.append(f"- **{CURRENCY.get(ch['game'], 'Souls')} held:** {fmt(ch['souls'])}")
     if ch.get("attack") is not None:
         L.append(f"- **Attack Power:** {ch['attack']}")
+    if ch.get("vitality") is not None:
+        L.append(f"- **Vitality:** {ch['vitality']}  _({vitality_necklaces(ch['vitality'])})_")
+    if ch.get("skill_points") is not None:
+        L.append(f"- **Skill Points Held:** {ch['skill_points']}"
+                 "  _(spendable at a Sculptor's Idol — the points already spent are "
+                 "not stored, so this is what is banked, not what has been earned)_")
     if ch.get("memories"):
         L.append(f"- **Memories:** {memories_line(ch['memories'])}")
     if ch["humanity"] is not None:
@@ -416,8 +457,12 @@ def md_for_character(ch, slot_no):
         # discovered-but-unlit one); DS3 only has flag bits per area. Different note.
         note = (DS1_BONFIRE_NOTE if ch.get("game") in ("dsr", "ptde")
                 else DS2_BONFIRE_NOTE if ch.get("game") in DS2_GAMES
+                else SDT_BONFIRE_NOTE if ch.get("game") == "sdt"
                 else DS3_BONFIRE_NOTE)
-        L += [f"### Bonfires Discovered ({lit} of {total}, in {n} of {areas} areas)"
+        # Sekiro has no bonfires; calling its idols one would be the same kind of wrong
+        # as printing a soul level for a game that has none.
+        head = "Sculptor's Idols Lit" if ch.get("game") == "sdt" else "Bonfires Discovered"
+        L += [f"### {head} ({lit} of {total}, in {n} of {areas} areas)"
               f"  _({note})_", ""]
         for name, c, named, tot, missing in ch["bonfire_areas"]:
             row = f"- {name}: {c}/{tot}"
@@ -535,7 +580,7 @@ def md_for_character(ch, slot_no):
                 if group:
                     L += [f"#### {title}", ""] + bullets(group) + [""]
         else:
-            title = CAT_TITLE[cat]
+            title = cat_title(ch["game"], cat)
             if cat == "goods" and listed:
                 title += "  _(boss souls and key items are listed above)_"
             L += [f"#### {title}", ""] + bullets(items) + [""]
@@ -547,4 +592,11 @@ def md_for_character(ch, slot_no):
               f"{'y' if ch['internal_count'] == 1 else 'ies'} carried only an engine "
               "development name — placeholder rows and debug items rather than "
               "anything the game hands you — and were left out._", ""]
+    if ch.get("suppressed_count"):
+        L += [f"_{ch['suppressed_count']} further entr"
+              f"{'y' if ch['suppressed_count'] == 1 else 'ies'} were engine state "
+              "rather than inventory — Sekiro has no armour system, so the character's "
+              "own body models sit in the protector table, and the `Virtual Weapon:` "
+              "rows restate a Combat Art already listed under its own name. Counted "
+              "here, not printed._", ""]
     return "\n".join(L)

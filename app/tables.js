@@ -145,6 +145,14 @@ export const CAT_TITLE = { weapons: "Weapons", armors: "Armor", rings: "Rings", 
   beads: "Prayer Beads & Gourd Seeds", memories: "Memories & Remnants",
   storage: "Storage (item box)" };
 
+/** Per-game heading overrides. "Armor" is wrong for Sekiro under any reading — the
+ *  game has no armour system, and what survives the suppression filter is attire. */
+export const CAT_TITLE_GAME = { sdt: { armors: "Attire" } };
+
+export const catTitle = (game, cat) =>
+  ((CAT_TITLE_GAME[game] || {})[cat]) || CAT_TITLE[cat];
+
+
 export const CAT_ORDER = ["weapons", "arts", "prosthetics", "skills", "armors", "rings",
   "talismans", "spells", "bolts", "upgrade", "consumables", "beads", "goods", "ashes",
   "online", "bosssouls", "memories", "emotes", "items", "storage"];
@@ -166,6 +174,19 @@ export function memoriesLine(m) {
   return `${total} Memory-dropping boss${total === 1 ? "" : "es"} defeated`
     + `  _(${m.spent} Memor${m.spent === 1 ? "y" : "ies"} already spent, read back from `
     + `Attack Power, plus ${m.held} still held — ${lap})_`;
+}
+
+/**
+ * What a Vitality figure says about Prayer Necklaces used. The Memory trick on the
+ * other upgrade track: a necklace is consumed on use so the item list never sees it,
+ * but Vitality rises by one each time and a fresh character reads 1. Mirrors
+ * vitality_necklaces.
+ */
+export function vitalityNecklaces(vitality) {
+  const used = vitality - 1;
+  return used === 0 ? "no Prayer Necklace used yet"
+    : `${used} Prayer Necklace${used === 1 ? "" : "s"} used — four Prayer Beads each, `
+      + "read back from Vitality across every journey so far";
 }
 
 export const DS2_GREAT_SOULS = new Set(["Old Witch Soul", "Old Dead One Soul", "Old King Soul", "Old Paledrake Soul"]);

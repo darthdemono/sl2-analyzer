@@ -71,6 +71,8 @@ def snapshot(ch, path, slot_no, game, title):
         "covenant": ch.get("covenant"),
         "ng_plus": ch.get("ng_plus"),
         "attack": ch.get("attack"),
+        "vitality": ch.get("vitality"),
+        "key_items": sorted({n for n, _q in (ch.get("key_items") or [])}),
         "estus": estus_level(ch),
         "bonfires": bonfires,
         "bosses": {b: list(ev) for b, ev in (ch.get("bosses") or {}).items()},
@@ -134,6 +136,7 @@ def progress(s):
         "pickups": s["pickups"],
         "level": s["level"],
         "attack": s["attack"] if s["attack"] is not None else -1,
+        "vitality": s["vitality"] if s["vitality"] is not None else -1,
         "estus": s["estus"] if s["estus"] is not None else -1,
         "ng_plus": s["ng_plus"] if s["ng_plus"] is not None else -1,
     }
@@ -160,7 +163,7 @@ def descends(a, b):
         return False
     if pa["level"] > pb["level"] or pa["estus"] > pb["estus"]:
         return False
-    if pa["attack"] > pb["attack"]:
+    if pa["attack"] > pb["attack"] or pa["vitality"] > pb["vitality"]:
         return False
     if pb["ng_plus"] > pa["ng_plus"]:
         return True
@@ -258,7 +261,8 @@ def fork_count(parents):
 def achievements(cur, prev, cap=3):
     was = progress(prev) if prev else {"bonfires": set(), "bosses": set(), "endings": set(),
                                        "cinders": set(), "covenants": set(), "pickups": {},
-                                       "level": 0, "attack": -1, "estus": -1,
+                                       "level": 0, "attack": -1, "vitality": -1,
+                                       "estus": -1,
                                        "ng_plus": -1}
     out = []
     for end in sorted(set(cur["endings"]) - was["endings"]):
@@ -279,6 +283,18 @@ def achievements(cur, prev, cap=3):
     # already been spent — the kill the boss list can no longer see.
     if cur["attack"] is not None and cur["attack"] > was["attack"] >= 0:
         out.append(f"MEMORY SPENT: attack {was['attack']} → {cur['attack']}")
+    # And the other Sekiro token that leaves no trace once used: a Prayer Necklace is
+    # consumed, so only Vitality remembers it.
+    if cur["vitality"] is not None and cur["vitality"] > was["vitality"] >= 0:
+        out.append(f"NECKLACE USED: vitality {was['vitality']} → {cur['vitality']}")
+    # Key items are the one per-save delta Sekiro can show besides its two counters —
+    # it has no bonfires and no readable flags, so without this its nodes carry nothing
+    # but "atk 1". Deliberately NOT part of the containment test: a few key items are
+    # consumed on use, so a run can legitimately hold fewer than an ancestor did.
+    new_keys = sorted(set(cur["key_items"]) - set(prev["key_items"] if prev else []))
+    if new_keys:
+        out.append("KEY ITEM: " + " · ".join(new_keys[:2])
+                   + (f" +{len(new_keys) - 2} more" if len(new_keys) > 2 else ""))
     new_cinders = sorted(set(cur["cinders"]) - was["cinders"])
     if new_cinders:
         out.append("CINDERS: " + " · ".join(new_cinders))

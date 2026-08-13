@@ -1,5 +1,7 @@
 __pycache__/
 test/
 CLAUDE.md
+.claude/
 scratch/
 Handoff-*.md
+DATA.md

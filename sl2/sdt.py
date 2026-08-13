@@ -62,6 +62,23 @@ SDT_POSTURE_OFF, SDT_POSTURE_ALT = 0x3448C, 0x34490
 
 
 ##
+# @brief Vitality, the second of Sekiro's two upgrade tracks, at the word immediately
+#        before Attack Power.
+# @details In no published source at all — it was pinned by the differential the old
+# blocker asked for. A 21-second window in which the character used four Prayer Beads
+# (the First Prayer Necklace) moved Max HP 320 → 400 and Max Posture 120 → 150, and in
+# the whole player struct exactly ONE other word moved: this one, 1 → 2. Every earlier
+# save on the same ladder reads 1 with no necklace used, and a characterless save reads
+# 0, so the field is not a coincidence of that one window.
+#
+# The stored value IS the number the status screen shows — no base to subtract, unlike
+# @ref SDT_ATTACK_BASE, because a fresh character reads 1 and one necklace makes it 2.
+# The ceiling is the in-game cap; past it the read landed somewhere it should not have.
+SDT_VITALITY_OFF = 0x34498
+SDT_VITALITY_MAX = 20
+
+
+##
 # @brief Read a field the game stores twice, or None unless both copies agree.
 # @param buf The slot payload. @param off The field. @param alt Its second copy.
 def sdt_twin(buf, off, alt):
@@ -76,10 +93,17 @@ def sdt_twin(buf, off, alt):
 SDT_ATTACK_BASE = 1
 
 
-## @brief Ceilings that make a field a field rather than noise. Attack power caps at
-#  98 in game and the journey counter cannot plausibly run to 256, so a value past
-#  either means the read landed somewhere it should not have and the field is dropped.
-SDT_ATTACK_MAX, SDT_NG_MAX = 98, 99
+## @brief Ceilings that make a field a field rather than noise: a value past either
+#  means the read landed somewhere it should not have, and the field is dropped.
+#
+#  Attack power was 98 here and that was one too low — a real journey-9 save reads
+#  exactly 99, so the tool was silently dropping Attack Power, and with it the Memories
+#  line, on precisely the characters that have the most of it. Raised on that evidence.
+#  The gate exists to reject a read in the thousands, not to tell 98 from 99.
+#
+#  Note the Memories arithmetic UNDERCOUNTS at the cap, because Attack Power stops
+#  rising while the kills do not. It is a floor, which is what the line already says.
+SDT_ATTACK_MAX, SDT_NG_MAX = 99, 99
 
 
 ## @brief One inventory-style list: where it starts and how long it runs. Records are
@@ -150,6 +174,40 @@ def sdt_goods_cat(iid):
     return "goods"
 
 
+##
+# @brief Rows that resolve to a real name but are engine state, not inventory.
+# @details Sekiro has no armour system, so `EquipParamProtector` is not an equipment
+# table at all — it is the model list for the character's own body. Every row that is
+# one of Wolf's own parts (`Original Memory: Wolf - Head`, and the cutscene rig beside
+# it) is the engine recording which mesh is on, and printing them gave every export an
+# `#### Armor` heading listing the player's limbs.
+#
+# The `Another's Memory:` blocks — Shura, Ashina, Tengu — are NOT suppressed, and that
+# is deliberate rather than cautious. They look like the three unlockable attires, and
+# no save here has one unlocked, so suppressing them would be a claim about a channel
+# this repo has never observed carrying anything. Leaving them in costs nothing: the
+# heading is only emitted when a row survives, so a character who has none prints no
+# section, and an NG+ save will simply show them if they do surface. If they never do,
+# nothing was lost either way.
+#
+# `Virtual Weapon:` restates a Combat Art already listed under its own name, and
+# `Upgrade Menu:` rows are prosthetic upgrade-tree entries. Both are duplicates of a
+# real row rather than items.
+#
+# Suppressed rows are counted, not hidden — see @c suppressed_count.
+SDT_SUPPRESSED_PREFIXES = ("Original Memory:", "Immortal Severance Cutscene",
+                           "Virtual Weapon:", "Upgrade Menu:")
+
+
+def sdt_suppressed(name):
+    return name.startswith(SDT_SUPPRESSED_PREFIXES)
+
+
+## @brief Skill points are a spendable currency, not a consumable, so the report puts
+#  them beside Attack Power and Vitality instead of in with the sugars and the gourds.
+SDT_SKILL_POINT_ID = 1200
+
+
 ## @brief The db_sdt files that carry real English names, one per item type.
 SDT_DB_FILES = ("weapons", "armors", "goods")
 
@@ -209,7 +267,7 @@ def sdt_resolve(cat, iid, db):
 # keeps a mis-located region from inventing items: random bytes clear it three times in
 # sixteen, and a zeroed tail never clears it at all.
 # @param buf The slot payload. @param db The bundle from @ref load_sdt_db.
-# @return A generator of @c (which list, name, category, quantity, internal).
+# @return A generator of @c (which list, item id, name, category, quantity, internal).
 def sdt_items(buf, db):
     for which, start, length in SDT_LISTS:
         for off in range(start, start + length, SDT_RECORD):
@@ -222,9 +280,10 @@ def sdt_items(buf, db):
             iid = u32(buf, off + 4)
             if iid is None:
                 continue
-            name, render_cat, internal = sdt_resolve(cat, iid & SDT_ID_MASK, db)
+            iid &= SDT_ID_MASK
+            name, render_cat, internal = sdt_resolve(cat, iid, db)
             qty = u32(buf, off + 8)
-            yield which, name, render_cat, qty, internal
+            yield which, iid, name, render_cat, qty, internal
 
 
 ##
@@ -263,12 +322,23 @@ def sdt_memories_spent(attack):
 # @return A unified character dict, or None if the slot is empty.
 def sdt_parse(buf, db):
     inv, key_items, memories, unknown, internal = {}, [], [], 0, 0
-    for which, name, cat, qty, is_internal in sdt_items(buf, db):
+    suppressed, skill_points = 0, None
+    for which, iid, name, cat, qty, is_internal in sdt_items(buf, db):
         if name is None:
             unknown += 1
             continue
         if is_internal:
             internal += 1
+            continue
+        if sdt_suppressed(name):
+            suppressed += 1
+            continue
+        # A skill point is spendable currency, so it rides in the header beside the
+        # other two upgrade tracks rather than in with the sugars. Only a CARRIED one
+        # is promoted — a copy sitting in the box is genuinely in the box, and the
+        # storage list would otherwise lose it with nothing saying so.
+        if iid == SDT_SKILL_POINT_ID and which != "storage":
+            skill_points = (skill_points or 0) + (qty or 0)
             continue
         row = (name, qty)
         # The box wins over the category: a key item sitting in storage is in
@@ -291,6 +361,9 @@ def sdt_parse(buf, db):
     if attack is not None and attack > SDT_ATTACK_MAX:
         attack = None
     ng = u8(buf, SDT_NG_OFF)
+    vitality = u32(buf, SDT_VITALITY_OFF)
+    if vitality is not None and not 1 <= vitality <= SDT_VITALITY_MAX:
+        vitality = None
     ch = {
         "tier": "full", "game": "sdt",
         # Sekiro profiles carry no name — the game never asks for one — so the slot
@@ -305,9 +378,10 @@ def sdt_parse(buf, db):
         "ng_plus": ng if ng is not None and ng <= SDT_NG_MAX else None,
         "play_time": play_time,
         "souls": u32(buf, SDT_SEN_OFF),
-        "attack": attack,
+        "attack": attack, "vitality": vitality, "skill_points": skill_points,
         "boss_souls": memories, "key_items": key_items,
         "inv": inv, "unknown_count": unknown, "internal_count": internal,
+        "suppressed_count": suppressed,
     }
     spent = sdt_memories_spent(attack)
     if spent is not None:
@@ -318,10 +392,8 @@ def sdt_parse(buf, db):
 
 ##
 # @brief Load the Sekiro boss-defeat flag table (boss name → event flag id).
-# @details Shipped for its NAMES, which are the denominator behind "Bosses Defeated
-# (N of M tracked)". The flags themselves are NOT read: Sekiro's within-group bit maths
-# is the same as DS3's, but where the flag region sits in the SAVE is not published
-# anywhere and has not been derived here, so nothing reads them yet. Cached per dir.
+# @details Also the source of the "of N tracked" denominator, via @c boss_roster — it
+# names two bosses the Memory table alone would miss. Cached per dir.
 _BOSS_FLAG_CACHE = {}
 
 
@@ -334,3 +406,151 @@ def load_sdt_boss_flags(base_dir):
         except (OSError, ValueError):
             _BOSS_FLAG_CACHE[base_dir] = {}
     return _BOSS_FLAG_CACHE[base_dir]
+
+
+##
+# @brief Slot offset of the global event-flag category.
+# @details Sekiro serialises its flags exactly the way Dark Souls III does — this repo
+# has had that arithmetic since the DS3 bonfire work — and the only thing nobody
+# published was where the region lands in the FILE. It is here, at a fixed slot offset
+# like every other Sekiro field: ten 128-byte blocks of 1000 flags each, the id's
+# thousands digit picking the block and its last three digits addressing a bit inside
+# that block MSB-first.
+#
+# DERIVED, not ported. A save pair whose only act was killing Gyoubu Masataka Oniwa
+# leaves his flag `9301` as the single bit in the slot that goes 0 → 1, reads 0 in all
+# ten earlier saves on the ladder, and lights none of the other fourteen bosses — and it
+# is the only such candidate that also sits on the `0x500` grid the rest of the region
+# is spaced on. SoulSplitter, where the bit arithmetic comes from, reads process memory
+# and never opens a save, which is why this had to be measured.
+#
+# The PER-BLOCK packing is the part worth stating, because the obvious alternative is
+# wrong and looks right on every idol: read `9301` as the 9301st flag of one flat
+# `0x500` span and it lands 29 bytes early, on a byte that never moves in any save here.
+# An idol id's thousands digit is always 0, so idols cannot tell the two apart; a boss
+# can.
+SDT_FLAG_REGION = 52
+## @brief Bytes per category. Ten blocks, so ten thousand flags.
+SDT_FLAG_CATEGORY = 0x500
+## @brief Bytes per flag block — 1000 flags at one bit each, rounded up to the word.
+SDT_FLAG_BLOCK = 128
+## @brief Flags the global category holds. Ten blocks of a thousand.
+SDT_FLAG_GLOBAL_MAX = 10000
+
+
+##
+# @brief Each map's category index on the grid.
+# @details MEASURED, and the gaps are the finding rather than a hole: the maps are in
+# sorted order but do NOT sit in consecutive slots, because 6, 7, 10 and 12 belong to
+# maps with no Sculptor's Idol in them, which no table here can see. Guessing them
+# consecutive is exactly what a first pass did, and it read a save that had finished the
+# game as having never lit a lamp in Fountainhead Palace.
+#
+# Six of the nine are identified outright by how many idols the category reports — one
+# past its highest set bit — which is unique for that map. The two ties were broken
+# two-sidedly rather than by preference. `(11,2)` against `(13,0)`: the local run walked
+# the Ashina Reservoir in the prologue and has never entered the Abandoned Dungeon, and
+# reads 18 nonzero bytes in one against 0 in the other. `(17,0)` against `(25,0)`: on a
+# third-party checkpoint pack, one reads nine idols both before and after Owl while the
+# other reads zero then nine — and Fountainhead is the map you cannot reach until Owl is
+# dead.
+SDT_FLAG_MAPS = {(10, 0): 2, (11, 0): 3, (11, 1): 4, (11, 2): 5, (13, 0): 8,
+                 (15, 0): 9, (17, 0): 11, (20, 0): 13, (25, 0): 14}
+
+
+##
+# @brief Byte offset and bit of an event flag, or None where it cannot be placed.
+# @details The global category is `k=0` and holds ids 0..9999; a per-map flag is keyed by
+# the id's area and sub-area, and `k=1` is a second global-looking category that nothing
+# in either shipped table lands in, so it is left alone.
+#
+# THE `< SDT_FLAG_GLOBAL_MAX` GUARD IS LOAD-BEARING, not a tidy bounds check. SoulSplitter's
+# runtime addressing selects a top-level group on `(id // 10000000) % 10` before it ever
+# looks at the area, so the id families do not share one flat space. Item-pickup flags are
+# `50000000 + item lot id`, and `area` and `sub` both come out ZERO on one of those — which
+# sends it down the global branch, where without the guard it would alias onto a real
+# global flag in the 0..9999 range and read somebody else's bit. The guard turns that into
+# an honest None. Whether the group-5 family is even inside this region is unmeasured;
+# there ARE further populated categories past the nine maps (k=35..46 at least), and
+# nothing published names a single flag in them.
+# @param fid The event flag id. @return @c (offset, bit) or None.
+def sdt_flag_offset(fid):
+    area, sub = (fid // 100000) % 100, (fid // 10000) % 10
+    if area >= 90 or area + sub == 0:
+        if not 0 <= fid < SDT_FLAG_GLOBAL_MAX:
+            return None
+        k = 0
+    else:
+        k = SDT_FLAG_MAPS.get((area, sub))
+        if k is None:
+            return None
+    n = fid % 1000
+    block = (SDT_FLAG_REGION + k * SDT_FLAG_CATEGORY
+             + (fid // 1000) % 10 * SDT_FLAG_BLOCK)
+    return block + (n >> 5) * 4 + 3 - ((n & 31) >> 3), 7 - (n & 7)
+
+
+## @brief Load the Sculptor's Idol table (area → [[flag id, name]]). Cached per dir.
+_IDOL_CACHE = {}
+
+
+def load_sdt_idols(base_dir):
+    if base_dir not in _IDOL_CACHE:
+        path = os.path.join(base_dir, "db_sdt", "idols.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _IDOL_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _IDOL_CACHE[base_dir] = {}
+    return _IDOL_CACHE[base_dir]
+
+
+## @brief Read one event flag. None where the id cannot be placed or the slot is
+#  too short — never a raw index, same as every other read in this module.
+def sdt_flag(buf, fid):
+    at = sdt_flag_offset(fid)
+    if at is None:
+        return None
+    byte = u8(buf, at[0])
+    return None if byte is None else (byte >> at[1]) & 1
+
+
+##
+# @brief Read Sekiro's event flags: boss defeats into @c ch["bosses"] as `flag`
+#        evidence, and the Sculptor's Idols into @c ch["bonfire_areas"].
+# @details Must run AFTER @c attach_defeated_bosses, which refuses to do anything once
+# `bosses` exists — build the Memory floor first, then lay the flags on top. Getting
+# that order wrong silently drops the held-Memory kills, which is the trap DS1 already
+# fell into once.
+#
+# The boss half is what finally lets Sekiro report a kill it can PROVE rather than
+# infer: the Memory arithmetic counts tokens spent and the Memory items count tokens
+# held, but neither names the boss — a held Memory resolves as a bare "Memory". A flag
+# names it, and it never clears within a journey.
+#
+# Idols go into `bonfire_areas` rather than a field of their own, in DS3's
+# `[(area, count, [names], total, [missing])]` shape, so the render, the totals and the
+# combined timeline all take them with no new code — the same thing DS1's bonfire list
+# does. The rows follow `idols.json`'s own area order, which is why two of its keys map
+# into one flag category and one category feeds two keys: the areas are the game's, the
+# categories are the map files'.
+# @param ch A parsed character. @param buf The slot. @param base_dir Repo root.
+def sdt_attach_flags(ch, buf, base_dir):
+    bosses = ch.get("bosses") or {}
+    for name, fid in load_sdt_boss_flags(base_dir).items():
+        if sdt_flag(buf, fid):
+            bosses[name] = sorted(set(bosses.get(name, ())) | {"flag"})
+    if bosses:
+        ch["bosses"] = bosses
+    areas, any_lit = [], False
+    for area, idols in load_sdt_idols(base_dir).items():
+        named, missing = [], []
+        for fid, name in idols:
+            (named if sdt_flag(buf, int(fid)) else missing).append(name)
+        any_lit = any_lit or bool(named)
+        areas.append((area, len(named), named, len(idols), missing))
+    # Every area is kept, lit or not — an area reading 0/9 is the useful half. Only a
+    # character who has lit nothing anywhere gets no section, which is right: they are
+    # minutes from the opening and have not reached an idol.
+    if any_lit:
+        ch["bonfire_areas"] = areas

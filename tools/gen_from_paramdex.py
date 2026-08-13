@@ -180,10 +180,14 @@ PLAN = [
         ("talismans", "ER", "EquipParamAccessory", A,   None),
         ("ashes",     "ER", "EquipParamGem",       GEM, None),
     ]),
-    # Sekiro is deliberately not in this plan. Paramdex SDT/Names carries dev
-    # rows only ("Molotov cocktail -- 火炎瓶"), so an import adds nothing a report
-    # can print. db_sdt/ was already built from a cleaned pass and is complete;
-    # Sekiro's remaining gaps are save-layout, not names.
+    # Sekiro is deliberately not in this plan, and is handled by
+    # tools/gen_sdt_from_regulation.py instead. The reason is the same one that
+    # generator exists for: Paramdex SDT/Names carries machine-translated dev rows
+    # only ("Molotov cocktail -- 火炎瓶"), and Sekiro's shipped English names live in
+    # the game's own msg/engus FMGs, not in Paramdex at all. db_sdt/ was built from a
+    # cleaned pass and is complete for what a report prints; Sekiro's remaining gaps
+    # are save-layout, not names. Do not add SDT here — two generators writing the
+    # same tables from different sources is how the two disagree.
 ]
 
 

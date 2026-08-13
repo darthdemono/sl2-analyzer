@@ -16,7 +16,7 @@ from .ds1 import ds1_augment, dsr_parse, ptde_parse
 from .ds2 import ds2_active_slots, ds2_augment, ds2_parse
 from .ds3 import DS3_DB_FILES, ds3_attach_flags, ds3_attach_ring_effects, ds3_event_flag_base, ds3_item_cat, ds3_journey, ds3_parse, ds3_playtime
 from .er import er_parse, er_roster, load_er_db
-from .sdt import SDT_SLOT_COUNT, load_sdt_db, sdt_parse
+from .sdt import SDT_SLOT_COUNT, load_sdt_db, sdt_attach_flags, sdt_parse
 from .totals import attach_progress_totals
 from .render import md_for_character
 
@@ -111,6 +111,12 @@ GAMES = {
                   "to its real name"},
     "sdt": {"title": "Sekiro: Shadows Die Twice", "tier": "full", "db": "db_sdt",
             "decrypt": decrypt_none, "slots": range(0, SDT_SLOT_COUNT),
+            # `coverage` says what the tier does NOT cover, so a reader who sees
+            # "full" does not fairly infer that everything the other games report is
+            # here. Moving the tier would redefine what the word means for every game.
+            "coverage": "minibosses and world item pickups are not read — Sekiro "
+                        "publishes no id table for either, so there is nothing to look "
+                        "up even though the flag region itself is read",
             "how": "the save is not encrypted and, unlike every other game here, its "
                    "fields do not move between patches — so play time, journey (New "
                    "Game+) count, Attack Power and Sen are read straight from fixed "
@@ -328,7 +334,8 @@ def footer_for(cfg, n, version=None, patch=None, owner=None, folder=None, meta=N
     return ["<details>", "<summary>About this file — how it was produced, "
             "and how far to trust it</summary>", "",
             f"- **Game:** {cfg['title']}",
-            f"- **Support tier:** {cfg['tier']}",
+            f"- **Support tier:** {cfg['tier']}"
+            + (f"  _({cfg['coverage']})_" if cfg.get("coverage") else ""),
             f"- **Character slots read:** {n}", *ver, *env, "",
             disclaimer_for(cfg), "", "</details>", ""]
 
@@ -412,6 +419,7 @@ def parse_save(data, base_dir):
             ch = sdt_parse(slot, iddb)
             if ch is not None:
                 attach_defeated_bosses(ch, base_dir)
+                sdt_attach_flags(ch, slot, base_dir)
                 attach_progress_totals(ch, base_dir)
                 characters.append((i, ch))
         return SaveData(game, cfg, version, patch, characters, owner, folder)
@@ -485,10 +493,9 @@ ER_NOTE = ("_Elden Ring identity, attributes, and runes are read directly; the "
            "parsed, so they are not listed. What is listed is really owned._")
 
 
-## @brief Sekiro's own caveat. The item lists are complete and the two stat maxima are
-#  now pinned, so what is left is one uncertain field and the event-flag region — which is
-#  what would name the Sculptor's Idols and the boss kills, and which nobody has located
-#  in the file.
+## @brief Sekiro's own caveat. The item lists are complete, the two stat maxima are
+#  pinned, and the event-flag region is located — so both the idols and the boss kills
+#  come out of their own flags. What is left needs id tables the game does not publish.
 SDT_NOTE = ("_Sekiro has no character name and no attributes: both are absent from the "
             "game, not missing here. The item lists (carried, key items and the storage "
             "box) are read whole and named by type, so nothing in them is guessed. Max HP "
@@ -498,10 +505,12 @@ SDT_NOTE = ("_Sekiro has no character name and no attributes: both are absent fr
             "not read as a number of its own: the documented field holds 15 across saves "
             "taken before and after the character gained a prosthetic, so it is the carry "
             "cap rather than the count — and emblems you actually hold are an ordinary "
-            "inventory item, listed with everything else. **Sculptor's Idols** and "
-            "boss-defeat **flags** are not read either: the bit arithmetic is the same as "
-            "Dark Souls III's, but where the flag region sits inside the save has never "
-            "been published, so the bosses below come from Memories alone._")
+            "inventory item, listed with everything else. The **Sculptor's Idols** and the "
+            "boss-defeat **flags** are both read: the event-flag region is at a fixed "
+            "place in the save, worked out from save pairs that lit one idol and killed "
+            "one boss, so a kill tagged _(confirmed)_ is proven rather than counted off a "
+            "Memory. Both RESET on a new journey — Attack Power carries and the flags do "
+            "not, so an NG+ save reports fewer than the character has earned._")
 
 
 ##

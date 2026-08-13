@@ -51,6 +51,8 @@ export function snapshot(ch, file, slot, game, title) {
     game, title, slot, name: ch.name || "?", tier: ch.tier,
     play_time: ch.play_time || 0, level: ch.level || 0, souls: ch.souls || 0,
     attack: ch.attack == null ? null : ch.attack,
+    vitality: ch.vitality == null ? null : ch.vitality,
+    key_items: [...new Set((ch.key_items || []).map(([n]) => n))].sort(),
     soul_memory: ch.soul_memory == null ? null : ch.soul_memory,
     deaths: ch.deaths == null ? null : ch.deaths,
     hollow_lvl: ch.hollow_lvl == null ? null : ch.hollow_lvl,
@@ -134,6 +136,7 @@ export function progress(s) {
     // this tool reads, and a Memory consumed is never un-consumed — not even
     // by a New Game+ lap. See progress() in sl2/timeline.py.
     attack: s.attack == null ? -1 : s.attack,
+    vitality: s.vitality == null ? -1 : s.vitality,
     estus: s.estus == null ? -1 : s.estus,
     ng_plus: s.ng_plus == null ? -1 : s.ng_plus,
   };
@@ -152,7 +155,7 @@ export function descends(a, b) {
   if (pa.ng_plus > pb.ng_plus) return false;
   if (!subset(pa.endings, pb.endings)) return false;
   if (pa.level > pb.level || pa.estus > pb.estus) return false;
-  if (pa.attack > pb.attack) return false;
+  if (pa.attack > pb.attack || pa.vitality > pb.vitality) return false;
   if (pb.ng_plus > pa.ng_plus) return true;
   for (const k of RESETTABLE) if (!subset(pa[k], pb[k])) return false;
   return Object.entries(pa.pickups).every(([area, n]) => n <= (pb.pickups[area] || 0));
@@ -232,7 +235,8 @@ const diff = (a, b) => sortedSet(new Set([...a].filter((x) => !b.has(x))));
 export function achievements(cur, prev, cap = 3) {
   const was = prev ? progress(prev) : {
     bonfires: new Set(), bosses: new Set(), endings: new Set(), cinders: new Set(),
-    covenants: new Set(), pickups: {}, level: 0, attack: -1, estus: -1,
+    covenants: new Set(), pickups: {}, level: 0, attack: -1, vitality: -1,
+    estus: -1,
     ng_plus: -1,
   };
   const cp = progress(cur);
@@ -249,6 +253,23 @@ export function achievements(cur, prev, cap = 3) {
   if (nb.length) {
     out.push("BOSS: " + nb.slice(0, 2).join(" · ")
       + (nb.length > 2 ? ` +${nb.length - 2} more` : ""));
+  }
+  // Sekiro's version of the same news, and the only one it can give: Attack Power
+  // rises by one per Memory consumed, so a step here IS a boss whose token has
+  // already been spent — the kill the boss list can no longer see. And a Prayer
+  // Necklace leaves no trace either once used; only Vitality remembers it.
+  if (cur.attack != null && was.attack >= 0 && cur.attack > was.attack) {
+    out.push(`MEMORY SPENT: attack ${was.attack} \u2192 ${cur.attack}`);
+  }
+  if (cur.vitality != null && was.vitality >= 0 && cur.vitality > was.vitality) {
+    out.push(`NECKLACE USED: vitality ${was.vitality} \u2192 ${cur.vitality}`);
+  }
+  // Key items are the one per-save delta Sekiro can show besides its two counters.
+  // NOT in the containment test — some key items are consumed on use.
+  const nk = diff(new Set(cur.key_items), new Set(prev ? prev.key_items : []));
+  if (nk.length) {
+    out.push("KEY ITEM: " + nk.slice(0, 2).join(" \u00b7 ")
+      + (nk.length > 2 ? ` +${nk.length - 2} more` : ""));
   }
   const nc = diff(cp.cinders, was.cinders);
   if (nc.length) out.push("CINDERS: " + nc.join(" · "));

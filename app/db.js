@@ -184,7 +184,8 @@ const toMap10 = (j) => {
 async function loadSdt(getJSON) {
   const paths = [...SDT_FILES.map((c) => `db_sdt/${c}.json`),
     ...SDT_FILES.map((c) => `db_sdt/${c}_devnames.json`),
-    "db_sdt/prosthetics.json", "db_sdt/boss_souls.json", "db_sdt/boss_flags.json"];
+    "db_sdt/prosthetics.json", "db_sdt/boss_souls.json", "db_sdt/boss_flags.json",
+    "db_sdt/idols.json"];
   const got = await jgetAll(getJSON, paths);
   const names = {}, dev = {};
   SDT_FILES.forEach((cat, i) => {
@@ -193,7 +194,8 @@ async function loadSdt(getJSON) {
   });
   const rest = SDT_FILES.length * 2;
   return { names, dev, prosthetics: new Set(toMap10(got[rest]).keys()),
-           bossSouls: got[rest + 1] || {}, bossFlags: got[rest + 2] || {} };
+           bossSouls: got[rest + 1] || {}, bossFlags: got[rest + 2] || {},
+           idols: got[rest + 3] || {} };
 }
 
 const LOADERS = { ds1: loadDs1, ds2: loadDs2, ds3: loadDs3, er: loadEr, sdt: loadSdt };
@@ -212,7 +214,8 @@ const EMPTY = {
                 bossRoute: {}, pickups: {}, ringEffects: {}, endings: {},
                 bonfireTotal: 0 }),
   er: () => ({ items: {}, bossSouls: {} }),
-  sdt: () => ({ names: {}, dev: {}, prosthetics: new Set(), bossSouls: {}, bossFlags: {} }),
+  sdt: () => ({ names: {}, dev: {}, prosthetics: new Set(), bossSouls: {},
+                bossFlags: {}, idols: {} }),
 };
 
 /**
@@ -258,5 +261,6 @@ export function dbPathsFor(family) {
   }
   return [...SDT_FILES.map((c) => `db_sdt/${c}.json`),
     ...SDT_FILES.map((c) => `db_sdt/${c}_devnames.json`),
-    "db_sdt/prosthetics.json", "db_sdt/boss_souls.json", "db_sdt/boss_flags.json"];
+    "db_sdt/prosthetics.json", "db_sdt/boss_souls.json", "db_sdt/boss_flags.json",
+    "db_sdt/idols.json"];
 }

@@ -1228,9 +1228,14 @@ const SDT_ATTACK_OFF = 0x3449C, SDT_SEN_OFF = 0x344D0;
 // agree. See SDT_HP_OFF / sdt_twin in sl2/sdt.py.
 const SDT_HP_OFF = 0x34470, SDT_HP_ALT = 0x34474;
 const SDT_POSTURE_OFF = 0x3448C, SDT_POSTURE_ALT = 0x34490;
+
+// Vitality, the word immediately before Attack Power. Pinned by a Prayer Necklace
+// differential — see SDT_VITALITY_OFF in sl2/sdt.py. The stored value is the number
+// the status screen shows; a fresh character reads 1.
+const SDT_VITALITY_OFF = 0x34498, SDT_VITALITY_MAX = 20;
 // Attack power on a character who has consumed no Memory — measured on a real save
 // that is minutes from the opening, which is what makes it a base and not a guess.
-const SDT_ATTACK_BASE = 1, SDT_ATTACK_MAX = 98, SDT_NG_MAX = 99;
+const SDT_ATTACK_BASE = 1, SDT_ATTACK_MAX = 99, SDT_NG_MAX = 99;
 const SDT_LISTS = [["inv", 0x8F70C, 0x7000], ["key", 0x9670C, 0x2000],
   ["storage", 0x987A0, 0x9000], ["storage", 0xA1958, 0x4000]];
 const SDT_RECORD = 16;
@@ -1259,7 +1264,19 @@ function sdtResolve(cat, iid, db) {
   return name != null ? [name, "internal", true] : [null, null, false];
 }
 
-/** Walk the four fixed item regions; yields [which list, name, category, qty, internal]. */
+// Rows that resolve to a real name but are engine state, not inventory: Sekiro has no
+// armour system, so the character's own body models live in the protector table, and
+// the Virtual Weapon / Upgrade Menu rows restate something already listed. The
+// `Another's Memory:` attire blocks are deliberately NOT here — see SDT_SUPPRESSED_
+// PREFIXES in sl2/sdt.py for why.
+const SDT_SUPPRESSED_PREFIXES = ["Original Memory:", "Immortal Severance Cutscene",
+  "Virtual Weapon:", "Upgrade Menu:"];
+const sdtSuppressed = (name) => SDT_SUPPRESSED_PREFIXES.some((p) => name.startsWith(p));
+
+// A skill point is spendable currency, so it rides in the header, not the consumables.
+const SDT_SKILL_POINT_ID = 1200;
+
+/** Walk the four fixed item regions; yields [which, item id, name, category, qty, internal]. */
 function* sdtItems(buf, db) {
   for (const [which, start, length] of SDT_LISTS) {
     for (let off = start; off < start + length; off += SDT_RECORD) {
@@ -1269,8 +1286,9 @@ function* sdtItems(buf, db) {
       if (cat === undefined) continue;
       const iid = u32(buf, off + 4);
       if (iid == null) continue;
-      const [name, renderCat, internal] = sdtResolve(cat, iid & SDT_ID_MASK, db);
-      yield [which, name, renderCat, u32(buf, off + 8), internal];
+      const id = iid & SDT_ID_MASK;
+      const [name, renderCat, internal] = sdtResolve(cat, id, db);
+      yield [which, id, name, renderCat, u32(buf, off + 8), internal];
     }
   }
 }
@@ -1287,13 +1305,76 @@ function sdtMemoriesSpent(attack) {
   return attack - SDT_ATTACK_BASE;
 }
 
+// The event-flag region: 0x500 categories of ten 128-byte blocks of 1000 flags each, at
+// a fixed slot offset, packed exactly the way DS3 packs its groups. See SDT_FLAG_REGION
+// and SDT_FLAG_MAPS in sl2/sdt.py for the derivation, for why the flat alternative
+// reading is wrong, and for why the map indices are not consecutive.
+const SDT_FLAG_REGION = 52, SDT_FLAG_CATEGORY = 0x500, SDT_FLAG_BLOCK = 128;
+const SDT_FLAG_GLOBAL_MAX = 10000;
+const SDT_FLAG_MAPS = new Map([["10,0", 2], ["11,0", 3], ["11,1", 4], ["11,2", 5],
+  ["13,0", 8], ["15,0", 9], ["17,0", 11], ["20,0", 13], ["25,0", 14]]);
+
+/** Byte offset and bit of an event flag, or null where it cannot be placed. */
+function sdtFlagOffset(fid) {
+  const area = Math.floor(fid / 100000) % 100, sub = Math.floor(fid / 10000) % 10;
+  let k;
+  if (area >= 90 || area + sub === 0) {
+    if (!(fid >= 0 && fid < SDT_FLAG_GLOBAL_MAX)) return null;
+    k = 0;
+  } else {
+    k = SDT_FLAG_MAPS.get(`${area},${sub}`);
+    if (k === undefined) return null;
+  }
+  const n = fid % 1000;
+  const block = SDT_FLAG_REGION + k * SDT_FLAG_CATEGORY
+    + (Math.floor(fid / 1000) % 10) * SDT_FLAG_BLOCK;
+  return [block + (n >> 5) * 4 + 3 - ((n & 31) >> 3), 7 - (n & 7)];
+}
+
+/** Read one global event flag; null past the end of the slot. See sdt_flag. */
+function sdtFlag(buf, fid) {
+  const at = sdtFlagOffset(fid);
+  if (at === null) return null;
+  const byte = u8(buf, at[0]);
+  return byte == null ? null : (byte >> at[1]) & 1;
+}
+
+// Boss-defeat flags into ch.bosses as `flag` evidence, Sculptor's Idols into
+// ch.bonfire_areas (DS3's shape, so render/totals/timeline need no new code). Runs
+// AFTER the Memory floor, which attachDefeatedBosses refuses to build once `bosses`
+// exists. See sdt_attach_flags in sl2/sdt.py.
+function sdtAttachFlags(ch, buf, dbs) {
+  const bosses = ch.bosses || {};
+  for (const [name, fid] of Object.entries(dbs.sdt.bossFlags || {})) {
+    if (sdtFlag(buf, fid)) {
+      bosses[name] = [...new Set([...(bosses[name] || []), "flag"])].sort();
+    }
+  }
+  if (Object.keys(bosses).length) ch.bosses = bosses;
+  const areas = [];
+  let anyLit = false;
+  for (const [area, idols] of Object.entries(dbs.sdt.idols || {})) {
+    const named = [], missing = [];
+    for (const [fid, name] of idols) (sdtFlag(buf, Number(fid)) ? named : missing).push(name);
+    anyLit = anyLit || named.length > 0;
+    areas.push([area, named.length, named, idols.length, missing]);
+  }
+  if (anyLit) ch.bonfire_areas = areas;
+}
+
 /** Parse one Sekiro slot. No name and no attributes — the game has neither. */
 function sdtParse(buf, db) {
   const inv = {}, keyItems = [], memories = [];
-  let unknown = 0, internal = 0;
-  for (const [which, name, cat, qty, isInternal] of sdtItems(buf, db)) {
+  let unknown = 0, internal = 0, suppressed = 0, skillPoints = null;
+  for (const [which, id, name, cat, qty, isInternal] of sdtItems(buf, db)) {
     if (name == null) { unknown++; continue; }
     if (isInternal) { internal++; continue; }
+    if (sdtSuppressed(name)) { suppressed++; continue; }
+    // Only a CARRIED skill point is promoted — one in the box is genuinely in the box.
+    if (id === SDT_SKILL_POINT_ID && which !== "storage") {
+      skillPoints = (skillPoints || 0) + (qty || 0);
+      continue;
+    }
     const row = [name, qty];
     // The box wins over the category: a key item sitting in storage is in storage,
     // and saying otherwise would report it as carried.
@@ -1311,6 +1392,8 @@ function sdtParse(buf, db) {
   let attack = u32(buf, SDT_ATTACK_OFF);
   if (attack != null && attack > SDT_ATTACK_MAX) attack = null;
   const ng = u8(buf, SDT_NG_OFF);
+  let vitality = u32(buf, SDT_VITALITY_OFF);
+  if (vitality != null && (vitality < 1 || vitality > SDT_VITALITY_MAX)) vitality = null;
   const ch = {
     tier: "full", game: "sdt",
     // Sekiro profiles carry no name; SDT_NOTE says what that means, once.
@@ -1322,9 +1405,10 @@ function sdtParse(buf, db) {
     ng_plus: ng != null && ng <= SDT_NG_MAX ? ng : null,
     play_time: playTime,
     souls: u32(buf, SDT_SEN_OFF),
-    attack,
+    attack, vitality, skill_points: skillPoints,
     boss_souls: memories, key_items: keyItems,
     inv, unknown_count: unknown, internal_count: internal,
+    suppressed_count: suppressed,
   };
   const spent = sdtMemoriesSpent(attack);
   if (spent != null) ch.memories = { spent, held: memories.length, cumulative: !!ch.ng_plus };
@@ -1339,7 +1423,9 @@ export const GAMES = {
   ptde: { title: "Dark Souls: Prepare to Die Edition", tier: "full", slots: [0, 10] },
   ds3: { title: "Dark Souls III", tier: "full", slots: [0, 10] },
   er: { title: "Elden Ring", tier: "full", slots: [0, 10] },
-  sdt: { title: "Sekiro: Shadows Die Twice", tier: "full", slots: [0, SDT_SLOT_COUNT] },
+  // `coverage` says what the tier does NOT cover. See GAMES["sdt"] in sl2/convert.py.
+  sdt: { title: "Sekiro: Shadows Die Twice", tier: "full", slots: [0, SDT_SLOT_COUNT],
+    coverage: "minibosses and world item pickups are not read — Sekiro publishes no id table for either, so there is nothing to look up even though the flag region itself is read" },
 };
 
 /**
@@ -1470,6 +1556,7 @@ export function parseSave(data, dbs) {
       const ch = sdtParse(slot, dbs.sdt);
       if (ch) {
         attachDefeatedBosses(ch, dbs);
+        sdtAttachFlags(ch, slot, dbs);
         attachProgressTotals(ch, dbs);
         characters.push({ slot: label(i), ch });
       }
@@ -1540,7 +1627,7 @@ export function parseSave(data, dbs) {
   const gamePatch = game === "er" ? erGamePatch(data, entries) : null;
   const steam = steamOwner(data, entries, game);
   const saveFolder = steamFolder(game, steam);
-  return { game, title: meta.title, tier: meta.tier, characters, bonfireTotal, saveVersion, gamePatch, steam, saveFolder };
+  return { game, title: meta.title, tier: meta.tier, coverage: meta.coverage || null, characters, bonfireTotal, saveVersion, gamePatch, steam, saveFolder };
 }
 
 export { ParseError };

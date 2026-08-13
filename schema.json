@@ -45,6 +45,10 @@
           "type": "integer",
           "description": "The save's own format version word (DSR 71, DS3 98, ER 220/251). Absent for DS2 and PtDE, which carry no such field. This is NOT the game patch."
         },
+        "support_tier_coverage": {
+          "type": "string",
+          "description": "What the support tier does NOT cover for this game, where a gap would not be guessable from the tier word alone. Sekiro is the only game with one today: it is `full` for identity, stats, currency and inventory, but its event flags are not read, so Sculptor's Idols and boss-defeat flags are absent. Absent for every game with no such gap."
+        },
         "game_patch": {
           "type": "string",
           "description": "Elden Ring only: the version of the regulation the save carries, e.g. \"1.16.0\". No other game stores one."
@@ -137,6 +141,18 @@
         "attack": {
           "type": "integer", "minimum": 0, "maximum": 98,
           "description": "Sekiro only: Attack Power. Also a COUNT — it rises by exactly one per Memory consumed, so `attack - 1` is how many boss Memories have been spent (1 is the value on a character who has spent none)."
+        },
+        "vitality": {
+          "type": "integer", "minimum": 1, "maximum": 20,
+          "description": "Sekiro only: Vitality, the track that raises max HP and Posture. Also a COUNT — it rises by exactly one per Prayer Necklace used, so `vitality - 1` is how many necklaces (four Prayer Beads each) have been consumed, cumulative across journeys. 1 is the value on a character who has used none."
+        },
+        "skill_points": {
+          "type": "integer", "minimum": 0,
+          "description": "Sekiro only: skill points banked and not yet spent, carried in the header rather than the inventory because they are a spendable currency. Points already spent are not stored, so this is not a total earned. A point sitting in the storage box is left as an ordinary item."
+        },
+        "suppressed_count": {
+          "type": "integer", "minimum": 0,
+          "description": "Sekiro only: item records that resolved to a real name but are engine state rather than inventory — the character's own body models (Sekiro has no armour system) and the `Virtual Weapon:` / `Upgrade Menu:` rows that restate something already listed. Counted rather than hidden, and separate from `internal_count`, which is rows that only had a development name."
         },
         "memories": {
           "type": "object",

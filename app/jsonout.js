@@ -83,6 +83,8 @@ export function buildJson(result, filename, meta = null) {
     game_title: result.title,
     support_tier: result.tier || "full",
   };
+  // What the tier does NOT cover; only Sekiro has one. See build_json.
+  if (result.coverage) source.support_tier_coverage = result.coverage;
   // Both are properties of the FILE, not of any character, and both are often absent —
   // DS2 has no version word and only Elden Ring carries a regulation version.
   if (result.saveVersion != null) source.save_format_version = result.saveVersion;

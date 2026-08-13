@@ -120,6 +120,10 @@ def build_json(save, filename, meta=None):
         ("game_title", cfg["title"]),
         ("support_tier", cfg["tier"]),
     ])
+    # What the tier does NOT cover, where the game has a gap a reader would otherwise
+    # not guess from the word "full". Only Sekiro has one today.
+    if cfg.get("coverage"):
+        source["support_tier_coverage"] = cfg["coverage"]
     # Both are properties of the FILE, not of any character, and both are frequently
     # absent — DS2 has no version word, and only ER carries a regulation version.
     if save.version is not None:

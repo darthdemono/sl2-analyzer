@@ -3,7 +3,7 @@
 // md_for_character + convert's header; verified against the Python .md output by
 // scratch/md_harness.mjs (timestamp line excluded).
 
-import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, CURRENCY, DS2_GREAT_SOULS, SRC, guessBuild, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, DS2_GAMES, fmt, fmtPlaytime, countDupes, memoriesLine } from "./tables.js";
+import { STAT_ABBR, statGovernsFor, statCapsFor, capFirst, CAT_TITLE, CAT_ORDER, CURRENCY, DS2_GREAT_SOULS, SRC, guessBuild, ds1DerivedStats, ds2DerivedStats, ds3DerivedStats, DS2_GAMES, fmt, fmtPlaytime, countDupes, memoriesLine, vitalityNecklaces, catTitle } from "./tables.js";
 
 export const REPO_URL = "https://github.com/darthdemono/sl2-analyzer";
 // DS1 reads each bonfire's own record (so it knows the kindle level and can list a
@@ -13,6 +13,9 @@ const DS3_BONFIRE_NOTE = "bonfires lit, inferred from each area's flag bits — 
 // DS2 reads the world block's own discovered-bonfire array, so it names every one it
 // found; the areas are a grouping of that list, not an inference.
 const DS2_BONFIRE_NOTE = "each bonfire the save records as discovered, by area — a floor";
+// Sekiro's bonfire is a Sculptor's Idol, and unlike every other game's it starts again
+// on a new journey. See SDT_BONFIRE_NOTE in sl2/render.py.
+const SDT_BONFIRE_NOTE = "each idol's own flag bit, by area — a floor, and one that starts again on a new journey";
 // Only six areas have a derived flag-group base, so this counts what is TRACKED, not
 // what the game ships. An area absent from the list is unmapped, not empty.
 const DS3_PICKUP_NOTE = "one-off world items picked up, from each area's pickup flags — covers only the areas whose flag group is mapped";
@@ -32,10 +35,9 @@ const ER_NOTE = "_Elden Ring identity, attributes, and runes are read directly; 
 
 // The Lords-of-Cinder line: how many of the four are on the throne, which ones the
 // mapped flags name, and the counts behind the number. See lords_line in sl2_to_md.py.
-// Sekiro's caveat: the item lists are complete and the two stat maxima are pinned, so
-// what is left is one uncertain field and the event-flag region, which nobody has
-// located in the file. Verbatim from SDT_NOTE in convert.py.
-const SDT_NOTE = "_Sekiro has no character name and no attributes: both are absent from the game, not missing here. The item lists (carried, key items and the storage box) are read whole and named by type, so nothing in them is guessed. Max HP and max Posture come from the second of each field's two copies, because the offsets the published editor labels as maxima are the CURRENT values \u2014 a save pair either side of taking damage settled that. **Spirit Emblems** is not read as a number of its own: the documented field holds 15 across saves taken before and after the character gained a prosthetic, so it is the carry cap rather than the count \u2014 and emblems you actually hold are an ordinary inventory item, listed with everything else. **Sculptor's Idols** and boss-defeat **flags** are not read either: the bit arithmetic is the same as Dark Souls III's, but where the flag region sits inside the save has never been published, so the bosses below come from Memories alone._";
+// Sekiro's caveat. Verbatim from SDT_NOTE in convert.py — if one moves, both move, or
+// the Markdown harness fails on the byte difference.
+const SDT_NOTE = "_Sekiro has no character name and no attributes: both are absent from the game, not missing here. The item lists (carried, key items and the storage box) are read whole and named by type, so nothing in them is guessed. Max HP and max Posture come from the second of each field's two copies, because the offsets the published editor labels as maxima are the CURRENT values \u2014 a save pair either side of taking damage settled that. **Spirit Emblems** is not read as a number of its own: the documented field holds 15 across saves taken before and after the character gained a prosthetic, so it is the carry cap rather than the count \u2014 and emblems you actually hold are an ordinary inventory item, listed with everything else. The **Sculptor's Idols** and the boss-defeat **flags** are both read: the event-flag region is at a fixed place in the save, worked out from save pairs that lit one idol and killed one boss, so a kill tagged _(confirmed)_ is proven rather than counted off a Memory. Both RESET on a new journey — Attack Power carries and the flags do not, so an NG+ save reports fewer than the character has earned._";
 
 function lordsLine(lords) {
   // Mid-dot separated: "Aldrich, Devourer of Gods" has a comma of its own.
@@ -69,6 +71,9 @@ export function mdCharacter(ch, slot) {
   if (ch.play_time) L.push(`- **Play Time:** ${fmtPlaytime(ch.play_time)}`);
   if (ch.souls != null) L.push(`- **${CURRENCY[ch.game] || "Souls"} held:** ${fmt(ch.souls)}`);
   if (ch.attack != null) L.push(`- **Attack Power:** ${ch.attack}`);
+  if (ch.vitality != null) L.push(`- **Vitality:** ${ch.vitality}  _(${vitalityNecklaces(ch.vitality)})_`);
+  if (ch.skill_points != null) L.push(`- **Skill Points Held:** ${ch.skill_points}`
+    + "  _(spendable at a Sculptor's Idol — the points already spent are not stored, so this is what is banked, not what has been earned)_");
   if (ch.memories) L.push(`- **Memories:** ${memoriesLine(ch.memories)}`);
   if (ch.humanity != null) L.push(`- **Humanity:** ${ch.humanity}`);
   if (ch.hp != null) L.push(`- **Max HP:** ${fmt(ch.hp)}`);
@@ -166,7 +171,13 @@ export function mdCharacter(ch, slot) {
     const lit = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0);
     const total = ch.bonfire_areas.reduce((s, [, , , t]) => s + t, 0);
     const n = ch.bonfire_areas.filter(([, c]) => c).length, areas = ch.bonfire_areas.length;
-    L.push(`### Bonfires Discovered (${lit} of ${total}, in ${n} of ${areas} areas)  _(${ch.game === "dsr" || ch.game === "ptde" ? DS1_BONFIRE_NOTE : DS2_GAMES.has(ch.game) ? DS2_BONFIRE_NOTE : DS3_BONFIRE_NOTE})_`, "",
+    const bfNote = ch.game === "dsr" || ch.game === "ptde" ? DS1_BONFIRE_NOTE
+      : DS2_GAMES.has(ch.game) ? DS2_BONFIRE_NOTE
+      : ch.game === "sdt" ? SDT_BONFIRE_NOTE : DS3_BONFIRE_NOTE;
+    // Sekiro has no bonfires; calling its idols one would be the same kind of wrong as
+    // printing a soul level for a game that has none.
+    const bfHead = ch.game === "sdt" ? "Sculptor's Idols Lit" : "Bonfires Discovered";
+    L.push(`### ${bfHead} (${lit} of ${total}, in ${n} of ${areas} areas)  _(${bfNote})_`, "",
       ...ch.bonfire_areas.map(([name, c, named, tot, missing]) => {
         let row = `- ${name}: ${c}/${tot}`;
         if (named && named.length) {
@@ -273,13 +284,16 @@ export function mdCharacter(ch, slot) {
         if (group.length) L.push(`#### ${title}`, "", ...bullets(group), "");
       }
     } else {
-      const title = CAT_TITLE[cat] + (cat === "goods" && listed.size ? "  _(boss souls and key items are listed above)_" : "");
+      const title = catTitle(ch.game, cat) + (cat === "goods" && listed.size ? "  _(boss souls and key items are listed above)_" : "");
       L.push(`#### ${title}`, "", ...bullets(items), "");
     }
   }
   if (ch.unknown_count) L.push(`_${ch.unknown_count} inventory item(s) had IDs not in the name database (upgraded / infused variants) and were omitted._`, "");
   if (ch.internal_count) {
     L.push(`_${ch.internal_count} further entr${ch.internal_count === 1 ? "y" : "ies"} carried only an engine development name — placeholder rows and debug items rather than anything the game hands you — and were left out._`, "");
+  }
+  if (ch.suppressed_count) {
+    L.push(`_${ch.suppressed_count} further entr${ch.suppressed_count === 1 ? "y" : "ies"} were engine state rather than inventory — Sekiro has no armour system, so the character's own body models sit in the protector table, and the \`Virtual Weapon:\` rows restate a Combat Art already listed under its own name. Counted here, not printed._`, "");
   }
   return L.join("\n");
 }
@@ -310,7 +324,7 @@ export function buildMarkdown(result, filename) {
   }
   const footer = ["<details>",
     "<summary>About this file — how it was produced, and how far to trust it</summary>", "",
-    `- **Game:** ${result.title}`, `- **Support tier:** ${result.tier || "full"}`,
+    `- **Game:** ${result.title}`, `- **Support tier:** ${result.tier || "full"}` + (result.coverage ? `  _(${result.coverage})_` : ""),
     `- **Character slots read:** ${result.characters.length}`, ...ver, "", disclaimer, "", "</details>", ""];
   return head.concat(body, footer).join("\n");
 }
