@@ -1,14 +1,27 @@
-"""The header roster block: character names, and DS3's play-time field.
-"""
-from .reader import read_utf16, u8
-from .keys import DS3_KEY
+"""The header roster block: character names, and DS3's play-time field."""
 
+from .keys import DS3_KEY
+from .reader import read_utf16, u8
 
 ## @brief Header-entry index, occupancy-flag offset, first-descriptor offset,
 #         descriptor stride, and max name length, per game.
 ROSTER_PARAMS = {
-    "ds3": {"menu": 10, "occ": 4244, "desc": 4254, "stride": 554, "namelen": 16, "decrypt": DS3_KEY},
-    "er":  {"menu": 10, "occ": 6484, "desc": 6494, "stride": 588, "namelen": 16, "decrypt": None},
+    "ds3": {
+        "menu": 10,
+        "occ": 4244,
+        "desc": 4254,
+        "stride": 554,
+        "namelen": 16,
+        "decrypt": DS3_KEY,
+    },
+    "er": {
+        "menu": 10,
+        "occ": 6484,
+        "desc": 6494,
+        "stride": 588,
+        "namelen": 16,
+        "decrypt": None,
+    },
 }
 
 

@@ -19,7 +19,8 @@ const el = (tag, cls, text) => {
 /** `**bold**`, `_italic_`, `` `code` `` and [[refs]], applied without innerHTML. */
 function inline(target, text) {
   const re = /\*\*([^*]+)\*\*|_([^_]+)_|`([^`]+)`|\[\[([^\]]+)\]\]/g;
-  let at = 0, mt;
+  let at = 0,
+    mt;
   while ((mt = re.exec(text)) !== null) {
     if (mt.index > at) target.append(text.slice(at, mt.index));
     if (mt[1] != null) target.append(el("b", null, mt[1]));
@@ -33,7 +34,11 @@ function inline(target, text) {
 }
 
 const isTableRow = (l) => l.startsWith("|") && l.endsWith("|");
-const cells = (l) => l.slice(1, -1).split("|").map((c) => c.trim());
+const cells = (l) =>
+  l
+    .slice(1, -1)
+    .split("|")
+    .map((c) => c.trim());
 const isDivider = (l) => /^\|[\s|:-]+\|$/.test(l);
 
 /**
@@ -45,13 +50,15 @@ export function renderMarkdown(md) {
   const lines = md.split("\n");
   let i = 0;
   // The footer is a real <details>; while inside it, blocks go there instead.
-  let sink = frag, detailsOpen = null;
+  let sink = frag,
+    detailsOpen = null;
   const push = (node) => sink.append(node);
 
   while (i < lines.length) {
     const line = lines[i];
 
-    if (line.startsWith("```")) {                       // fenced block
+    if (line.startsWith("```")) {
+      // fenced block
       const lang = line.slice(3).trim();
       const body = [];
       i++;
@@ -82,7 +89,11 @@ export function renderMarkdown(md) {
       continue;
     }
 
-    if (line === "---") { push(el("hr")); i++; continue; }
+    if (line === "---") {
+      push(el("hr"));
+      i++;
+      continue;
+    }
 
     const h = /^(#{1,6})\s+(.*)$/.exec(line);
     if (h) {
@@ -98,7 +109,8 @@ export function renderMarkdown(md) {
       const head = cells(line);
       i++;
       if (i < lines.length && isDivider(lines[i])) i++;
-      const thead = el("thead"), tr = el("tr");
+      const thead = el("thead"),
+        tr = el("tr");
       for (const c of head) tr.append(inline(el("th"), c));
       thead.append(tr);
       table.append(thead);
@@ -110,7 +122,7 @@ export function renderMarkdown(md) {
         i++;
       }
       table.append(tbody);
-      const wrap = el("div", "md-scroll");     // wide tables scroll, the page does not
+      const wrap = el("div", "md-scroll"); // wide tables scroll, the page does not
       wrap.append(table);
       push(wrap);
       continue;
@@ -126,17 +138,27 @@ export function renderMarkdown(md) {
       continue;
     }
 
-    if (line.trim() === "") { i++; continue; }
+    if (line.trim() === "") {
+      i++;
+      continue;
+    }
 
     // Anything left is a paragraph: gather until the next blank line.
     const para = [];
-    while (i < lines.length && lines[i].trim() !== "" && !lines[i].startsWith("- ")
-           && !lines[i].startsWith("#") && !lines[i].startsWith("```")
-           && !isTableRow(lines[i]) && lines[i] !== "---" && !lines[i].startsWith("<")) {
+    while (
+      i < lines.length &&
+      lines[i].trim() !== "" &&
+      !lines[i].startsWith("- ") &&
+      !lines[i].startsWith("#") &&
+      !lines[i].startsWith("```") &&
+      !isTableRow(lines[i]) &&
+      lines[i] !== "---" &&
+      !lines[i].startsWith("<")
+    ) {
       para.push(lines[i++]);
     }
     if (para.length) push(inline(el("p", "md-p"), para.join(" ")));
-    else i++;                                  // a stray tag we do not handle
+    else i++; // a stray tag we do not handle
   }
   return frag;
 }

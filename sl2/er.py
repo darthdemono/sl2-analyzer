@@ -1,10 +1,10 @@
-"""Elden Ring.
-"""
+"""Elden Ring."""
+
 import json
 import os
-from collections import defaultdict, OrderedDict
-from .reader import is_valid_name, read_utf16, u32, u8
+from collections import OrderedDict, defaultdict
 
+from .reader import is_valid_name, read_utf16, u8, u32
 
 ## @brief Offset of the GaItem array inside an ER slot (ver + map_id + 0x18 pad).
 ER_GAITEM_START = 0x20
@@ -30,9 +30,18 @@ ER_PROFILE_NAME_LEN, ER_PROFILE_LEVEL_OFF = 16, 34
 ## @brief ER stat block as signed distances from the Vigor field (the anchor).
 #  Eight attributes in the game's storage order, read against a real level-266
 #  save (offsets checked on a second character in the same file).
-ER_STAT_D = OrderedDict([
-    ("Vigor", 0), ("Mind", 4), ("Endurance", 8), ("Strength", 12),
-    ("Dexterity", 16), ("Intelligence", 20), ("Faith", 24), ("Arcane", 28)])
+ER_STAT_D = OrderedDict(
+    [
+        ("Vigor", 0),
+        ("Mind", 4),
+        ("Endurance", 8),
+        ("Strength", 12),
+        ("Dexterity", 16),
+        ("Intelligence", 20),
+        ("Faith", 24),
+        ("Arcane", 28),
+    ]
+)
 
 
 ## @brief ER max HP, stamina, rune level and runes held, same anchor-relative scheme.
@@ -112,9 +121,12 @@ def er_find_stats(buf):
         if first is not None and 1 <= first <= 99:
             vals = [u32(buf, v + d) for d in dists]
             lvl = u32(buf, v + ER_LEVEL_D)
-            if (all(x is not None and 1 <= x <= 99 for x in vals)
-                    and lvl is not None and 1 <= lvl <= 713
-                    and sum(vals) - ER_LEVEL_BASE == lvl):
+            if (
+                all(x is not None and 1 <= x <= 99 for x in vals)
+                and lvl is not None
+                and 1 <= lvl <= 713
+                and sum(vals) - ER_LEVEL_BASE == lvl
+            ):
                 return v
         v += 4
     return None
@@ -145,22 +157,32 @@ def er_parse(buf, iddb, name, level):
     if not any(buckets.values()):
         return None
     inv = {c: [(n, None) for n in sorted(v)] for c, v in buckets.items()}
-    remembrances = [(n, None) for c in buckets for n in sorted(buckets[c])
-                    if "Remembrance" in n]
+    remembrances = [
+        (n, None) for c in buckets for n in sorted(buckets[c]) if "Remembrance" in n
+    ]
     v = er_find_stats(buf)
-    stats = OrderedDict((k, u32(buf, v + d)) for k, d in ER_STAT_D.items()) \
-        if v is not None else OrderedDict()
+    stats = (
+        OrderedDict((k, u32(buf, v + d)) for k, d in ER_STAT_D.items())
+        if v is not None
+        else OrderedDict()
+    )
     return {
-        "tier": "full" if stats else "inventory", "game": "er",
+        "tier": "full" if stats else "inventory",
+        "game": "er",
         "name": name if (name and is_valid_name(name)) else "(unnamed slot)",
-        "klass": None, "stats": stats, "soul_memory": None, "humanity": None,
+        "klass": None,
+        "stats": stats,
+        "soul_memory": None,
+        "humanity": None,
         "ng_plus": None,
         "level": u32(buf, v + ER_LEVEL_D) if v is not None else level,
         "souls": u32(buf, v + ER_RUNES_D) if v is not None else None,
         "stamina": u32(buf, v + ER_STAM_D) if v is not None else None,
         "hp": u32(buf, v + ER_HP_D) if v is not None else None,
-        "boss_souls": remembrances, "key_items": [],
-        "inv": inv, "unknown_count": unknown,
+        "boss_souls": remembrances,
+        "key_items": [],
+        "inv": inv,
+        "unknown_count": unknown,
     }
 
 

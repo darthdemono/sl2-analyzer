@@ -16,7 +16,7 @@ reading whatever happens to sit past it.
 def read_uint(buf, off, size):
     if off is None or off < 0 or off + size > len(buf):
         return None
-    return int.from_bytes(buf[off:off + size], "little")
+    return int.from_bytes(buf[off : off + size], "little")
 
 
 ## @brief One-byte read. @see read_uint
@@ -51,10 +51,10 @@ def u64(buf, off):
 def read_utf16(buf, off, max_char):
     if off is None or off < 0 or off >= len(buf):
         return ""
-    raw = buf[off:off + max_char * 2]
+    raw = buf[off : off + max_char * 2]
     end = raw.find(b"\x00\x00")
     if end != -1:
-        raw = raw[:end + (end & 1)]  # keep byte pairs aligned
+        raw = raw[: end + (end & 1)]  # keep byte pairs aligned
     try:
         return raw.decode("utf-16-le", "ignore").rstrip("\x00")
     except (UnicodeDecodeError, ValueError):

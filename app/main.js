@@ -13,7 +13,9 @@ const $ = (id) => document.getElementById(id);
 const out = $("out");
 const status = $("status");
 
-function setStatus(msg) { status.textContent = msg; }
+function setStatus(msg) {
+  status.textContent = msg;
+}
 
 function showError(msg) {
   out.replaceChildren();
@@ -26,7 +28,9 @@ function showError(msg) {
 
 // ── Parsing backend: a worker when we can have one, inline otherwise ──────────
 
-let worker = null, workerJobs = new Map(), nextJob = 1;
+let worker = null,
+  workerJobs = new Map(),
+  nextJob = 1;
 
 function startWorker() {
   if (worker !== null || typeof Worker === "undefined") return worker;
@@ -36,9 +40,12 @@ function startWorker() {
       const job = workerJobs.get(data.id);
       if (!job) return;
       workerJobs.delete(data.id);
-      if (data.ok) { job.resolve(data.result); return; }
+      if (data.ok) {
+        job.resolve(data.result);
+        return;
+      }
       const err = new Error(data.error);
-      err.parseError = data.parseError;   // ParseError does not survive the clone
+      err.parseError = data.parseError; // ParseError does not survive the clone
       job.reject(err);
     });
     // A worker that fails to boot (no module-worker support) must not kill the page:
@@ -49,14 +56,18 @@ function startWorker() {
       worker.terminate();
       worker = false;
     });
-  } catch { worker = false; }
+  } catch {
+    worker = false;
+  }
   return worker;
 }
 
 /** Inline fallback: the exact same pipeline, just on the main thread. */
 async function parseInline(buf) {
-  const [{ parseSave, detectSaveGame }, { loadDbsFor, DB_FAMILY }] =
-    await Promise.all([import("./parser.js"), import("./db.js")]);
+  const [{ parseSave, detectSaveGame }, { loadDbsFor, DB_FAMILY }] = await Promise.all([
+    import("./parser.js"),
+    import("./db.js"),
+  ]);
   const getJSON = async (p) => {
     const r = await fetch(p);
     if (!r.ok) throw new Error(`fetch ${p}: ${r.status}`);
@@ -78,7 +89,8 @@ function parseInWorker(buf) {
   }).catch((e) => {
     // The worker died mid-job (see the error handler above). The buffer was
     // transferred away, so there is nothing left to retry with — say so plainly.
-    if (e.message === "worker failed") throw new Error("The background parser stopped. Reload the page and try again.");
+    if (e.message === "worker failed")
+      throw new Error("The background parser stopped. Reload the page and try again.");
     throw e;
   });
 }
@@ -99,7 +111,9 @@ async function handleFile(file) {
     // A ParseError is a message written for the user ("not a supported Souls
     // save"). Anything else is a bug or a broken file, so it gets a wrapper.
     const userFacing = e && (e.parseError || e.name === "ParseError");
-    showError(userFacing ? e.message : `Could not read this file: ${e && e.message ? e.message : e}`);
+    showError(
+      userFacing ? e.message : `Could not read this file: ${e && e.message ? e.message : e}`,
+    );
   }
 }
 
@@ -123,7 +137,7 @@ function ensureMermaid() {
     // the site is dark by design (it does not follow the OS), so a preset picked from
     // prefers-color-scheme draws white boxes on a black page.
     const css = getComputedStyle(document.documentElement);
-    const v = (name, fallback) => (css.getPropertyValue(name).trim() || fallback);
+    const v = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
     const ink = v("--ink", "#cbb98d");
     const accent = v("--accent", "#c7a85c");
     mermaid.initialize({
@@ -155,7 +169,8 @@ function ensureMermaid() {
  *  a flat list of .sl2 files, keeping the relative path so references can name them. */
 async function filesFromDrop(dt) {
   const items = dt.items ? [...dt.items] : [];
-  const entries = items.map((it) => (it.webkitGetAsEntry ? it.webkitGetAsEntry() : null))
+  const entries = items
+    .map((it) => (it.webkitGetAsEntry ? it.webkitGetAsEntry() : null))
     .filter(Boolean);
   if (!entries.length) return [...dt.files];
   const out = [];
@@ -179,13 +194,17 @@ async function filesFromDrop(dt) {
 }
 
 /** Normalise whatever the browser handed us to {file, path} pairs. */
-const asPairs = (list) => [...list].map((f) => (f.file
-  ? f : { file: f, path: f.webkitRelativePath || f.name }));
+const asPairs = (list) =>
+  [...list].map((f) => (f.file ? f : { file: f, path: f.webkitRelativePath || f.name }));
 
 async function handleMany(list) {
-  const pairs = asPairs(list).filter(({ file }) => file.name.toLowerCase().endsWith(".sl2"))
+  const pairs = asPairs(list)
+    .filter(({ file }) => file.name.toLowerCase().endsWith(".sl2"))
     .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
-  if (!pairs.length) { showError("No .sl2 files in that drop."); return; }
+  if (!pairs.length) {
+    showError("No .sl2 files in that drop.");
+    return;
+  }
   out.replaceChildren();
 
   const entries = [];
@@ -196,14 +215,20 @@ async function handleMany(list) {
     try {
       result = await parseInWorker(new Uint8Array(await file.arrayBuffer()));
     } catch {
-      result = null;                 // a folder of backups will hold a dud eventually
+      result = null; // a folder of backups will hold a dud eventually
     }
-    entries.push({ result, file: { path, file: file.name, size: file.size,
-      mtime: Math.trunc(file.lastModified / 1000) } });
+    entries.push({
+      result,
+      file: { path, file: file.name, size: file.size, mtime: Math.trunc(file.lastModified / 1000) },
+    });
   }
 
   const readable = entries.filter((e) => e.result).length;
-  if (!readable) { setStatus(""); showError("None of those files could be read as a supported save."); return; }
+  if (!readable) {
+    setStatus("");
+    showError("None of those files could be read as a supported save.");
+    return;
+  }
 
   setStatus("Building the timeline…");
   const md = buildCombined(entries, null);
@@ -230,9 +255,15 @@ function toolbar(md) {
   copy.className = "btn btn-ghost";
   copy.textContent = "Copy Markdown";
   copy.addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(md); copy.textContent = "Copied"; }
-    catch { copy.textContent = "Copy failed"; }
-    setTimeout(() => { copy.textContent = "Copy Markdown"; }, 1500);
+    try {
+      await navigator.clipboard.writeText(md);
+      copy.textContent = "Copied";
+    } catch {
+      copy.textContent = "Copy failed";
+    }
+    setTimeout(() => {
+      copy.textContent = "Copy Markdown";
+    }, 1500);
   });
   const dl = document.createElement("button");
   dl.type = "button";
@@ -293,15 +324,26 @@ function wire() {
   // #drop is a real <button>, so click/Enter/Space all come through natively.
   drop.addEventListener("click", () => input.click());
   ["dragover", "dragenter"].forEach((ev) =>
-    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+    drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop.classList.add("over");
+    }),
+  );
   ["dragleave", "drop"].forEach((ev) =>
-    drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+    drop.addEventListener(ev, (e) => {
+      e.preventDefault();
+      drop.classList.remove("over");
+    }),
+  );
   drop.addEventListener("drop", async (e) => {
     // A folder or several files means the combined document, whatever the toggle
     // says — there is no single save to summarise.
-    const many = combined || e.dataTransfer.files.length > 1
-      || [...(e.dataTransfer.items || [])].some((it) =>
-        it.webkitGetAsEntry && (it.webkitGetAsEntry() || {}).isDirectory);
+    const many =
+      combined ||
+      e.dataTransfer.files.length > 1 ||
+      [...(e.dataTransfer.items || [])].some(
+        (it) => it.webkitGetAsEntry && (it.webkitGetAsEntry() || {}).isDirectory,
+      );
     if (many) {
       if (!combined) setMode(true);
       handleMany(await filesFromDrop(e.dataTransfer));
@@ -316,7 +358,9 @@ function wire() {
   startWorker();
 
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+    window.addEventListener("load", () =>
+      navigator.serviceWorker.register("sw.js").catch(() => {}),
+    );
   }
 }
 

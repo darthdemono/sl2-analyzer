@@ -1,13 +1,13 @@
-"""Dark Souls III.
-"""
+"""Dark Souls III."""
+
 import json
 import os
 import re
-from collections import defaultdict, OrderedDict
-from .reader import is_valid_name, u16, u32, u8
-from .progress import find_boss_souls
-from .roster import ROSTER_PARAMS
+from collections import OrderedDict, defaultdict
 
+from .progress import find_boss_souls
+from .reader import is_valid_name, u8, u16, u32
+from .roster import ROSTER_PARAMS
 
 ## @brief DS3 attunement-slot breakpoints (fextralife Attunement table): the nth
 #  entry is the ATN needed for the nth spell slot. Slots = count of these <= ATN.
@@ -124,13 +124,15 @@ def ds3_derived_stats(stats, ring_mods=None):
     slots = sum(1 for b in DS3_SLOT_BREAKS if atn >= b)
     # The 199 ceiling is Luck's own; ring points are documented to stack past it.
     discovery = min(199, 100 + lck)
-    return {"slots": slots + int(total["slots"]),
-            "slots_base": slots,
-            "equip_load": load,
-            "equip_load_base": base_load,
-            "item_discovery": int(discovery + total["discovery"]),
-            "item_discovery_base": discovery,
-            "ring_bonus": who}
+    return {
+        "slots": slots + int(total["slots"]),
+        "slots_base": slots,
+        "equip_load": load,
+        "equip_load_base": base_load,
+        "item_discovery": int(discovery + total["discovery"]),
+        "item_discovery_base": discovery,
+        "ring_bonus": who,
+    }
 
 
 ## @brief Load the DS3 bonfire table (db_ds3/bonfires.json): area → list of
@@ -318,10 +320,19 @@ DS3_RECORD, DS3_QTY_OFF = 16, 4
 #  at the true distances. Calibrated against a real lopsided build (Joy, STR 18 /
 #  VIT 14 / LCK 11 read out as VIT 18 / STR 9 / LCK 14 under the old naive mapping,
 #  which the order-independent level-sum identity could not catch).
-DS3_STAT_D = OrderedDict([
-    ("Vigor", 0), ("Attunement", 4), ("Endurance", 8), ("Vitality", 40),
-    ("Strength", 12), ("Dexterity", 16), ("Intelligence", 20), ("Faith", 24),
-    ("Luck", 28)])
+DS3_STAT_D = OrderedDict(
+    [
+        ("Vigor", 0),
+        ("Attunement", 4),
+        ("Endurance", 8),
+        ("Vitality", 40),
+        ("Strength", 12),
+        ("Dexterity", 16),
+        ("Intelligence", 20),
+        ("Faith", 24),
+        ("Luck", 28),
+    ]
+)
 
 
 ## @brief DS3 max HP, FP, stamina, soul level and souls, same anchor-relative scheme.
@@ -356,11 +367,17 @@ DS3_EMBER_D = 188
 DS3_COVENANT_D = 3944
 
 
-DS3_COVENANT = {10000: "Blade of the Darkmoon", 10020: "Watchdogs of Farron",
-                10030: "Aldrich Faithful", 10040: "Warrior of Sunlight",
-                10050: "Mound-makers", 10060: "Way of Blue",
-                10070: "Blue Sentinels", 10080: "Rosaria's Fingers",
-                10090: "Spears of the Church"}
+DS3_COVENANT = {
+    10000: "Blade of the Darkmoon",
+    10020: "Watchdogs of Farron",
+    10030: "Aldrich Faithful",
+    10040: "Warrior of Sunlight",
+    10050: "Mound-makers",
+    10060: "Way of Blue",
+    10070: "Blue Sentinels",
+    10080: "Rosaria's Fingers",
+    10090: "Spears of the Church",
+}
 
 
 ## @brief DS3's soul-level identity: level == (sum of all nine attributes) - 89.
@@ -398,15 +415,23 @@ DS3_MAX_RUN_GAP = 48
 DS3_GOODS_ID_BASE = 0x40000000
 
 
-DS3_GOODS_RANGES = ((100, 149, "online"), (150, 519, "consumables"),
-                    (520, 599, "online"), (600, 699, "consumables"),
-                    (700, 799, "bosssouls"), (1000, 1299, "upgrade"),
-                    (2000, 2199, "keys"))
+DS3_GOODS_RANGES = (
+    (100, 149, "online"),
+    (150, 519, "consumables"),
+    (520, 599, "online"),
+    (600, 699, "consumables"),
+    (700, 799, "bosssouls"),
+    (1000, 1299, "upgrade"),
+    (2000, 2199, "keys"),
+)
 
 
 ## @brief The two flask upgrades that sit in the key-item block but are materials.
-DS3_GOODS_OVERRIDE = {117: "consumables",                 # Darksign (not a summon item)
-                      2141: "upgrade", 2143: "upgrade"}   # Estus Shard, Bone Shard
+DS3_GOODS_OVERRIDE = {
+    117: "consumables",  # Darksign (not a summon item)
+    2141: "upgrade",
+    2143: "upgrade",
+}  # Estus Shard, Bone Shard
 
 
 ## @brief Refine a DS3 `goods` id to its finer category (see @ref DS3_GOODS_RANGES).
@@ -452,8 +477,11 @@ def ds3_item_cat(iid, cat):
 # @param iddb The flat id lookup from @ref load_scan_db.
 # @return @c (buckets, unknown_count), buckets mapping category to @c (name, qty).
 def scan_inventory(buf, iddb):
-    positions = [o for o in range(0, len(buf) - 8)
-                 if int.from_bytes(buf[o:o + 4], "little") in iddb]
+    positions = [
+        o
+        for o in range(0, len(buf) - 8)
+        if int.from_bytes(buf[o : o + 4], "little") in iddb
+    ]
     buckets, seen, unknown = defaultdict(dict), set(), 0
     i, n = 0, len(positions)
     while i < n:
@@ -475,7 +503,7 @@ def scan_inventory(buf, iddb):
                 if o in seen:
                     continue
                 seen.add(o)
-                iid = int.from_bytes(buf[o:o + 4], "little")
+                iid = int.from_bytes(buf[o : o + 4], "little")
                 qty = u32(buf, o + DS3_QTY_OFF) or 0
                 if not 1 <= qty <= 9999:
                     continue
@@ -511,9 +539,12 @@ def ds3_find_stats(buf):
         if first is not None and 1 <= first <= 99:
             vals = [u32(buf, v + d) for d in dists]
             lvl = u32(buf, v + DS3_LEVEL_D)
-            if (all(x is not None and 1 <= x <= 99 for x in vals)
-                    and lvl is not None and 1 <= lvl <= 802
-                    and sum(vals) - DS3_LEVEL_BASE == lvl):
+            if (
+                all(x is not None and 1 <= x <= 99 for x in vals)
+                and lvl is not None
+                and 1 <= lvl <= 802
+                and sum(vals) - DS3_LEVEL_BASE == lvl
+            ):
                 return v
         v += 4
     return None
@@ -551,7 +582,8 @@ DS3_EQUIP_D = 664
 ## @brief Armour sub-offsets inside EquipGameData (base +0x20..+0x2C), in the
 #  game's own head-to-toe order. Each holds a GaItem *handle*, not an id.
 DS3_ARMOR_SLOTS = OrderedDict(
-    [("Head", 0x20), ("Chest", 0x24), ("Hands", 0x28), ("Legs", 0x2C)])
+    [("Head", 0x20), ("Chest", 0x24), ("Hands", 0x28), ("Legs", 0x2C)]
+)
 
 
 ## @brief The four ring sub-offsets inside EquipGameData (base +0x34..+0x40).
@@ -575,8 +607,15 @@ DS3_AMMO_SLOTS = (0x08, 0x0C, 0x10, 0x14)
 #  infused weapon names itself; the +N reinforcement lives in the 52-byte
 #  weapon record and is still not read.
 DS3_WEAPON_SLOTS = OrderedDict(
-    [("Right Hand", -0x0C), ("Right Hand 2", -0x04), ("Right Hand 3", 0x04),
-     ("Left Hand", -0x10), ("Left Hand 2", -0x08), ("Left Hand 3", 0x00)])
+    [
+        ("Right Hand", -0x0C),
+        ("Right Hand 2", -0x04),
+        ("Right Hand 3", 0x04),
+        ("Left Hand", -0x10),
+        ("Left Hand 2", -0x08),
+        ("Left Hand 3", 0x00),
+    ]
+)
 
 
 ## @brief Item id of the default bare fist (an empty weapon slot reads this, not
@@ -812,12 +851,19 @@ def ds3_parse(buf, iddb, name):
     goods = inv.get("bosssouls", []) + inv.get("goods", [])
     key_items = inv.pop("keys", [])
     v = ds3_find_stats(buf)
-    stats = OrderedDict((k, u32(buf, v + d)) for k, d in DS3_STAT_D.items()) \
-        if v is not None else OrderedDict()
+    stats = (
+        OrderedDict((k, u32(buf, v + d)) for k, d in DS3_STAT_D.items())
+        if v is not None
+        else OrderedDict()
+    )
     return {
-        "tier": "full" if stats else "inventory", "game": "ds3",
+        "tier": "full" if stats else "inventory",
+        "game": "ds3",
         "name": name if (name and is_valid_name(name)) else "(unnamed slot)",
-        "klass": None, "stats": stats, "soul_memory": None, "humanity": None,
+        "klass": None,
+        "stats": stats,
+        "soul_memory": None,
+        "humanity": None,
         "ng_plus": None,
         "level": u32(buf, v + DS3_LEVEL_D) if v is not None else None,
         "souls": u32(buf, v + DS3_SOULS_D) if v is not None else None,
@@ -830,14 +876,22 @@ def ds3_parse(buf, iddb, name):
         "equipped_armor": ds3_equipped_armor(buf, iddb, v),
         "equipped_rings": ds3_equipped_rings(buf, iddb, v),
         "equipped_ammo": ds3_equipped_ammo(buf, iddb, v),
-        "boss_souls": find_boss_souls(goods), "key_items": key_items,
-        "inv": inv, "unknown_count": 0,
+        "boss_souls": find_boss_souls(goods),
+        "key_items": key_items,
+        "inv": inv,
+        "unknown_count": 0,
     }
 
 
 ## @brief DS3 id-scan tables: filename stem to category.
-DS3_DB_FILES = {"weapons": "weapons", "armors": "armors", "rings": "rings",
-                "goods": "goods", "bolts": "bolts", "spells": "spells"}
+DS3_DB_FILES = {
+    "weapons": "weapons",
+    "armors": "armors",
+    "rings": "rings",
+    "goods": "goods",
+    "bolts": "bolts",
+    "spells": "spells",
+}
 
 
 ## @brief Play time (seconds, uint32) inside slot @p i's DS3 roster descriptor.
@@ -873,10 +927,10 @@ DS3_GAITEM_START = 0x6C
 DS3_GAITEM_SLOTS = 6144
 
 
-DS3_GAITEM_BIG = 60                                 # weapon/armour record; all else 8
+DS3_GAITEM_BIG = 60  # weapon/armour record; all else 8
 
 
-DS3_GAITEM_TYPES_BIG = (0x80000000, 0x90000000)     # weapon, armour top nibbles
+DS3_GAITEM_TYPES_BIG = (0x80000000, 0x90000000)  # weapon, armour top nibbles
 
 
 # Event flags are sparse: even a 100%-complete NG+ character sets only ~0.2% of the
@@ -920,7 +974,7 @@ def ds3_event_flag_base(buf):
     base = gesture_end + 4 + table2_size * 4 + 0x92 + 0xBCC - 0x12
     if not 0 <= base < len(buf):
         return None
-    sample = buf[base:base + DS3_FLAG_SAMPLE]
+    sample = buf[base : base + DS3_FLAG_SAMPLE]
     if not sample:
         return None
     density = sum(bin(b).count("1") for b in sample) / (len(sample) * 8)
@@ -962,14 +1016,18 @@ def ds3_attach_flags(ch, buf, base, base_dir):
                 bosses.setdefault(name, set()).add("flag")
     if bosses:
         ch["bosses"] = {b: sorted(bosses[b]) for b in bosses}
-    cinders = [lord for lord, (dist, bit) in load_ds3_lord_cinders(base_dir).items()
-               if (u8(buf, base + dist) or 0) & (1 << bit)]
+    cinders = [
+        lord
+        for lord, (dist, bit) in load_ds3_lord_cinders(base_dir).items()
+        if (u8(buf, base + dist) or 0) & (1 << bit)
+    ]
     if cinders:
         ch["cinders"] = cinders
     quests = OrderedDict()
     for src, rewards in load_ds3_questlines(base_dir).items():
-        got = [rw for dist, bit, rw in rewards
-               if (u8(buf, base + dist) or 0) & (1 << bit)]
+        got = [
+            rw for dist, bit, rw in rewards if (u8(buf, base + dist) or 0) & (1 << bit)
+        ]
         if got:
             quests[src] = got
     if quests:
@@ -993,15 +1051,21 @@ def ds3_attach_flags(ch, buf, base, base_dir):
 
     covs = OrderedDict()
     for cov, marks in load_ds3_covenants(base_dir).items():
-        got = [what for dist, bit, what in marks
-               if (u8(buf, base + dist) or 0) & (1 << bit)]
+        got = [
+            what
+            for dist, bit, what in marks
+            if (u8(buf, base + dist) or 0) & (1 << bit)
+        ]
         if got:
             covs[cov] = got
     if covs:
         ch["covenants"] = covs
 
-    endings = [end for end, (dist, bit) in load_ds3_endings(base_dir).items()
-               if (u8(buf, base + dist) or 0) & (1 << bit)]
+    endings = [
+        end
+        for end, (dist, bit) in load_ds3_endings(base_dir).items()
+        if (u8(buf, base + dist) or 0) & (1 << bit)
+    ]
     if endings:
         ch["endings"] = endings
 

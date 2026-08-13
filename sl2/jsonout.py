@@ -10,6 +10,7 @@ does not carry is simply absent, exactly as in the Markdown, so a consumer can t
 "not in this game" from "zero". And nothing about the machine that produced it is
 guessed: the environment block holds only what the caller passed on the command line.
 """
+
 import json
 import os
 from collections import OrderedDict
@@ -29,8 +30,17 @@ SCHEMA_VERSION = "1.0.0"
 #  accepted and written through — this list is what gets documented and type-checked,
 #  not a whitelist. The point of the block is that a save alone cannot tell you which
 #  store sold the game, which patch it ran, or what it ran under.
-KNOWN_META = ("source", "version", "dlc", "os", "launcher", "proton", "gamemode",
-              "mangohud", "notes")
+KNOWN_META = (
+    "source",
+    "version",
+    "dlc",
+    "os",
+    "launcher",
+    "proton",
+    "gamemode",
+    "mangohud",
+    "notes",
+)
 
 
 ##
@@ -70,7 +80,9 @@ def parse_meta(pairs, path=None):
         key, value = meta_key(key), value.strip()
         if key in meta:
             # Repeat means "and also", so the first repeat turns the value into a list.
-            meta[key] = (meta[key] if isinstance(meta[key], list) else [meta[key]]) + [value]
+            meta[key] = (meta[key] if isinstance(meta[key], list) else [meta[key]]) + [
+                value
+            ]
         else:
             meta[key] = value
     return meta
@@ -114,12 +126,14 @@ def character_json(slot_no, ch):
 # @return A dict ready for json.dump.
 def build_json(save, filename, meta=None):
     cfg = save.cfg
-    source = OrderedDict([
-        ("filename", os.path.basename(filename)),
-        ("game", save.game),
-        ("game_title", cfg["title"]),
-        ("support_tier", cfg["tier"]),
-    ])
+    source = OrderedDict(
+        [
+            ("filename", os.path.basename(filename)),
+            ("game", save.game),
+            ("game_title", cfg["title"]),
+            ("support_tier", cfg["tier"]),
+        ]
+    )
     # What the tier does NOT cover, where the game has a gap a reader would otherwise
     # not guess from the word "full". Only Sekiro has one today.
     if cfg.get("coverage"):
@@ -140,15 +154,18 @@ def build_json(save, filename, meta=None):
     if save.folder is not None:
         source["save_folder"] = save.folder
 
-    doc = OrderedDict([
-        ("$schema", SCHEMA_URL),
-        ("schema_version", SCHEMA_VERSION),
-        ("generated", datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")),
-        ("tool", OrderedDict([("name", "sl2-analyzer"), ("url", REPO_URL)])),
-        ("source", source),
-    ])
+    doc = OrderedDict(
+        [
+            ("$schema", SCHEMA_URL),
+            ("schema_version", SCHEMA_VERSION),
+            ("generated", datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")),
+            ("tool", OrderedDict([("name", "sl2-analyzer"), ("url", REPO_URL)])),
+            ("source", source),
+        ]
+    )
     if meta:
         doc["environment"] = OrderedDict(meta)
-    doc["characters"] = [character_json(i - cfg["slots"].start + 1, ch)
-                         for i, ch in save.characters]
+    doc["characters"] = [
+        character_json(i - cfg["slots"].start + 1, ch) for i, ch in save.characters
+    ]
     return doc

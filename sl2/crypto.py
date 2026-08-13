@@ -1,9 +1,11 @@
 """Per-game entry decryption. Each returns the plaintext game data for one entry,
 or None on a bad read.
 """
+
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from .reader import u32
+
 from .keys import DS2_KEY
+from .reader import u32
 
 
 ##
@@ -13,7 +15,7 @@ from .keys import DS2_KEY
 # @param ct  The ciphertext.
 # @return The decrypted bytes.
 def _aes_cbc(key, iv, ct):
-    ct = ct[:len(ct) // 16 * 16]
+    ct = ct[: len(ct) // 16 * 16]
     return Cipher(algorithms.AES(key), modes.CBC(iv)).decryptor().update(ct)
 
 
@@ -33,7 +35,7 @@ def decrypt_ds2(blob, key=DS2_KEY):
     # world-block readers would happily mistake for set event flags.
     if dlen is None or not 0 < dlen <= len(pt) - 4:
         return None
-    return pt[4:4 + dlen]
+    return pt[4 : 4 + dlen]
 
 
 ##
@@ -46,7 +48,7 @@ def decrypt_ds2(blob, key=DS2_KEY):
 def decrypt_iv_prefixed(blob, key):
     dec = _aes_cbc(key, blob[16:32], blob[16:])
     dlen = u32(dec, 16)
-    return None if dlen is None else dec[20:20 + dlen]
+    return None if dlen is None else dec[20 : 20 + dlen]
 
 
 ##

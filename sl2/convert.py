@@ -1,25 +1,41 @@
 """The driver: the GAMES control table, the file-level footer fields, and the
 one pass that turns a .sl2 into Markdown.
 """
+
 import os
 import sys
 from datetime import datetime
-from .reader import u32
-from .keys import DS2_VANILLA_KEY, DS3_KEY, DSR_KEY
+
 from .bnd4 import parse_bnd4
 from .crypto import decrypt_ds2, decrypt_iv_prefixed, decrypt_none
 from .detect import detect_game
-from .itemdb import DS1_DB_FILES, DS2_DB_FILES, load_item_db, load_scan_db
-from .progress import attach_defeated_bosses
-from .roster import parse_roster
 from .ds1 import ds1_augment, dsr_parse, ptde_parse
 from .ds2 import DS2_GAMES, ds2_active_slots, ds2_augment, ds2_parse
-from .ds3 import DS3_DB_FILES, ds3_attach_flags, ds3_attach_ring_effects, ds3_event_flag_base, ds3_item_cat, ds3_journey, ds3_parse, ds3_playtime
+from .ds3 import (
+    DS3_DB_FILES,
+    ds3_attach_flags,
+    ds3_attach_ring_effects,
+    ds3_event_flag_base,
+    ds3_item_cat,
+    ds3_journey,
+    ds3_parse,
+    ds3_playtime,
+)
 from .er import er_parse, er_roster, load_er_db
-from .sdt import SDT_SLOT_COUNT, load_sdt_db, sdt_active_slots, sdt_attach_flags, sdt_parse
-from .totals import attach_progress_totals
+from .itemdb import DS1_DB_FILES, DS2_DB_FILES, load_item_db, load_scan_db
+from .keys import DS2_VANILLA_KEY, DS3_KEY, DSR_KEY
+from .progress import attach_defeated_bosses
+from .reader import u32
 from .render import md_for_character
-
+from .roster import parse_roster
+from .sdt import (
+    SDT_SLOT_COUNT,
+    load_sdt_db,
+    sdt_active_slots,
+    sdt_attach_flags,
+    sdt_parse,
+)
+from .totals import attach_progress_totals
 
 ## @brief Public source repository, printed in every generated file.
 REPO_URL = "https://github.com/darthdemono/sl2-analyzer"
@@ -28,113 +44,151 @@ REPO_URL = "https://github.com/darthdemono/sl2-analyzer"
 ## @brief Per-game config: title, tier, db, decrypt/parse, slot range, and a
 #         one-line "how it works" for the file header.
 GAMES = {
-    "ds2sotfs": {"title": "Dark Souls II: Scholar of the First Sin", "tier": "full",
-                 "db": ("db_ds2", True, DS2_DB_FILES), "decrypt": decrypt_ds2,
-                 "parse": ds2_parse, "slots": range(1, 11),
-                 "active": ds2_active_slots, "augment": ds2_augment,
-                 "how": "the save is scrambled with a lock (AES-128 encryption) "
-                        "whose key ships inside the game itself, so the tool applies "
-                        "that key to unlock the raw data. From there each character's "
-                        "details sit at fixed, known positions: name, level, the nine "
-                        "attributes, and souls are read straight from those spots. "
-                        "Every inventory entry stores a numeric item ID, which the "
-                        "tool looks up in a name table built from the community's "
-                        "SOTFS ID list, so you read 'Longsword' instead of a number; "
-                        "reinforcement level and infusion sit in a separate field of "
-                        "each item record and are shown as a '+N' suffix and an "
-                        "infusion prefix (e.g. 'Fire Longsword +6')"},
-    "ds2vanilla": {"title": "Dark Souls II", "tier": "full",
-                   "db": ("db_ds2", True, DS2_DB_FILES),
-                   "decrypt": lambda b: decrypt_ds2(b, DS2_VANILLA_KEY),
-                   "parse": lambda b, d: ds2_parse(b, d, "ds2vanilla"),
-                   "slots": range(1, 11),
-                   # The header and world blocks are encrypted with the same key as
-                   # the slot, so both hooks must be given the vanilla one — reading
-                   # them with the Scholar key yields noise, not an empty result.
-                   "active": lambda d, e, s: ds2_active_slots(
-                       d, e, s, lambda b: decrypt_ds2(b, DS2_VANILLA_KEY)),
-                   "augment": lambda ch, d, e, i, b: ds2_augment(
-                       ch, d, e, i, b, lambda x: decrypt_ds2(x, DS2_VANILLA_KEY)),
-                   "how": "the original (pre-Scholar) release locks its save with a "
-                          "different AES-128 key from Scholar's, but stores everything "
-                          "in the same places once unlocked — so the same reader "
-                          "handles both. Name, level, the nine attributes, souls and "
-                          "the inventory sit at fixed known positions, and every item "
-                          "ID is looked up in the community SOTFS name table. Note "
-                          "the Scholar-only items and bonfires simply never appear in "
-                          "an original-edition save"},
-    "dsr": {"title": "Dark Souls Remastered", "tier": "full",
-            "db": ("db_ds1", False, DS1_DB_FILES),
-            "decrypt": lambda b: decrypt_iv_prefixed(b, DSR_KEY),
-            "parse": dsr_parse, "slots": range(0, 10),
-            "augment": lambda ch, d, e, i, b: ds1_augment(
-                ch, d, e, i, b, lambda x: decrypt_iv_prefixed(x, DSR_KEY)),
-            "how": "the save is locked the same way (AES-128 encryption, key shipped "
-                   "inside the game), so the tool unlocks it first. The character "
-                   "block does not sit at a fixed spot — it shifts as the save grows "
-                   "— so the tool locates it by a fixed marker (a 'magic' byte "
-                   "pattern) that always sits beside it, then reads the level, stats, "
-                   "and souls at known distances from that marker. The inventory is "
-                   "found by a second, separate marker, and every item ID is matched "
-                   "to its real name"},
-    "ptde": {"title": "Dark Souls: Prepare to Die Edition", "tier": "full",
-             "db": ("db_ds1", False, DS1_DB_FILES), "decrypt": decrypt_none,
-             "parse": ptde_parse, "slots": range(0, 10),
-             "augment": lambda ch, d, e, i, b: ds1_augment(ch, d, e, i, b, decrypt_none),
-             "how": "this original edition does not encrypt its save at all, so "
-                    "there is nothing to unlock. It stores a character the same way "
-                    "Remastered does but without that version's marker, so the tool "
-                    "finds the character by locating the name text and reads the "
-                    "level, stats, souls, and inventory that sit at known distances "
-                    "around it"},
-    "ds3": {"title": "Dark Souls III", "tier": "full",
-            "db": ("db_ds3", DS3_DB_FILES),
-            "decrypt": lambda b: decrypt_iv_prefixed(b, DS3_KEY),
-            "menu": 10, "slots": range(0, 10),
-            "how": "the save is locked with AES-128 encryption, key shipped in the "
-                   "game, so the tool unlocks it first. The stats do not sit at a "
-                   "fixed position, and that position moves between game patches, so "
-                   "instead of trusting a location the tool searches for the stat "
-                   "block by its content: it looks for the run of nine numbers that, "
-                   "added together, equal the character's stored level — a rule the "
-                   "game itself follows, which makes a wrong match almost impossible. "
-                   "Items are found by scanning the slot for known IDs and matched to "
-                   "names"},
-    "er": {"title": "Elden Ring", "tier": "full", "db": "db_er",
-           "decrypt": decrypt_none, "menu": 10, "slots": range(0, 10),
-           "how": "the save is not encrypted, so the tool reads it directly. Like "
-                  "Dark Souls III, the stats are found by content rather than a fixed "
-                  "spot — the tool looks for the eight numbers that add up to the "
-                  "character's level — which matters more here because that stat "
-                  "block sits in a different place for every character. Every item "
-                  "the character owns is read from the game's item array and matched "
-                  "to its real name"},
-    "sdt": {"title": "Sekiro: Shadows Die Twice", "tier": "full", "db": "db_sdt",
-            "decrypt": decrypt_none, "slots": range(0, SDT_SLOT_COUNT),
-            # `coverage` says what the tier does NOT cover, so a reader who sees
-            # "full" does not fairly infer that everything the other games report is
-            # here. Moving the tier would redefine what the word means for every game.
-            "coverage": "minibosses and world item pickups are not read — Sekiro "
-                        "publishes no id table for either, so there is nothing to look "
-                        "up even though the flag region itself is read",
-            "how": "the save is not encrypted and, unlike every other game here, its "
-                   "fields do not move between patches — so play time, journey (New "
-                   "Game+) count, Attack Power and Sen are read straight from fixed "
-                   "positions. The item lists are read the same way: each entry stores "
-                   "a type code beside its item ID, so a piece of armour can never be "
-                   "named as a weapon, and a prosthetic tool's upgrade tier is its own "
-                   "ID (there is no '+N' to work out). Sekiro has no character name and "
-                   "no attributes to level, so neither appears; Attack Power doubles as "
-                   "a count of the Memories already spent, which is how bosses whose "
-                   "token is long gone are still counted"},
+    "ds2sotfs": {
+        "title": "Dark Souls II: Scholar of the First Sin",
+        "tier": "full",
+        "db": ("db_ds2", True, DS2_DB_FILES),
+        "decrypt": decrypt_ds2,
+        "parse": ds2_parse,
+        "slots": range(1, 11),
+        "active": ds2_active_slots,
+        "augment": ds2_augment,
+        "how": "the save is scrambled with a lock (AES-128 encryption) "
+        "whose key ships inside the game itself, so the tool applies "
+        "that key to unlock the raw data. From there each character's "
+        "details sit at fixed, known positions: name, level, the nine "
+        "attributes, and souls are read straight from those spots. "
+        "Every inventory entry stores a numeric item ID, which the "
+        "tool looks up in a name table built from the community's "
+        "SOTFS ID list, so you read 'Longsword' instead of a number; "
+        "reinforcement level and infusion sit in a separate field of "
+        "each item record and are shown as a '+N' suffix and an "
+        "infusion prefix (e.g. 'Fire Longsword +6')",
+    },
+    "ds2vanilla": {
+        "title": "Dark Souls II",
+        "tier": "full",
+        "db": ("db_ds2", True, DS2_DB_FILES),
+        "decrypt": lambda b: decrypt_ds2(b, DS2_VANILLA_KEY),
+        "parse": lambda b, d: ds2_parse(b, d, "ds2vanilla"),
+        "slots": range(1, 11),
+        # The header and world blocks are encrypted with the same key as
+        # the slot, so both hooks must be given the vanilla one — reading
+        # them with the Scholar key yields noise, not an empty result.
+        "active": lambda d, e, s: ds2_active_slots(
+            d, e, s, lambda b: decrypt_ds2(b, DS2_VANILLA_KEY)
+        ),
+        "augment": lambda ch, d, e, i, b: ds2_augment(
+            ch, d, e, i, b, lambda x: decrypt_ds2(x, DS2_VANILLA_KEY)
+        ),
+        "how": "the original (pre-Scholar) release locks its save with a "
+        "different AES-128 key from Scholar's, but stores everything "
+        "in the same places once unlocked — so the same reader "
+        "handles both. Name, level, the nine attributes, souls and "
+        "the inventory sit at fixed known positions, and every item "
+        "ID is looked up in the community SOTFS name table. Note "
+        "the Scholar-only items and bonfires simply never appear in "
+        "an original-edition save",
+    },
+    "dsr": {
+        "title": "Dark Souls Remastered",
+        "tier": "full",
+        "db": ("db_ds1", False, DS1_DB_FILES),
+        "decrypt": lambda b: decrypt_iv_prefixed(b, DSR_KEY),
+        "parse": dsr_parse,
+        "slots": range(0, 10),
+        "augment": lambda ch, d, e, i, b: ds1_augment(
+            ch, d, e, i, b, lambda x: decrypt_iv_prefixed(x, DSR_KEY)
+        ),
+        "how": "the save is locked the same way (AES-128 encryption, key shipped "
+        "inside the game), so the tool unlocks it first. The character "
+        "block does not sit at a fixed spot — it shifts as the save grows "
+        "— so the tool locates it by a fixed marker (a 'magic' byte "
+        "pattern) that always sits beside it, then reads the level, stats, "
+        "and souls at known distances from that marker. The inventory is "
+        "found by a second, separate marker, and every item ID is matched "
+        "to its real name",
+    },
+    "ptde": {
+        "title": "Dark Souls: Prepare to Die Edition",
+        "tier": "full",
+        "db": ("db_ds1", False, DS1_DB_FILES),
+        "decrypt": decrypt_none,
+        "parse": ptde_parse,
+        "slots": range(0, 10),
+        "augment": lambda ch, d, e, i, b: ds1_augment(ch, d, e, i, b, decrypt_none),
+        "how": "this original edition does not encrypt its save at all, so "
+        "there is nothing to unlock. It stores a character the same way "
+        "Remastered does but without that version's marker, so the tool "
+        "finds the character by locating the name text and reads the "
+        "level, stats, souls, and inventory that sit at known distances "
+        "around it",
+    },
+    "ds3": {
+        "title": "Dark Souls III",
+        "tier": "full",
+        "db": ("db_ds3", DS3_DB_FILES),
+        "decrypt": lambda b: decrypt_iv_prefixed(b, DS3_KEY),
+        "menu": 10,
+        "slots": range(0, 10),
+        "how": "the save is locked with AES-128 encryption, key shipped in the "
+        "game, so the tool unlocks it first. The stats do not sit at a "
+        "fixed position, and that position moves between game patches, so "
+        "instead of trusting a location the tool searches for the stat "
+        "block by its content: it looks for the run of nine numbers that, "
+        "added together, equal the character's stored level — a rule the "
+        "game itself follows, which makes a wrong match almost impossible. "
+        "Items are found by scanning the slot for known IDs and matched to "
+        "names",
+    },
+    "er": {
+        "title": "Elden Ring",
+        "tier": "full",
+        "db": "db_er",
+        "decrypt": decrypt_none,
+        "menu": 10,
+        "slots": range(0, 10),
+        "how": "the save is not encrypted, so the tool reads it directly. Like "
+        "Dark Souls III, the stats are found by content rather than a fixed "
+        "spot — the tool looks for the eight numbers that add up to the "
+        "character's level — which matters more here because that stat "
+        "block sits in a different place for every character. Every item "
+        "the character owns is read from the game's item array and matched "
+        "to its real name",
+    },
+    "sdt": {
+        "title": "Sekiro: Shadows Die Twice",
+        "tier": "full",
+        "db": "db_sdt",
+        "decrypt": decrypt_none,
+        "slots": range(0, SDT_SLOT_COUNT),
+        # `coverage` says what the tier does NOT cover, so a reader who sees
+        # "full" does not fairly infer that everything the other games report is
+        # here. Moving the tier would redefine what the word means for every game.
+        "coverage": "minibosses and world item pickups are not read — Sekiro "
+        "publishes no id table for either, so there is nothing to look "
+        "up even though the flag region itself is read",
+        "how": "the save is not encrypted and, unlike every other game here, its "
+        "fields do not move between patches — so play time, journey (New "
+        "Game+) count, Attack Power and Sen are read straight from fixed "
+        "positions. The item lists are read the same way: each entry stores "
+        "a type code beside its item ID, so a piece of armour can never be "
+        "named as a weapon, and a prosthetic tool's upgrade tier is its own "
+        "ID (there is no '+N' to work out). Sekiro has no character name and "
+        "no attributes to level, so neither appears; Attack Power doubles as "
+        "a count of the Memories already spent, which is how bosses whose "
+        "token is long gone are still counted",
+    },
 }
 
 
 ## @brief One-line header note for a generated file: the repo, and how this game
 #         is read. Replaces the old boilerplate; states the source, not caveats.
 def disclaimer_for(cfg):
-    return (f"> Automated dump of the save. Code Repo: {REPO_URL} . "
-            f"How it works for {cfg['title']}: {cfg['how']}.")
+    return (
+        f"> Automated dump of the save. Code Repo: {REPO_URL} . "
+        f"How it works for {cfg['title']}: {cfg['how']}."
+    )
 
 
 ##
@@ -165,7 +219,7 @@ def save_format_version(data, entries, cfg, game):
     for e in entries:
         if e.index not in cfg["slots"]:
             continue
-        buf = cfg["decrypt"](data[e.offset:e.offset + e.size])
+        buf = cfg["decrypt"](data[e.offset : e.offset + e.size])
         v = u32(buf, 0) if buf else None
         if v is not None and 0 < v <= SAVE_VERSION_MAX:
             return v
@@ -242,7 +296,7 @@ def steam_owner(data, entries, game):
     if len(entries) <= entry:
         return None
     e = entries[entry]
-    buf = GAMES[game]["decrypt"](data[e.offset:e.offset + e.size])
+    buf = GAMES[game]["decrypt"](data[e.offset : e.offset + e.size])
     if buf is None:
         return None
     low, high = u32(buf, off), u32(buf, off + 4)
@@ -263,10 +317,10 @@ def ds2_steam_owner(data, entries, game):
     if not entries:
         return None
     e = entries[0]
-    buf = GAMES[game]["decrypt"](data[e.offset:e.offset + e.size])
+    buf = GAMES[game]["decrypt"](data[e.offset : e.offset + e.size])
     if buf is None or len(buf) < DS2_STEAM_ID_OFF + DS2_STEAM_ID_LEN:
         return None
-    raw = bytes(buf[DS2_STEAM_ID_OFF:DS2_STEAM_ID_OFF + DS2_STEAM_ID_LEN])
+    raw = bytes(buf[DS2_STEAM_ID_OFF : DS2_STEAM_ID_OFF + DS2_STEAM_ID_LEN])
     try:
         text = raw.decode("ascii")
         value = int(text, 16)
@@ -305,7 +359,7 @@ ER_REG_ENTRY = 11
 ER_REG_MAGIC = b" GER"
 
 
-ER_REG_VER_OFF = 8      # magic[4] + unk u32, per ER-Save-Lib's UserData11
+ER_REG_VER_OFF = 8  # magic[4] + unk u32, per ER-Save-Lib's UserData11
 
 
 ##
@@ -323,21 +377,32 @@ def er_game_patch(data, entries):
     if len(entries) <= ER_REG_ENTRY:
         return None
     e = entries[ER_REG_ENTRY]
-    buf = decrypt_none(data[e.offset:e.offset + e.size])
+    buf = decrypt_none(data[e.offset : e.offset + e.size])
     if buf[:4] != ER_REG_MAGIC:
         return None
     v = u32(buf, ER_REG_VER_OFF)
     if v is None or not 10000000 <= v <= 19999999:
         return None
-    return f"{v // 10 ** 7}.{v // 10 ** 5 % 100:02d}.{v // 10 ** 4 % 10}"
+    return f"{v // 10**7}.{v // 10**5 % 100:02d}.{v // 10**4 % 10}"
 
 
 ## @brief Display labels for metadata keys whose acronym `capitalize()` would mangle
 #  ("dlc" -> "Dlc", "os" -> "Os"). Any key not listed falls back to capitalising, so a
 #  caller inventing their own key still gets a sane label.
-META_LABEL = {"dlc": "DLC", "os": "OS", "cpu": "CPU", "gpu": "GPU", "ram": "RAM",
-              "mangohud": "MangoHud", "gamemode": "GameMode", "dxvk": "DXVK",
-              "fps": "FPS", "hdr": "HDR", "url": "URL", "id": "ID"}
+META_LABEL = {
+    "dlc": "DLC",
+    "os": "OS",
+    "cpu": "CPU",
+    "gpu": "GPU",
+    "ram": "RAM",
+    "mangohud": "MangoHud",
+    "gamemode": "GameMode",
+    "dxvk": "DXVK",
+    "fps": "FPS",
+    "hdr": "HDR",
+    "url": "URL",
+    "id": "ID",
+}
 
 
 ##
@@ -362,26 +427,46 @@ def footer_for(cfg, n, version=None, patch=None, owner=None, folder=None, meta=N
         ver.append(f"- **Game patch:** {patch}  _(from the save's own regulation)_")
     if owner is not None:
         account, sid = owner
-        ver.append(f"- **Steam account:** {account}  _(SteamID64 {sid} — the account "
-                   f"this save was written by)_")
+        ver.append(
+            f"- **Steam account:** {account}  _(SteamID64 {sid} — the account "
+            f"this save was written by)_"
+        )
     if folder is not None:
-        ver.append(f"- **Save folder:** `{folder}`  _(the game loads this save only "
-                   f"from a folder of this name)_")
+        ver.append(
+            f"- **Save folder:** `{folder}`  _(the game loads this save only "
+            f"from a folder of this name)_"
+        )
     env = []
     if meta:
-        env = ["", "**Setup**  _(supplied by the caller — not read from the save, "
-               "which cannot know any of it)_", ""]
+        env = [
+            "",
+            "**Setup**  _(supplied by the caller — not read from the save, "
+            "which cannot know any of it)_",
+            "",
+        ]
         for key, value in meta.items():
             label = META_LABEL.get(key) or key.replace("_", " ").capitalize()
-            shown = " · ".join(str(v) for v in value) if isinstance(value, list) else value
+            shown = (
+                " · ".join(str(v) for v in value) if isinstance(value, list) else value
+            )
             env.append(f"- **{label}:** {shown}")
-    return ["<details>", "<summary>About this file — how it was produced, "
-            "and how far to trust it</summary>", "",
-            f"- **Game:** {cfg['title']}",
-            f"- **Support tier:** {cfg['tier']}"
-            + (f"  _({cfg['coverage']})_" if cfg.get("coverage") else ""),
-            f"- **Character slots read:** {n}", *ver, *env, "",
-            disclaimer_for(cfg), "", "</details>", ""]
+    return [
+        "<details>",
+        "<summary>About this file — how it was produced, "
+        "and how far to trust it</summary>",
+        "",
+        f"- **Game:** {cfg['title']}",
+        f"- **Support tier:** {cfg['tier']}"
+        + (f"  _({cfg['coverage']})_" if cfg.get("coverage") else ""),
+        f"- **Character slots read:** {n}",
+        *ver,
+        *env,
+        "",
+        disclaimer_for(cfg),
+        "",
+        "</details>",
+        "",
+    ]
 
 
 ##
@@ -393,12 +478,12 @@ class SaveData:
     __slots__ = ("game", "cfg", "version", "patch", "owner", "folder", "characters")
 
     def __init__(self, game, cfg, version, patch, characters, owner=None, folder=None):
-        self.game = game            # game id, e.g. "ds3"
-        self.cfg = cfg              # its GAMES entry
-        self.version = version      # save-format version, or None
-        self.patch = patch          # ER regulation version, or None
-        self.owner = owner          # (account id, SteamID64 text), or None
-        self.folder = folder        # the folder name that account implies, or None
+        self.game = game  # game id, e.g. "ds3"
+        self.cfg = cfg  # its GAMES entry
+        self.version = version  # save-format version, or None
+        self.patch = patch  # ER regulation version, or None
+        self.owner = owner  # (account id, SteamID64 text), or None
+        self.folder = folder  # the folder name that account implies, or None
         self.characters = characters
 
 
@@ -430,14 +515,18 @@ def parse_save(data, base_dir):
         if not iddb:
             sys.exit(f"No item database found in {os.path.join(base_dir, cfg['db'])}")
         menu_entry = entries[cfg["menu"]]
-        roster = er_roster(data[menu_entry.offset:menu_entry.offset + menu_entry.size])
+        roster = er_roster(
+            data[menu_entry.offset : menu_entry.offset + menu_entry.size]
+        )
         for i in cfg["slots"]:
             if i >= len(entries):
                 continue
             active, name, level = roster[i] if i < len(roster) else (True, None, None)
             if not active:
                 continue
-            slot = cfg["decrypt"](data[entries[i].offset:entries[i].offset + entries[i].size])
+            slot = cfg["decrypt"](
+                data[entries[i].offset : entries[i].offset + entries[i].size]
+            )
             if slot is None:
                 continue
             ch = er_parse(slot, iddb, name, level)
@@ -460,7 +549,9 @@ def parse_save(data, base_dir):
         for i in cfg["slots"]:
             if i >= len(entries) or (active is not None and i not in active):
                 continue
-            slot = cfg["decrypt"](data[entries[i].offset:entries[i].offset + entries[i].size])
+            slot = cfg["decrypt"](
+                data[entries[i].offset : entries[i].offset + entries[i].size]
+            )
             if slot is None:
                 continue
             ch = sdt_parse(slot, iddb)
@@ -478,12 +569,16 @@ def parse_save(data, base_dir):
         if not iddb:
             sys.exit(f"No item database found in {db_dir}")
         menu_entry = entries[cfg["menu"]]
-        menu = cfg["decrypt"](data[menu_entry.offset:menu_entry.offset + menu_entry.size])
+        menu = cfg["decrypt"](
+            data[menu_entry.offset : menu_entry.offset + menu_entry.size]
+        )
         names = dict(parse_roster(menu or b"", game)) if menu is not None else {}
         for i in cfg["slots"]:
             if i >= len(entries):
                 continue
-            slot = cfg["decrypt"](data[entries[i].offset:entries[i].offset + entries[i].size])
+            slot = cfg["decrypt"](
+                data[entries[i].offset : entries[i].offset + entries[i].size]
+            )
             if slot is None:
                 continue
             ch = ds3_parse(slot, iddb, names.get(i))
@@ -514,7 +609,7 @@ def parse_save(data, base_dir):
             continue
         if active is not None and i not in active:
             continue
-        blob = data[entries[i].offset:entries[i].offset + entries[i].size]
+        blob = data[entries[i].offset : entries[i].offset + entries[i].size]
         game_data = cfg["decrypt"](blob)
         if game_data is None:
             continue
@@ -530,34 +625,38 @@ def parse_save(data, base_dir):
 
 ## @brief Elden Ring's item-coverage caveat. ER is the one game whose item list is
 #  deliberately partial, so the document says so where the list is.
-ER_NOTE = ("_Elden Ring identity, attributes, and runes are read directly; the "
-           "**item list is partial**. Owned items come from the GaItem array, "
-           "which holds weapons, armour and Ashes of War — each named against "
-           "its own type table (so no cross-type mis-naming) and reinforced/"
-           "affinity weapons resolve to the base weapon (the upgrade level "
-           "itself is not read). Talismans, spells and consumable goods live in "
-           "a separate held-inventory that shifts between patches and is not "
-           "parsed, so they are not listed. What is listed is really owned._")
+ER_NOTE = (
+    "_Elden Ring identity, attributes, and runes are read directly; the "
+    "**item list is partial**. Owned items come from the GaItem array, "
+    "which holds weapons, armour and Ashes of War — each named against "
+    "its own type table (so no cross-type mis-naming) and reinforced/"
+    "affinity weapons resolve to the base weapon (the upgrade level "
+    "itself is not read). Talismans, spells and consumable goods live in "
+    "a separate held-inventory that shifts between patches and is not "
+    "parsed, so they are not listed. What is listed is really owned._"
+)
 
 
 ## @brief Sekiro's own caveat. The item lists are complete, the two stat maxima are
 #  pinned, and the event-flag region is located — so both the idols and the boss kills
 #  come out of their own flags. What is left needs id tables the game does not publish.
-SDT_NOTE = ("_Sekiro has no character name and no attributes: both are absent from the "
-            "game, not missing here. The item lists (carried, key items and the storage "
-            "box) are read whole and named by type, so nothing in them is guessed. Max HP "
-            "and max Posture come from the second of each field's two copies, because the "
-            "offsets the published editor labels as maxima are the CURRENT values — a "
-            "save pair either side of taking damage settled that. **Spirit Emblems** is "
-            "not read as a number of its own: the documented field holds 15 across saves "
-            "taken before and after the character gained a prosthetic, so it is the carry "
-            "cap rather than the count — and emblems you actually hold are an ordinary "
-            "inventory item, listed with everything else. The **Sculptor's Idols** and the "
-            "boss-defeat **flags** are both read: the event-flag region is at a fixed "
-            "place in the save, worked out from save pairs that lit one idol and killed "
-            "one boss, so a kill tagged _(confirmed)_ is proven rather than counted off a "
-            "Memory. Both RESET on a new journey — Attack Power carries and the flags do "
-            "not, so an NG+ save reports fewer than the character has earned._")
+SDT_NOTE = (
+    "_Sekiro has no character name and no attributes: both are absent from the "
+    "game, not missing here. The item lists (carried, key items and the storage "
+    "box) are read whole and named by type, so nothing in them is guessed. Max HP "
+    "and max Posture come from the second of each field's two copies, because the "
+    "offsets the published editor labels as maxima are the CURRENT values — a "
+    "save pair either side of taking damage settled that. **Spirit Emblems** is "
+    "not read as a number of its own: the documented field holds 15 across saves "
+    "taken before and after the character gained a prosthetic, so it is the carry "
+    "cap rather than the count — and emblems you actually hold are an ordinary "
+    "inventory item, listed with everything else. The **Sculptor's Idols** and the "
+    "boss-defeat **flags** are both read: the event-flag region is at a fixed "
+    "place in the save, worked out from save pairs that lit one idol and killed "
+    "one boss, so a kill tagged _(confirmed)_ is proven rather than counted off a "
+    "Memory. Both RESET on a new journey — Attack Power carries and the flags do "
+    "not, so an NG+ save reports fewer than the character has earned._"
+)
 
 
 ##
@@ -580,9 +679,14 @@ def render_markdown(save, filename, meta=None):
     cfg = save.cfg
     # Only the save's own identity up top; what the TOOL is and how far to trust it
     # is the same in every export, so it goes in the closing block (footer_for).
-    head = [f"# {cfg['title']} — Playthrough Save Summary", "",
-            f"_Source: `{filename}` · generated {datetime.now():%Y-%m-%d %H:%M} · sl2_to_md_",
-            "", "---", ""]
+    head = [
+        f"# {cfg['title']} — Playthrough Save Summary",
+        "",
+        f"_Source: `{filename}` · generated {datetime.now():%Y-%m-%d %H:%M} · sl2_to_md_",
+        "",
+        "---",
+        "",
+    ]
     body = ["_No populated character slots found._"] if not save.characters else []
     for i, ch in save.characters:
         body.append(md_for_character(ch, i - cfg["slots"].start + 1))
@@ -591,8 +695,16 @@ def render_markdown(save, filename, meta=None):
         body += [ER_NOTE, ""]
     if save.game == "sdt":
         body += [SDT_NOTE, ""]
-    return "\n".join(head + body
-                     + footer_for(cfg, len(save.characters), save.version, save.patch,
-                                  save.owner, save.folder, meta))
-
-
+    return "\n".join(
+        head
+        + body
+        + footer_for(
+            cfg,
+            len(save.characters),
+            save.version,
+            save.patch,
+            save.owner,
+            save.folder,
+            meta,
+        )
+    )

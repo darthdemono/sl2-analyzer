@@ -11,22 +11,51 @@
 // detectSaveGame only needs the BND4 header — can load that family alone. A DS3
 // save needs 11 files, not 40.
 
-const DS2_FILES = { weapons: "weapons", armors: "armors", rings: "rings", spells: "spells",
-  key: "keys", bolts: "bolts", upgrade: "upgrade", consumables: "consumables",
-  online: "online", emotes: "emotes", bosssouls: "bosssouls" };
+const DS2_FILES = {
+  weapons: "weapons",
+  armors: "armors",
+  rings: "rings",
+  spells: "spells",
+  key: "keys",
+  bolts: "bolts",
+  upgrade: "upgrade",
+  consumables: "consumables",
+  online: "online",
+  emotes: "emotes",
+  bosssouls: "bosssouls",
+};
 // Spells are ordinary goods to the game (Soul Arrow is good 3000); they live in their
 // own file only so they render under their own heading. Mirrors DS1_DB_FILES.
-const DS1_FILES = { MeleeWeapons: "weapons", Armor: "armors", Rings: "rings",
-  Consumables: "goods", Spells: "spells" };
-const DS3_FILES = { weapons: "weapons", armors: "armors", rings: "rings", goods: "goods", bolts: "bolts", spells: "spells" };
+const DS1_FILES = {
+  MeleeWeapons: "weapons",
+  Armor: "armors",
+  Rings: "rings",
+  Consumables: "goods",
+  Spells: "spells",
+};
+const DS3_FILES = {
+  weapons: "weapons",
+  armors: "armors",
+  rings: "rings",
+  goods: "goods",
+  bolts: "bolts",
+  spells: "spells",
+};
 const ER_FILES = ["weapons", "armors", "talismans", "goods", "ashes"];
 // Sekiro: decimal id-keyed, one file per item type, plus a dev-name file per type kept
 // SEPARATE on purpose — those are engine strings, not item names. See load_sdt_db.
 const SDT_FILES = ["weapons", "armors", "goods"];
 
 /** Detected per-slot game id → the db_* family it reads. Mirrors the Python routing. */
-export const DB_FAMILY = { dsr: "ds1", ptde: "ds1", ds2sotfs: "ds2", ds2vanilla: "ds2",
-  ds3: "ds3", er: "er", sdt: "sdt" };
+export const DB_FAMILY = {
+  dsr: "ds1",
+  ptde: "ds1",
+  ds2sotfs: "ds2",
+  ds2vanilla: "ds2",
+  ds3: "ds3",
+  er: "er",
+  sdt: "sdt",
+};
 
 export const ALL_FAMILIES = ["ds1", "ds2", "ds3", "er", "sdt"];
 
@@ -40,7 +69,11 @@ function hexLE(hx) {
 
 /** Fetch one JSON file, or null if it is missing — a db file is always optional. */
 async function jget(getJSON, path) {
-  try { return await getJSON(path); } catch { return null; }
+  try {
+    return await getJSON(path);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -68,9 +101,17 @@ const toMap16 = (j) => {
 async function loadDs1(getJSON) {
   const stems = Object.keys(DS1_FILES);
   const [items, extra] = await Promise.all([
-    jgetAll(getJSON, stems.map((s) => `db_ds1/${s}.json`)),
-    jgetAll(getJSON, ["db_ds1/boss_souls.json", "db_ds1/bonfires.json", "db_ds1/boss_flags.json",
-                      "db_ds1/boss_route.json", "db_ds1/known_flags.json"]),
+    jgetAll(
+      getJSON,
+      stems.map((s) => `db_ds1/${s}.json`),
+    ),
+    jgetAll(getJSON, [
+      "db_ds1/boss_souls.json",
+      "db_ds1/bonfires.json",
+      "db_ds1/boss_flags.json",
+      "db_ds1/boss_route.json",
+      "db_ds1/known_flags.json",
+    ]),
   ]);
   // name-keyed decimal, per-category, last-wins.
   const table = {};
@@ -81,17 +122,30 @@ async function loadDs1(getJSON) {
     table[DS1_FILES[stem]] = m;
   });
   const bonfires = extra[1] || {};
-  return { items: table, bossSouls: extra[0] || {}, bonfires, bossFlags: extra[2] || {},
+  return {
+    items: table,
+    bossSouls: extra[0] || {},
+    bonfires,
+    bossFlags: extra[2] || {},
     knownFlags: extra[4] || {},
-           bossRoute: extra[3] || {}, bonfireTotal: Object.keys(bonfires).length };
+    bossRoute: extra[3] || {},
+    bonfireTotal: Object.keys(bonfires).length,
+  };
 }
 
 async function loadDs2(getJSON) {
   const stems = Object.keys(DS2_FILES);
   const [items, extra] = await Promise.all([
-    jgetAll(getJSON, stems.map((s) => `db_ds2/${s}.json`)),
-    jgetAll(getJSON, ["db_ds2/bonfires.json", "db_ds2/boss_flags.json", "db_ds2/bonfire_areas.json",
-                      "db_ds2/boss_souls.json"]),
+    jgetAll(
+      getJSON,
+      stems.map((s) => `db_ds2/${s}.json`),
+    ),
+    jgetAll(getJSON, [
+      "db_ds2/bonfires.json",
+      "db_ds2/boss_flags.json",
+      "db_ds2/bonfire_areas.json",
+      "db_ds2/boss_souls.json",
+    ]),
   ]);
   // id-keyed, setdefault — first file to claim an id keeps it, so stem order matters.
   const table = new Map();
@@ -103,20 +157,34 @@ async function loadDs2(getJSON) {
     }
   });
   const bonfires = toMap16(extra[0]);
-  return { items: table, bonfires, bossFlags: toMap16(extra[1]),
-           bonfireAreas: toMap16(extra[2]), bossSouls: extra[3] || {},
-           bonfireTotal: bonfires.size };
+  return {
+    items: table,
+    bonfires,
+    bossFlags: toMap16(extra[1]),
+    bonfireAreas: toMap16(extra[2]),
+    bossSouls: extra[3] || {},
+    bonfireTotal: bonfires.size,
+  };
 }
 
 // DS3 keeps every "good" in one file, but the ids block out by kind — so `goods`
 // splits into the finer categories the render already prints for DS2. Ranges read
 // off db_ds3/goods.json itself; see DS3_GOODS_RANGES in sl2_to_md.py.
 const DS3_GOODS_ID_BASE = 0x40000000;
-const DS3_GOODS_RANGES = [[100, 149, "online"], [150, 519, "consumables"],
-  [520, 599, "online"], [600, 699, "consumables"], [700, 799, "bosssouls"],
-  [1000, 1299, "upgrade"], [2000, 2199, "keys"]];
-const DS3_GOODS_OVERRIDE = { 117: "consumables",  // Darksign (not a summon item)
-  2141: "upgrade", 2143: "upgrade" };             // Estus Shard / Undead Bone Shard
+const DS3_GOODS_RANGES = [
+  [100, 149, "online"],
+  [150, 519, "consumables"],
+  [520, 599, "online"],
+  [600, 699, "consumables"],
+  [700, 799, "bosssouls"],
+  [1000, 1299, "upgrade"],
+  [2000, 2199, "keys"],
+];
+const DS3_GOODS_OVERRIDE = {
+  117: "consumables", // Darksign (not a summon item)
+  2141: "upgrade",
+  2143: "upgrade",
+}; // Estus Shard / Undead Bone Shard
 
 function ds3GoodsCat(iid) {
   const real = iid - DS3_GOODS_ID_BASE;
@@ -128,7 +196,8 @@ function ds3GoodsCat(iid) {
 // Arrows and bolts ARE weapons to the param — and to Paramdex, where the full table
 // comes from — but the report prints them under Ammunition and the equipped-ammo read
 // gates on that category. Bows start at 1300000, so the block is unambiguous.
-const DS3_AMMO_LO = 400000, DS3_AMMO_HI = 409999;
+const DS3_AMMO_LO = 400000,
+  DS3_AMMO_HI = 409999;
 
 function ds3ItemCat(iid, cat) {
   if (cat === "goods") return ds3GoodsCat(iid);
@@ -139,40 +208,66 @@ function ds3ItemCat(iid, cat) {
 async function loadDs3(getJSON) {
   const stems = Object.keys(DS3_FILES);
   const [items, extra] = await Promise.all([
-    jgetAll(getJSON, stems.map((s) => `db_ds3/${s}.json`)),
-    jgetAll(getJSON, ["db_ds3/boss_souls.json", "db_ds3/bonfires.json", "db_ds3/boss_flags.json",
-                      "db_ds3/questlines.json", "db_ds3/covenants.json",
-                      "db_ds3/boss_victory.json", "db_ds3/lord_cinders.json",
-                      "db_ds3/boss_route.json", "db_ds3/item_pickups.json",
-                      "db_ds3/ring_effects.json", "db_ds3/endings.json"]),
+    jgetAll(
+      getJSON,
+      stems.map((s) => `db_ds3/${s}.json`),
+    ),
+    jgetAll(getJSON, [
+      "db_ds3/boss_souls.json",
+      "db_ds3/bonfires.json",
+      "db_ds3/boss_flags.json",
+      "db_ds3/questlines.json",
+      "db_ds3/covenants.json",
+      "db_ds3/boss_victory.json",
+      "db_ds3/lord_cinders.json",
+      "db_ds3/boss_route.json",
+      "db_ds3/item_pickups.json",
+      "db_ds3/ring_effects.json",
+      "db_ds3/endings.json",
+    ]),
   ]);
   // name-keyed decimal, flat id→[name,cat], first-wins.
   const table = new Map();
   stems.forEach((stem, i) => {
     if (!items[i]) return;
-    for (const [name, id] of Object.entries(items[i])) for (const n of idsOf(id)) {
-      const cat = DS3_FILES[stem];
-      if (!table.has(n)) table.set(n, [name, ds3ItemCat(n, cat)]);
-    }
+    for (const [name, id] of Object.entries(items[i]))
+      for (const n of idsOf(id)) {
+        const cat = DS3_FILES[stem];
+        if (!table.has(n)) table.set(n, [name, ds3ItemCat(n, cat)]);
+      }
   });
   const bonfires = extra[1] || {};
-  return { items: table, bossSouls: extra[0] || {}, bonfires, bossFlags: extra[2] || {},
+  return {
+    items: table,
+    bossSouls: extra[0] || {},
+    bonfires,
+    bossFlags: extra[2] || {},
     knownFlags: extra[4] || {},
-           questlines: extra[3] || {}, covenants: extra[4] || {},
-           bossVictory: extra[5] || {}, lordCinders: extra[6] || {},
-           bossRoute: extra[7] || {}, pickups: extra[8] || {},
-           ringEffects: extra[9] || {}, endings: extra[10] || {},
-           // DS3 groups bonfires by area, so the total is the sum of the area lists.
-           bonfireTotal: Object.values(bonfires).reduce((s, a) => s + a.length, 0) };
+    questlines: extra[3] || {},
+    covenants: extra[4] || {},
+    bossVictory: extra[5] || {},
+    lordCinders: extra[6] || {},
+    bossRoute: extra[7] || {},
+    pickups: extra[8] || {},
+    ringEffects: extra[9] || {},
+    endings: extra[10] || {},
+    // DS3 groups bonfires by area, so the total is the sum of the area lists.
+    bonfireTotal: Object.values(bonfires).reduce((s, a) => s + a.length, 0),
+  };
 }
 
 async function loadEr(getJSON) {
   const [items, bossSouls] = await Promise.all([
-    jgetAll(getJSON, ER_FILES.map((c) => `db_er/${c}.json`)),
+    jgetAll(
+      getJSON,
+      ER_FILES.map((c) => `db_er/${c}.json`),
+    ),
     jget(getJSON, "db_er/boss_souls.json"),
   ]);
   const table = {};
-  ER_FILES.forEach((cat, i) => { if (items[i]) table[cat] = toMap16(items[i]); });
+  ER_FILES.forEach((cat, i) => {
+    if (items[i]) table[cat] = toMap16(items[i]);
+  });
   return { items: table, bossSouls: bossSouls || {} };
 }
 
@@ -184,20 +279,32 @@ const toMap10 = (j) => {
 };
 
 async function loadSdt(getJSON) {
-  const paths = [...SDT_FILES.map((c) => `db_sdt/${c}.json`),
+  const paths = [
+    ...SDT_FILES.map((c) => `db_sdt/${c}.json`),
     ...SDT_FILES.map((c) => `db_sdt/${c}_devnames.json`),
-    "db_sdt/prosthetics.json", "db_sdt/boss_souls.json", "db_sdt/boss_flags.json",
-    "db_sdt/idols.json", "db_sdt/minibosses.json"];
+    "db_sdt/prosthetics.json",
+    "db_sdt/boss_souls.json",
+    "db_sdt/boss_flags.json",
+    "db_sdt/idols.json",
+    "db_sdt/minibosses.json",
+  ];
   const got = await jgetAll(getJSON, paths);
-  const names = {}, dev = {};
+  const names = {},
+    dev = {};
   SDT_FILES.forEach((cat, i) => {
     names[cat] = toMap10(got[i]);
     dev[cat] = toMap10(got[i + SDT_FILES.length]);
   });
   const rest = SDT_FILES.length * 2;
-  return { names, dev, prosthetics: new Set(toMap10(got[rest]).keys()),
-           bossSouls: got[rest + 1] || {}, bossFlags: got[rest + 2] || {},
-           idols: got[rest + 3] || {}, minibosses: got[rest + 4] || {} };
+  return {
+    names,
+    dev,
+    prosthetics: new Set(toMap10(got[rest]).keys()),
+    bossSouls: got[rest + 1] || {},
+    bossFlags: got[rest + 2] || {},
+    idols: got[rest + 3] || {},
+    minibosses: got[rest + 4] || {},
+  };
 }
 
 const LOADERS = { ds1: loadDs1, ds2: loadDs2, ds3: loadDs3, er: loadEr, sdt: loadSdt };
@@ -208,17 +315,48 @@ const LOADERS = { ds1: loadDs1, ds2: loadDs2, ds3: loadDs3, er: loadEr, sdt: loa
  * game can never turn a lookup into a TypeError.
  */
 const EMPTY = {
-  ds1: () => ({ items: {}, bossSouls: {}, bonfires: {}, bossFlags: {}, bossRoute: {},
-                knownFlags: {}, bonfireTotal: 0 }),
-  ds2: () => ({ items: new Map(), bonfires: new Map(), bonfireAreas: new Map(),
-                bossFlags: new Map(), bossSouls: {}, bonfireTotal: 0 }),
-  ds3: () => ({ items: new Map(), bossSouls: {}, bonfires: {}, bossFlags: {},
-                questlines: {}, covenants: {}, bossVictory: {}, lordCinders: {},
-                bossRoute: {}, pickups: {}, ringEffects: {}, endings: {},
-                bonfireTotal: 0 }),
+  ds1: () => ({
+    items: {},
+    bossSouls: {},
+    bonfires: {},
+    bossFlags: {},
+    bossRoute: {},
+    knownFlags: {},
+    bonfireTotal: 0,
+  }),
+  ds2: () => ({
+    items: new Map(),
+    bonfires: new Map(),
+    bonfireAreas: new Map(),
+    bossFlags: new Map(),
+    bossSouls: {},
+    bonfireTotal: 0,
+  }),
+  ds3: () => ({
+    items: new Map(),
+    bossSouls: {},
+    bonfires: {},
+    bossFlags: {},
+    questlines: {},
+    covenants: {},
+    bossVictory: {},
+    lordCinders: {},
+    bossRoute: {},
+    pickups: {},
+    ringEffects: {},
+    endings: {},
+    bonfireTotal: 0,
+  }),
   er: () => ({ items: {}, bossSouls: {} }),
-  sdt: () => ({ names: {}, dev: {}, prosthetics: new Set(), bossSouls: {},
-                bossFlags: {}, idols: {}, minibosses: {} }),
+  sdt: () => ({
+    names: {},
+    dev: {},
+    prosthetics: new Set(),
+    bossSouls: {},
+    bossFlags: {},
+    idols: {},
+    minibosses: {},
+  }),
 };
 
 /**
@@ -233,7 +371,9 @@ export async function loadDbsFor(getJSON, families) {
   const loaded = await Promise.all(want.map((f) => LOADERS[f](getJSON)));
   const dbs = {};
   for (const f of ALL_FAMILIES) dbs[f] = EMPTY[f]();
-  want.forEach((f, i) => { dbs[f] = loaded[i]; });
+  want.forEach((f, i) => {
+    dbs[f] = loaded[i];
+  });
   return dbs;
 }
 
@@ -243,27 +383,49 @@ export const loadAllDbs = (getJSON) => loadDbsFor(getJSON, ALL_FAMILIES);
 /** The db_* files a family needs — used by the service worker to precache them. */
 export function dbPathsFor(family) {
   if (family === "ds1") {
-    return [...Object.keys(DS1_FILES).map((s) => `db_ds1/${s}.json`),
-      "db_ds1/boss_souls.json", "db_ds1/bonfires.json", "db_ds1/boss_flags.json",
-      "db_ds1/boss_route.json"];
+    return [
+      ...Object.keys(DS1_FILES).map((s) => `db_ds1/${s}.json`),
+      "db_ds1/boss_souls.json",
+      "db_ds1/bonfires.json",
+      "db_ds1/boss_flags.json",
+      "db_ds1/boss_route.json",
+    ];
   }
   if (family === "ds2") {
-    return [...Object.keys(DS2_FILES).map((s) => `db_ds2/${s}.json`),
-      "db_ds2/bonfires.json", "db_ds2/boss_flags.json", "db_ds2/bonfire_areas.json",
-      "db_ds2/boss_souls.json"];
+    return [
+      ...Object.keys(DS2_FILES).map((s) => `db_ds2/${s}.json`),
+      "db_ds2/bonfires.json",
+      "db_ds2/boss_flags.json",
+      "db_ds2/bonfire_areas.json",
+      "db_ds2/boss_souls.json",
+    ];
   }
   if (family === "ds3") {
-    return [...Object.keys(DS3_FILES).map((s) => `db_ds3/${s}.json`),
-      "db_ds3/boss_souls.json", "db_ds3/bonfires.json", "db_ds3/boss_flags.json",
-      "db_ds3/questlines.json", "db_ds3/covenants.json", "db_ds3/boss_victory.json",
-      "db_ds3/lord_cinders.json", "db_ds3/boss_route.json", "db_ds3/item_pickups.json",
-      "db_ds3/ring_effects.json", "db_ds3/endings.json"];
+    return [
+      ...Object.keys(DS3_FILES).map((s) => `db_ds3/${s}.json`),
+      "db_ds3/boss_souls.json",
+      "db_ds3/bonfires.json",
+      "db_ds3/boss_flags.json",
+      "db_ds3/questlines.json",
+      "db_ds3/covenants.json",
+      "db_ds3/boss_victory.json",
+      "db_ds3/lord_cinders.json",
+      "db_ds3/boss_route.json",
+      "db_ds3/item_pickups.json",
+      "db_ds3/ring_effects.json",
+      "db_ds3/endings.json",
+    ];
   }
   if (family === "er") {
     return [...ER_FILES.map((c) => `db_er/${c}.json`), "db_er/boss_souls.json"];
   }
-  return [...SDT_FILES.map((c) => `db_sdt/${c}.json`),
+  return [
+    ...SDT_FILES.map((c) => `db_sdt/${c}.json`),
     ...SDT_FILES.map((c) => `db_sdt/${c}_devnames.json`),
-    "db_sdt/prosthetics.json", "db_sdt/boss_souls.json", "db_sdt/boss_flags.json",
-    "db_sdt/idols.json", "db_sdt/minibosses.json"];
+    "db_sdt/prosthetics.json",
+    "db_sdt/boss_souls.json",
+    "db_sdt/boss_flags.json",
+    "db_sdt/idols.json",
+    "db_sdt/minibosses.json",
+  ];
 }

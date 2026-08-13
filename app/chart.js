@@ -17,7 +17,7 @@ export const label = (lines) => mm(lines.filter(Boolean).join("<br/>"));
 /** "1 boss" / "2 bosses". A fresh save really does hold one of things, and a count
  *  that reads "1 bosses" makes the whole document look generated. */
 export function plural(n, word) {
-  const end = n === 1 ? "" : (/(s|x|ch)$/.test(word) ? "es" : "s");
+  const end = n === 1 ? "" : /(s|x|ch)$/.test(word) ? "es" : "s";
   return `${n} ${word}${end}`;
 }
 
@@ -25,7 +25,8 @@ export function plural(n, word) {
 export function hms(sec) {
   if (!sec) return "—";
   const s = Math.trunc(sec);
-  const h = Math.trunc(s / 3600), m = Math.trunc((s % 3600) / 60);
+  const h = Math.trunc(s / 3600),
+    m = Math.trunc((s % 3600) / 60);
   return `${h}:${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 
@@ -66,7 +67,9 @@ export function runChart(rows, parents, restarts, refs) {
     if (restarts.has(i)) lines.splice(1, 0, "SEPARATE LINE");
     L.push(`  n${i}["${label(lines.concat(achievements(r, prev)))}"]`);
   });
-  parents.forEach((p, i) => { if (p !== null) L.push(`  n${p} --> n${i}`); });
+  parents.forEach((p, i) => {
+    if (p !== null) L.push(`  n${p} --> n${i}`);
+  });
   // A leaf is where a line stopped; an ending is where it FINISHED. An ending outranks
   // a leaf when a node is both.
   const ends = [];
@@ -74,8 +77,7 @@ export function runChart(rows, parents, restarts, refs) {
     const had = parents[i] === null ? new Set() : new Set(rows[parents[i]].endings);
     if (r.endings.some((e) => !had.has(e))) ends.push(i);
   });
-  const leaves = rows.map((_r, i) => i)
-    .filter((i) => !kids.has(i) && !ends.includes(i));
+  const leaves = rows.map((_r, i) => i).filter((i) => !kids.has(i) && !ends.includes(i));
   if (ends.length) {
     L.push("  classDef ending fill:#3a2a12,stroke:#c9a227,color:#f0e6d2,stroke-width:2px;");
     L.push("  class " + ends.map((i) => `n${i}`).join(",") + " ending;");
@@ -86,8 +88,14 @@ export function runChart(rows, parents, restarts, refs) {
   }
   if (restarts.size) {
     L.push("  classDef restart stroke:#9a3b3b,stroke-width:2px;");
-    L.push("  class " + [...restarts].sort((a, b) => a - b).map((i) => `n${i}`).join(",")
-      + " restart;");
+    L.push(
+      "  class " +
+        [...restarts]
+          .sort((a, b) => a - b)
+          .map((i) => `n${i}`)
+          .join(",") +
+        " restart;",
+    );
   }
   L.push("```");
   return L;
@@ -106,8 +114,10 @@ export function journeyChart(runs, refs) {
     const last = rows[rows.length - 1];
     const nums = [...new Set(rows.map((r) => refs.get(r.path) ?? 0))].sort((a, b) => a - b);
     const span = nums.length === 1 ? `^${nums[0]}` : `^${nums[0]}–^${nums[nums.length - 1]}`;
-    const got = [`${rows.length} save${rows.length === 1 ? "" : "s"} · ${span}`,
-      `${rank(last)} · ${hms(last.play_time)}`];
+    const got = [
+      `${rows.length} save${rows.length === 1 ? "" : "s"} · ${span}`,
+      `${rank(last)} · ${hms(last.play_time)}`,
+    ];
     // The carried set when one was worked out — a boss whose soul was spent is still a
     // boss killed, and the journey chart should say so.
     const known = last.carried_bosses || last.bosses;
@@ -124,8 +134,12 @@ export function journeyChart(runs, refs) {
 
 /** The reference list every chart node points at. */
 export function referenceList(order) {
-  const L = ["## References", "",
-    "_Every node above is one save file. Numbered earliest to latest by file date._", ""];
+  const L = [
+    "## References",
+    "",
+    "_Every node above is one save file. Numbered earliest to latest by file date._",
+    "",
+  ];
   for (const [num, name, mtime] of order) {
     L.push(`^${num}: [[${name}]] — _${stamp(mtime)}_`);
   }
@@ -136,6 +150,8 @@ export function referenceList(order) {
 export function stamp(mtime) {
   const d = new Date(mtime * 1000);
   const p = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} `
-    + `${p(d.getHours())}:${p(d.getMinutes())}`;
+  return (
+    `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ` +
+    `${p(d.getHours())}:${p(d.getMinutes())}`
+  );
 }

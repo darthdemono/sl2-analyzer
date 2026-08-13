@@ -14,14 +14,17 @@ const DS2_GAMES = new Set(["ds2sotfs", "ds2vanilla"]);
 const DSR_KEY = hexToBytes("0123456789ABCDEFFEDCBA9876543210");
 const DS3_KEY = hexToBytes("FD464D695E69A39A10E319A7ACE8B7FA");
 
-const BND4_HEADER_LEN = 64, BND4_ENTRY_LEN = 32;
+const BND4_HEADER_LEN = 64,
+  BND4_ENTRY_LEN = 32;
 
 class ParseError extends Error {}
 
 // ── BND4 archive ────────────────────────────────────────────────────────────
 function parseBnd4(data) {
-  if (data.length < BND4_HEADER_LEN ||
-      !(data[0] === 0x42 && data[1] === 0x4e && data[2] === 0x44 && data[3] === 0x34)) {
+  if (
+    data.length < BND4_HEADER_LEN ||
+    !(data[0] === 0x42 && data[1] === 0x4e && data[2] === 0x44 && data[3] === 0x34)
+  ) {
     throw new ParseError("Not a BND4 / .sl2 file.");
   }
   const count = u32(data, 12);
@@ -82,19 +85,28 @@ function detectGame(data, entries) {
     // Both DS2 releases share the signature, so they are told apart by which key
     // decrypts: the length prefix at plaintext +0 must fit the block.
     const blob = blobOf(data, entries[1]);
-    for (const [key, id] of [[DS2_KEY, "ds2sotfs"], [DS2_VANILLA_KEY, "ds2vanilla"]]) {
+    for (const [key, id] of [
+      [DS2_KEY, "ds2sotfs"],
+      [DS2_VANILLA_KEY, "ds2vanilla"],
+    ]) {
       const pt = aesCbc(key, blob.subarray(16, 32), blob.subarray(32));
       const dlen = u32(pt, 0);
       if (dlen != null && dlen > 0 && dlen <= pt.length - 4) return id;
     }
-    throw new ParseError("Dark Souls II save found, but neither the Scholar nor the vanilla key decrypts it.");
+    throw new ParseError(
+      "Dark Souls II save found, but neither the Scholar nor the vanilla key decrypts it.",
+    );
   }
   // Sekiro's entry count is shared with DS1 and with DS3/ER, so the slot SIZE settles
   // it: DSR 0x60030, PtDE 0x60014, DS3 0xC0030, ER 0x280010, Sekiro 0x100010.
   if (n >= 11 && entries[0].size === SDT_SLOT_ENTRY_SIZE) return "sdt";
   if (n === 11) {
     let allZero = true;
-    for (let i = 24; i < 32; i++) if (data[i] !== 0) { allZero = false; break; }
+    for (let i = 24; i < 32; i++)
+      if (data[i] !== 0) {
+        allZero = false;
+        break;
+      }
     return allZero ? "dsr" : "ptde";
   }
   if (n === 12) return entries[0].size > 2_000_000 ? "er" : "ds3";
@@ -103,29 +115,51 @@ function detectGame(data, entries) {
 
 // ── Shared progress inference ────────────────────────────────────────────────
 const GENERIC_SOULS = new Set([
-  "Fading Soul", "Soul of a Lost Undead", "Large Soul of a Lost Undead",
-  "Soul of a Nameless Soldier", "Large Soul of a Nameless Soldier",
-  "Soul of a Proud Knight", "Large Soul of a Proud Knight",
-  "Soul of a Brave Warrior", "Large Soul of a Brave Warrior",
-  "Soul of a Hero", "Soul of a Great Hero", "Soul of a Old Hero",
-  "Wandering Soul", "Old Soul",
-  "Soul of a Deserted Corpse", "Large Soul of a Deserted Corpse",
-  "Soul of an Unknown Traveler", "Large Soul of an Unknown Traveler",
-  "Soul of a Weary Warrior", "Large Soul of a Weary Warrior",
-  "Soul of a Crestfallen Knight", "Large Soul of a Crestfallen Knight",
-  "Soul of a Venerable Old Hand", "Soul of a Champion", "Soul of a Great Champion",
-  "Soul of a Seasoned Warrior", "Large Soul of a Seasoned Warrior",
-  "Soul of an Intrepid Hero", "Large Soul of an Intrepid Hero",
+  "Fading Soul",
+  "Soul of a Lost Undead",
+  "Large Soul of a Lost Undead",
+  "Soul of a Nameless Soldier",
+  "Large Soul of a Nameless Soldier",
+  "Soul of a Proud Knight",
+  "Large Soul of a Proud Knight",
+  "Soul of a Brave Warrior",
+  "Large Soul of a Brave Warrior",
+  "Soul of a Hero",
+  "Soul of a Great Hero",
+  "Soul of a Old Hero",
+  "Wandering Soul",
+  "Old Soul",
+  "Soul of a Deserted Corpse",
+  "Large Soul of a Deserted Corpse",
+  "Soul of an Unknown Traveler",
+  "Large Soul of an Unknown Traveler",
+  "Soul of a Weary Warrior",
+  "Large Soul of a Weary Warrior",
+  "Soul of a Crestfallen Knight",
+  "Large Soul of a Crestfallen Knight",
+  "Soul of a Venerable Old Hand",
+  "Soul of a Champion",
+  "Soul of a Great Champion",
+  "Soul of a Seasoned Warrior",
+  "Large Soul of a Seasoned Warrior",
+  "Soul of an Intrepid Hero",
+  "Large Soul of an Intrepid Hero",
 ]);
-const DS1_PROGRESSION = new Set(["Lordvessel", "Peculiar Doll", "Broken Pendant", "Rite of Kindling",
-  "Crest of Artorias"]);
+const DS1_PROGRESSION = new Set([
+  "Lordvessel",
+  "Peculiar Doll",
+  "Broken Pendant",
+  "Rite of Kindling",
+  "Crest of Artorias",
+]);
 const BOSS_SOUL_EXTRA = new Set(["Core of an Iron Golem", "Guardian Soul"]);
 
 function findBossSouls(goods) {
   const out = [];
   for (const [n, q] of goods) {
     if (GENERIC_SOULS.has(n)) continue;
-    if (n.includes("Soul of ") || n.includes("Lord Soul") || BOSS_SOUL_EXTRA.has(n)) out.push([n, q]);
+    if (n.includes("Soul of ") || n.includes("Lord Soul") || BOSS_SOUL_EXTRA.has(n))
+      out.push([n, q]);
   }
   return out;
 }
@@ -137,17 +171,31 @@ function findKeyGoods(goods) {
 const BOSS_SOUL_DB_DIR = { dsr: "ds1", ptde: "ds1", ds3: "ds3", er: "er", sdt: "sdt" };
 const BOSS_PREREQ = {
   ds3: {
-    "Soul of Cinder": ["Iudex Gundyr", "Vordt of the Boreal Valley",
-      "Dancer of the Boreal Valley", "Abyss Watchers", "Aldrich, Devourer of Gods",
-      "Yhorm the Giant", "Lothric, Younger Prince"],
-    "Lothric, Younger Prince": ["Dancer of the Boreal Valley", "Vordt of the Boreal Valley", "Iudex Gundyr"],
+    "Soul of Cinder": [
+      "Iudex Gundyr",
+      "Vordt of the Boreal Valley",
+      "Dancer of the Boreal Valley",
+      "Abyss Watchers",
+      "Aldrich, Devourer of Gods",
+      "Yhorm the Giant",
+      "Lothric, Younger Prince",
+    ],
+    "Lothric, Younger Prince": [
+      "Dancer of the Boreal Valley",
+      "Vordt of the Boreal Valley",
+      "Iudex Gundyr",
+    ],
     "Aldrich, Devourer of Gods": ["Pontiff Sulyvahn", "Vordt of the Boreal Valley", "Iudex Gundyr"],
     "Dancer of the Boreal Valley": ["Vordt of the Boreal Valley", "Iudex Gundyr"],
     "Pontiff Sulyvahn": ["Vordt of the Boreal Valley", "Iudex Gundyr"],
     "Vordt of the Boreal Valley": ["Iudex Gundyr"],
   },
   er: {
-    "Godfrey, First Elden Lord (Hoarah Loux)": ["Maliketh, the Black Blade", "Fire Giant", "Morgott, the Omen King"],
+    "Godfrey, First Elden Lord (Hoarah Loux)": [
+      "Maliketh, the Black Blade",
+      "Fire Giant",
+      "Morgott, the Omen King",
+    ],
     "Maliketh, the Black Blade": ["Fire Giant", "Morgott, the Omen King"],
     "Fire Giant": ["Morgott, the Omen King"],
   },
@@ -157,16 +205,33 @@ const BOSS_PREREQ = {
 // (tag `clear`). Mirrors Python MANDATORY_BOSSES — endgame-safe; DS2 seeds its own
 // Nashandra in ds2InferBosses because its mid-game is skippable.
 const MANDATORY_BOSSES = {
-  dsr: ["Bell Gargoyles", "Chaos Witch Quelaag", "Iron Golem",
-    "Dragon Slayer Ornstein", "Executioner Smough", "Great Grey Wolf Sif",
-    "The Four Kings", "Seath the Scaleless", "Gravelord Nito", "Bed of Chaos",
-    "Gwyn, Lord of Cinder"],
+  dsr: [
+    "Bell Gargoyles",
+    "Chaos Witch Quelaag",
+    "Iron Golem",
+    "Dragon Slayer Ornstein",
+    "Executioner Smough",
+    "Great Grey Wolf Sif",
+    "The Four Kings",
+    "Seath the Scaleless",
+    "Gravelord Nito",
+    "Bed of Chaos",
+    "Gwyn, Lord of Cinder",
+  ],
 };
 MANDATORY_BOSSES.ptde = MANDATORY_BOSSES.dsr;
-MANDATORY_BOSSES.ds3 = ["Iudex Gundyr", "Vordt of the Boreal Valley",
-  "Dancer of the Boreal Valley", "Abyss Watchers", "Pontiff Sulyvahn",
-  "Aldrich, Devourer of Gods", "Yhorm the Giant", "Dragonslayer Armour",
-  "Lothric, Younger Prince", "Soul of Cinder"];
+MANDATORY_BOSSES.ds3 = [
+  "Iudex Gundyr",
+  "Vordt of the Boreal Valley",
+  "Dancer of the Boreal Valley",
+  "Abyss Watchers",
+  "Pontiff Sulyvahn",
+  "Aldrich, Devourer of Gods",
+  "Yhorm the Giant",
+  "Dragonslayer Armour",
+  "Lothric, Younger Prince",
+  "Soul of Cinder",
+];
 
 function attachDefeatedBosses(ch, dbs) {
   const family = BOSS_SOUL_DB_DIR[ch.game];
@@ -214,15 +279,20 @@ function bossRoster(game, dbs) {
 }
 function covenantRoster(game, dbs) {
   if (DS2_GAMES.has(game)) return new Set(Object.values(DS2_COVENANT));
-  if (game === "ds3") return new Set([...DS3_COVENANT.values(), ...Object.keys(dbs.ds3.covenants || {})]);
+  if (game === "ds3")
+    return new Set([...DS3_COVENANT.values(), ...Object.keys(dbs.ds3.covenants || {})]);
   return new Set();
 }
 
 // The four Lords of Cinder (boss name → throne name) and the item that sits in the
 // inventory between the kill and the offering. A closed set, so "N of 4" is a real
 // denominator. See DS3_LORDS in sl2_to_md.py.
-const DS3_LORDS = [["Abyss Watchers", "Abyss Watchers"], ["Yhorm the Giant", "Yhorm the Giant"],
-  ["Aldrich, Devourer of Gods", "Aldrich"], ["Lothric, Younger Prince", "Twin Princes"]];
+const DS3_LORDS = [
+  ["Abyss Watchers", "Abyss Watchers"],
+  ["Yhorm the Giant", "Yhorm the Giant"],
+  ["Aldrich, Devourer of Gods", "Aldrich"],
+  ["Lothric, Younger Prince", "Twin Princes"],
+];
 const DS3_CINDER_ITEM = "Cinders of a Lord";
 
 // Denominators + what is still missing. The Lords count is arithmetic on two reads
@@ -254,8 +324,13 @@ function attachProgressTotals(ch, dbs) {
   const route = (dbs[BOSS_SOUL_DB_DIR[game]] || {}).bossRoute || {};
   if (reached.size && roster.size) {
     const avail = Object.entries(route)
-      .filter(([b, [area, after]]) => roster.has(b) && !(b in chBosses) && reached.has(area)
-        && after.every((p) => !roster.has(p) || p in chBosses))
+      .filter(
+        ([b, [area, after]]) =>
+          roster.has(b) &&
+          !(b in chBosses) &&
+          reached.has(area) &&
+          after.every((p) => !roster.has(p) || p in chBosses),
+      )
       .map(([b]) => b);
     if (avail.length) ch.bosses_available = avail;
   }
@@ -265,8 +340,13 @@ function attachProgressTotals(ch, dbs) {
   for (const [n, q] of ch.key_items || []) if (n === DS3_CINDER_ITEM) held += q;
   const named = ch.cinders || [];
   if (dead.length || named.length) {
-    ch.lords = { total: DS3_LORDS.length, named, dead: dead.length, held,
-      placed: (ch.ng_plus || 0) === 0 ? Math.max(dead.length - held, named.length) : null };
+    ch.lords = {
+      total: DS3_LORDS.length,
+      named,
+      dead: dead.length,
+      held,
+      placed: (ch.ng_plus || 0) === 0 ? Math.max(dead.length - held, named.length) : null,
+    };
   }
 }
 
@@ -280,32 +360,99 @@ function mapToSortedEvidence(map, sortKeys) {
 }
 
 function mergeQty(items) {
-  const order = [], agg = new Map();
+  const order = [],
+    agg = new Map();
   for (const [name, q] of items) {
-    if (!agg.has(name)) { agg.set(name, 0); order.push(name); }
+    if (!agg.has(name)) {
+      agg.set(name, 0);
+      order.push(name);
+    }
     agg.set(name, agg.get(name) + q);
   }
   return order.map((n) => [n, agg.get(n)]);
 }
 
 // ── DS2 ───────────────────────────────────────────────────────────────────
-const DS2_NAME_OFF = 960, DS2_SOULS_OFF = 60, DS2_SOULMEM_OFF = 64, DS2_HP_OFF = 72, DS2_NG_OFF = 1028;
-const DS2_TITLE_NAME_OFF = 1286, DS2_TITLE_STRIDE = 496, DS2_TITLE_PLAYTIME_OFF = 66;
-const DS2_CLASS_OFF = 1024, DS2_COVENANT_OFF = 189, DS2_GENDER_OFF = 378, DS2_HOLLOW_OFF = 379, DS2_DEATHS_OFF = 104;
-const DS2_WORLD_ENTRY_DELTA = 10, DS2_BONFIRE_FLAG_DELTA = 0x200, DS2_BONFIRE_MIN_RUN = 16;
-const DS2_REINF_OFF = 12, DS2_INFUSE_OFF = 13;
-const DS2_CLASS = { 1: "Warrior", 2: "Knight", 4: "Bandit", 6: "Cleric", 7: "Sorcerer", 8: "Explorer", 9: "Swordsman", 10: "Deprived" };
+const DS2_NAME_OFF = 960,
+  DS2_SOULS_OFF = 60,
+  DS2_SOULMEM_OFF = 64,
+  DS2_HP_OFF = 72,
+  DS2_NG_OFF = 1028;
+const DS2_TITLE_NAME_OFF = 1286,
+  DS2_TITLE_STRIDE = 496,
+  DS2_TITLE_PLAYTIME_OFF = 66;
+const DS2_CLASS_OFF = 1024,
+  DS2_COVENANT_OFF = 189,
+  DS2_GENDER_OFF = 378,
+  DS2_HOLLOW_OFF = 379,
+  DS2_DEATHS_OFF = 104;
+const DS2_WORLD_ENTRY_DELTA = 10,
+  DS2_BONFIRE_FLAG_DELTA = 0x200,
+  DS2_BONFIRE_MIN_RUN = 16;
+const DS2_REINF_OFF = 12,
+  DS2_INFUSE_OFF = 13;
+const DS2_CLASS = {
+  1: "Warrior",
+  2: "Knight",
+  4: "Bandit",
+  6: "Cleric",
+  7: "Sorcerer",
+  8: "Explorer",
+  9: "Swordsman",
+  10: "Deprived",
+};
 // Per-covenant discovered flag (+2) and rank (+12), dense runs in covenant-id order
 // past the current-covenant byte. See sl2_to_md.py DS2_COV_DISC_D / DS2_COV_RANK_D.
-const DS2_COV_DISC_D = 2, DS2_COV_RANK_D = 12, DS2_COV_MAX_RANK = 3;
-const DS2_COVENANT = { 1: "Heirs of the Sun", 2: "Blue Sentinels", 3: "Brotherhood of Blood", 4: "Way of Blue", 5: "Rat King", 6: "Bell Keepers", 7: "Dragon Remnants", 8: "Company of Champions", 9: "Pilgrims of Dark" };
-const DS2_INFUSION = { 1: "Fire", 2: "Magic", 3: "Lightning", 4: "Dark", 5: "Poison", 6: "Bleed", 7: "Raw", 8: "Enchanted", 9: "Mundane" };
+const DS2_COV_DISC_D = 2,
+  DS2_COV_RANK_D = 12,
+  DS2_COV_MAX_RANK = 3;
+const DS2_COVENANT = {
+  1: "Heirs of the Sun",
+  2: "Blue Sentinels",
+  3: "Brotherhood of Blood",
+  4: "Way of Blue",
+  5: "Rat King",
+  6: "Bell Keepers",
+  7: "Dragon Remnants",
+  8: "Company of Champions",
+  9: "Pilgrims of Dark",
+};
+const DS2_INFUSION = {
+  1: "Fire",
+  2: "Magic",
+  3: "Lightning",
+  4: "Dark",
+  5: "Poison",
+  6: "Bleed",
+  7: "Raw",
+  8: "Enchanted",
+  9: "Mundane",
+};
 // Gender at +378: Female = 1, Male = 0 (verified by a real F→M differential save pair).
 const DS2_GENDER = { 0: "Male", 1: "Female" };
-const DS2_STAT_OFF = [["Vigor", 32], ["Endurance", 34], ["Vitality", 36], ["Attunement", 38],
-  ["Strength", 40], ["Dexterity", 42], ["Adaptability", 48], ["Intelligence", 44], ["Faith", 46], ["Level", 0x38]];
-const DS2_INV_RANGE = [0x1E2C, 0x10E1C], DS2_KEY_RANGE = [0x10E30, 0x11DF0];
-const DS2_STACKABLE = new Set(["consumables", "online", "bolts", "spells", "upgrade", "keys", "bosssouls"]);
+const DS2_STAT_OFF = [
+  ["Vigor", 32],
+  ["Endurance", 34],
+  ["Vitality", 36],
+  ["Attunement", 38],
+  ["Strength", 40],
+  ["Dexterity", 42],
+  ["Adaptability", 48],
+  ["Intelligence", 44],
+  ["Faith", 46],
+  ["Level", 0x38],
+];
+const DS2_INV_RANGE = [0x1e2c, 0x10e1c],
+  DS2_KEY_RANGE = [0x10e30, 0x11df0];
+const DS2_STACKABLE = new Set([
+  "consumables",
+  "online",
+  "bolts",
+  "spells",
+  "upgrade",
+  "keys",
+  "bosssouls",
+]);
 const DS2_UPGRADEABLE = new Set(["weapons", "armors"]);
 
 function ds2Name(buf) {
@@ -313,19 +460,26 @@ function ds2Name(buf) {
   return isValidName(name) ? name : null;
 }
 function ds2Inventory(buf, itemDb) {
-  const buckets = {}; let unknown = 0;
+  const buckets = {};
+  let unknown = 0;
   const push = (c, v) => (buckets[c] || (buckets[c] = [])).push(v);
   for (const [start, end] of [DS2_INV_RANGE, DS2_KEY_RANGE]) {
     let o = start;
     const lim = Math.min(end, buf.length);
     while (o + 16 <= lim) {
-      const iid = u32(buf, o), qty = u16(buf, o + 8);
-      const cur = u8(buf, o + 10), mx = u8(buf, o + 11);
-      const reinf = u8(buf, o + DS2_REINF_OFF), infuse = u8(buf, o + DS2_INFUSE_OFF);
+      const iid = u32(buf, o),
+        qty = u16(buf, o + 8);
+      const cur = u8(buf, o + 10),
+        mx = u8(buf, o + 11);
+      const reinf = u8(buf, o + DS2_REINF_OFF),
+        infuse = u8(buf, o + DS2_INFUSE_OFF);
       o += 16;
       if (!iid) continue;
       const info = itemDb.get(iid);
-      if (info === undefined) { unknown++; continue; }
+      if (info === undefined) {
+        unknown++;
+        continue;
+      }
       let [name, cat] = info;
       if (name === "Estus Flask" && mx) name = `${name} (${cur}/${mx} charges)`;
       if (DS2_UPGRADEABLE.has(cat)) {
@@ -343,12 +497,17 @@ function ds2Inventory(buf, itemDb) {
 function ds2Covenants(buf) {
   const out = {};
   let any = false;
-  for (const cid of Object.keys(DS2_COVENANT).map(Number).sort((a, b) => a - b)) {
+  for (const cid of Object.keys(DS2_COVENANT)
+    .map(Number)
+    .sort((a, b) => a - b)) {
     const disc = u8(buf, DS2_COVENANT_OFF + DS2_COV_DISC_D + cid - 1);
     const rank = u8(buf, DS2_COVENANT_OFF + DS2_COV_RANK_D + cid - 1);
     if (disc == null || rank == null || disc > 1 || rank > DS2_COV_MAX_RANK) return null;
     if (rank && !disc) return null;
-    if (disc) { out[DS2_COVENANT[cid]] = [rank ? `rank ${rank} of ${DS2_COV_MAX_RANK}` : "discovered"]; any = true; }
+    if (disc) {
+      out[DS2_COVENANT[cid]] = [rank ? `rank ${rank} of ${DS2_COV_MAX_RANK}` : "discovered"];
+      any = true;
+    }
   }
   return any ? out : null;
 }
@@ -356,23 +515,35 @@ function ds2Parse(buf, itemDb, game = "ds2sotfs") {
   if (ds2Name(buf) === null) return null;
   const stats = {};
   for (const [k, o] of DS2_STAT_OFF) stats[k] = u16(buf, o) || 0;
-  const level = stats["Level"]; delete stats["Level"];
+  const level = stats["Level"];
+  delete stats["Level"];
   const { buckets, unknown } = ds2Inventory(buf, itemDb);
   const inv = {};
   for (const c in buckets) inv[c] = mergeQty(buckets[c]);
-  const keyItems = inv["keys"] || []; delete inv["keys"];
+  const keyItems = inv["keys"] || [];
+  delete inv["keys"];
   return {
-    tier: "full", game, name: ds2Name(buf),
+    tier: "full",
+    game,
+    name: ds2Name(buf),
     klass: DS2_CLASS[u8(buf, DS2_CLASS_OFF)] ?? null,
     covenant: DS2_COVENANT[u8(buf, DS2_COVENANT_OFF)] ?? null,
     covenants: ds2Covenants(buf),
     gender: DS2_GENDER[u8(buf, DS2_GENDER_OFF)] ?? null,
-    level, stats, souls: u32(buf, DS2_SOULS_OFF), soul_memory: u32(buf, DS2_SOULMEM_OFF),
-    humanity: null, stamina: null, hp: u32(buf, DS2_HP_OFF),
+    level,
+    stats,
+    souls: u32(buf, DS2_SOULS_OFF),
+    soul_memory: u32(buf, DS2_SOULMEM_OFF),
+    humanity: null,
+    stamina: null,
+    hp: u32(buf, DS2_HP_OFF),
     ng_plus: Math.max(0, (u16(buf, DS2_NG_OFF) || 1) - 1),
     hollow_lvl: u8(buf, DS2_HOLLOW_OFF),
     deaths: u32(buf, DS2_DEATHS_OFF),
-    boss_souls: [], key_items: keyItems, inv, unknown_count: unknown,
+    boss_souls: [],
+    key_items: keyItems,
+    inv,
+    unknown_count: unknown,
   };
 }
 const DS2_BOSS_GATE = {
@@ -393,7 +564,13 @@ const DS2_ITEM_GATE = {
 // Strip a trailing " +N" so an upgraded piece still matches the plain db name.
 const ds2BaseName = (n) => n.replace(/ \+\d+$/, "");
 const DS2_BOSS_PREREQ = {
-  "Nashandra": ["Throne Watcher", "Throne Defender", "Velstadt, the Royal Aegis", "Demon of Song", "Looking Glass Knight"],
+  Nashandra: [
+    "Throne Watcher",
+    "Throne Defender",
+    "Velstadt, the Royal Aegis",
+    "Demon of Song",
+    "Looking Glass Knight",
+  ],
   "Throne Watcher": ["Velstadt, the Royal Aegis", "Demon of Song", "Looking Glass Knight"],
   "Throne Defender": ["Velstadt, the Royal Aegis", "Demon of Song", "Looking Glass Knight"],
   "Velstadt, the Royal Aegis": ["Demon of Song", "Looking Glass Knight"],
@@ -404,25 +581,38 @@ function ds2InferBosses(world, ch, dbs) {
   const add = (b, e) => (out.get(b) || out.set(b, new Set()).get(b)).add(e);
   for (const [off, name] of dbs.ds2.bossFlags) if (world && u8(world, off)) add(name, "flag");
   const soulDb = dbs.ds2.bossSouls || {};
-  for (const [name] of (ch.inv["bosssouls"] || [])) { const b = soulDb[name]; if (b) add(b, "soul"); }
-  for (const bonfire of ch.bonfires || []) for (const boss of DS2_BOSS_GATE[bonfire] || []) add(boss, "gate");
+  for (const [name] of ch.inv["bosssouls"] || []) {
+    const b = soulDb[name];
+    if (b) add(b, "soul");
+  }
+  for (const bonfire of ch.bonfires || [])
+    for (const boss of DS2_BOSS_GATE[bonfire] || []) add(boss, "gate");
   const held = new Set();
   for (const c in ch.inv) for (const [n] of ch.inv[c]) held.add(ds2BaseName(n));
   for (const [n] of ch.key_items || []) held.add(n);
-  for (const item in DS2_ITEM_GATE) if (held.has(item)) for (const boss of DS2_ITEM_GATE[item]) add(boss, "gate");
+  for (const item in DS2_ITEM_GATE)
+    if (held.has(item)) for (const boss of DS2_ITEM_GATE[item]) add(boss, "gate");
   if ((ch.ng_plus || 0) > 0) add("Nashandra", "clear"); // NG+ ⇒ final boss dead; closure fills the endgame chain
-  for (const boss of [...out.keys()]) for (const pre of DS2_BOSS_PREREQ[boss] || []) add(pre, "gate");
+  for (const boss of [...out.keys()])
+    for (const pre of DS2_BOSS_PREREQ[boss] || []) add(pre, "gate");
   if (out.size === 0) return null;
   return mapToSortedEvidence(out, true);
 }
 function ds2VisitedBonfires(world, bfDb) {
   if (!world || bfDb.size === 0) return null;
-  let bestStart = -1, bestRun = 0, run = 0, runStart = 0, o = 0;
+  let bestStart = -1,
+    bestRun = 0,
+    run = 0,
+    runStart = 0,
+    o = 0;
   while (o + 2 <= world.length) {
     if (bfDb.has(u16(world, o))) {
       runStart = run === 0 ? o : runStart;
       run += 1;
-      if (run > bestRun) { bestRun = run; bestStart = runStart; }
+      if (run > bestRun) {
+        bestRun = run;
+        bestStart = runStart;
+      }
     } else run = 0;
     o += 2;
   }
@@ -432,12 +622,14 @@ function ds2VisitedBonfires(world, bfDb) {
   while (o + 2 <= world.length && ids.length < DS2_BONFIRE_FLAG_DELTA / 2) {
     const v = u16(world, o);
     if (v === 0) break;
-    ids.push(v); o += 2;
+    ids.push(v);
+    o += 2;
   }
   const flagBase = bestStart + DS2_BONFIRE_FLAG_DELTA;
   const visited = [];
   ids.forEach((bid, idx) => {
-    if (u8(world, flagBase + idx)) visited.push([bid, bfDb.get(bid) ?? `(bonfire 0x${bid.toString(16).padStart(4, "0")})`]);
+    if (u8(world, flagBase + idx))
+      visited.push([bid, bfDb.get(bid) ?? `(bonfire 0x${bid.toString(16).padStart(4, "0")})`]);
   });
   return visited;
 }
@@ -462,7 +654,13 @@ function ds2BonfireAreas(visited, areaDb, bfDb) {
     if (name == null) continue;
     areas.get(area)[seen.has(bid) ? 0 : 1].push(name);
   }
-  const out = [...areas].map(([a, [got, miss]]) => [a, got.length, got, got.length + miss.length, miss]);
+  const out = [...areas].map(([a, [got, miss]]) => [
+    a,
+    got.length,
+    got,
+    got.length + miss.length,
+    miss,
+  ]);
   return out.some(([, c]) => c) ? out : null;
 }
 function ds2Augment(ch, data, entries, i, dbs, dec = decryptDs2) {
@@ -500,22 +698,65 @@ function ds2ActiveSlots(data, entries, slots, dec = decryptDs2) {
 
 // ── DS1 (DSR + PtDE) ─────────────────────────────────────────────────────
 const DSR_MAGIC = hexToBytes("00FFFFFFFF000000000000000000000000FFFFFFFF");
-const DSR_SOULS_D = -291, DSR_HP_D = -419, DSR_STAM_D = -391, DSR_LEVEL_D = -295,
-  DSR_CLASS_D = -233, DSR_HUM_D = -307, DSR_NG_D = 0x1E3A7, DSR_NAME_D = -271;
-const DSR_STAT_D = [["Vitality", -375], ["Attunement", -367], ["Endurance", -359],
-  ["Strength", -351], ["Dexterity", -343], ["Resistance", -303], ["Intelligence", -335], ["Faith", -327]];
-const DS1_CLASS = { 0: "Warrior", 1: "Knight", 2: "Wanderer", 3: "Thief", 4: "Bandit", 5: "Hunter", 6: "Sorcerer", 7: "Pyromancer", 8: "Cleric", 9: "Deprived" };
-const DS1_CAT = { 0x00000000: "weapons", 0x10000000: "armors", 0x20000000: "rings", 0x40000000: "goods" };
-const DS1_INV_START = 0x988, DS1_INV_ANCHOR = hexToBytes("0000000000000000A0BB0D00");
+const DSR_SOULS_D = -291,
+  DSR_HP_D = -419,
+  DSR_STAM_D = -391,
+  DSR_LEVEL_D = -295,
+  DSR_CLASS_D = -233,
+  DSR_HUM_D = -307,
+  DSR_NG_D = 0x1e3a7,
+  DSR_NAME_D = -271;
+const DSR_STAT_D = [
+  ["Vitality", -375],
+  ["Attunement", -367],
+  ["Endurance", -359],
+  ["Strength", -351],
+  ["Dexterity", -343],
+  ["Resistance", -303],
+  ["Intelligence", -335],
+  ["Faith", -327],
+];
+const DS1_CLASS = {
+  0: "Warrior",
+  1: "Knight",
+  2: "Wanderer",
+  3: "Thief",
+  4: "Bandit",
+  5: "Hunter",
+  6: "Sorcerer",
+  7: "Pyromancer",
+  8: "Cleric",
+  9: "Deprived",
+};
+const DS1_CAT = {
+  0x00000000: "weapons",
+  0x10000000: "armors",
+  0x20000000: "rings",
+  0x40000000: "goods",
+};
+const DS1_INV_START = 0x988,
+  DS1_INV_ANCHOR = hexToBytes("0000000000000000A0BB0D00");
 const DS1_INV_END = hexToBytes("00000000FFFFFFFFFFFFFFFF");
-const DS1_INFUSION = { 1: "Crystal", 2: "Lightning", 3: "Raw", 4: "Magic", 5: "Enchanted", 6: "Divine", 7: "Occult", 8: "Fire", 9: "Chaos" };
+const DS1_INFUSION = {
+  1: "Crystal",
+  2: "Lightning",
+  3: "Raw",
+  4: "Magic",
+  5: "Enchanted",
+  6: "Divine",
+  7: "Occult",
+  8: "Fire",
+  9: "Chaos",
+};
 
 function ds1Resolve(itemDb, cat, iid) {
   const table = itemDb[cat] || new Map();
   if (table.has(iid)) return table.get(iid);
   if (cat === "rings") return table.get(Math.floor(iid / 1000)) ?? null;
   if (cat !== "weapons" && cat !== "armors") return null;
-  const base = iid - (iid % 1000), path = Math.floor((iid % 1000) / 100), level = iid % 100;
+  const base = iid - (iid % 1000),
+    path = Math.floor((iid % 1000) / 100),
+    level = iid % 100;
   const name = table.get(base);
   if (name == null) return null;
   const infusion = cat === "weapons" ? DS1_INFUSION[path] : null;
@@ -552,7 +793,8 @@ function ptdeFindAnchor(buf) {
   return null;
 }
 function ds1Inventory(buf, itemDb) {
-  const buckets = {}; let unknown = 0;
+  const buckets = {};
+  let unknown = 0;
   const push = (c, v) => (buckets[c] || (buckets[c] = [])).push(v);
   const start = indexOf(buf, DS1_INV_ANCHOR, DS1_INV_START);
   if (start === -1) return { buckets, unknown };
@@ -560,15 +802,20 @@ function ds1Inventory(buf, itemDb) {
   if (end === -1) end = buf.length;
   let o = start;
   while (o + 28 <= end) {
-    const stype = u32(buf, o + 4), iid = u32(buf, o + 8), qty = u32(buf, o + 12);
+    const stype = u32(buf, o + 4),
+      iid = u32(buf, o + 8),
+      qty = u32(buf, o + 12);
     o += 28;
     if (!iid) continue;
-    let cat = stype != null ? DS1_CAT[stype & 0xF0000000] : null;
+    let cat = stype != null ? DS1_CAT[stype & 0xf0000000] : null;
     // A spell IS a good as far as the slot type is concerned — only the id says
     // otherwise, which is why the spell table is separate and consulted here.
     if (cat === "goods" && itemDb.spells && itemDb.spells.has(iid)) cat = "spells";
     const name = cat ? ds1Resolve(itemDb, cat, iid) : null;
-    if (name == null) { unknown++; continue; }
+    if (name == null) {
+      unknown++;
+      continue;
+    }
     push(cat, [name, qty]);
   }
   return { buckets, unknown };
@@ -582,12 +829,15 @@ const DS1_GENDER = { 0: "Female", 1: "Male" };
 // block, so the offset is slot-absolute per release; DSR shifts it by the same 448
 // bytes its flag region moves. Guarded by the 0xFFFFFFFF sentinel that follows the
 // counter in both releases. See sl2_to_md.py DS1_DEATHS_OFF.
-const DS1_DEATHS_OFF = { ptde: 0x1F118, dsr: 0x1F2D8 };
-const DS1_DEATHS_SENTINEL = 0xFFFFFFFF, DS1_DEATHS_SENTINEL_D = 4;
+const DS1_DEATHS_OFF = { ptde: 0x1f118, dsr: 0x1f2d8 };
+const DS1_DEATHS_SENTINEL = 0xffffffff,
+  DS1_DEATHS_SENTINEL_D = 4;
 // DS1's load-screen roster (BND4 entry 10): name at +0, soul level at +36, play time
 // as a uint32 of SECONDS at +40. Located by the character's own name and accepted only
 // when the level beside it matches. See sl2_to_md.py DS1_MENU_ENTRY.
-const DS1_MENU_ENTRY = 10, DS1_MENU_LEVEL_D = 36, DS1_MENU_PLAYTIME_D = 40;
+const DS1_MENU_ENTRY = 10,
+  DS1_MENU_LEVEL_D = 36,
+  DS1_MENU_PLAYTIME_D = 40;
 
 function ds1Deaths(buf, game) {
   const off = DS1_DEATHS_OFF[game];
@@ -600,7 +850,8 @@ function ds1AttachPlaytime(ch, menu) {
   const want = new Uint8Array(ch.name.length * 2);
   for (let i = 0; i < ch.name.length; i++) {
     const c = ch.name.charCodeAt(i);
-    want[i * 2] = c & 0xFF; want[i * 2 + 1] = (c >> 8) & 0xFF;
+    want[i * 2] = c & 0xff;
+    want[i * 2 + 1] = (c >> 8) & 0xff;
   }
   let pos = indexOf(menu, want, 0);
   while (pos !== -1) {
@@ -620,24 +871,40 @@ function ds1Character(buf, itemDb, m, game, ng, bossSouls) {
   const name = readUtf16(buf, m + DSR_NAME_D, 13);
   const goods = inv["goods"] || [];
   return {
-    tier: "full", game, name: isValidName(name) ? name : "(unnamed slot)",
+    tier: "full",
+    game,
+    name: isValidName(name) ? name : "(unnamed slot)",
     klass: DS1_CLASS[u8(buf, m + DSR_CLASS_D)] ?? null,
     gender: DS1_GENDER[u8(buf, m + DSR_GENDER_D)] ?? null,
     deaths: ds1Deaths(buf, game),
-    level: u16(buf, m + DSR_LEVEL_D), stats,
-    souls: u32(buf, m + DSR_SOULS_D), soul_memory: null,
-    humanity: u8(buf, m + DSR_HUM_D), stamina: u32(buf, m + DSR_STAM_D),
-    hp: u32(buf, m + DSR_HP_D), ng_plus: ng,
-    boss_souls: findBossSouls(goods), key_items: findKeyGoods(goods),
-    inv, unknown_count: unknown,
+    level: u16(buf, m + DSR_LEVEL_D),
+    stats,
+    souls: u32(buf, m + DSR_SOULS_D),
+    soul_memory: null,
+    humanity: u8(buf, m + DSR_HUM_D),
+    stamina: u32(buf, m + DSR_STAM_D),
+    hp: u32(buf, m + DSR_HP_D),
+    ng_plus: ng,
+    boss_souls: findBossSouls(goods),
+    key_items: findKeyGoods(goods),
+    inv,
+    unknown_count: unknown,
   };
 }
 // DS1 bonfires. Unlike DS2/DS3 these are NOT event flags: DS1 keeps a NetBonfireDb
 // list of 20-byte {id, state} records. The list moves between saves, so it is located
 // by content — the longest run of consecutive records with a real id, a valid state and
 // no repeat. See sl2_to_md.py ds1_bonfires.
-const DS1_BONFIRE_REC = 20, DS1_BONFIRE_STATE_D = 4, DS1_BONFIRE_MIN_RUN = 5;
-const DS1_BONFIRE_STATE = { 0: "discovered", 10: "lit", 20: "kindled +1", 30: "kindled +2", 40: "kindled +3" };
+const DS1_BONFIRE_REC = 20,
+  DS1_BONFIRE_STATE_D = 4,
+  DS1_BONFIRE_MIN_RUN = 5;
+const DS1_BONFIRE_STATE = {
+  0: "discovered",
+  10: "lit",
+  20: "kindled +1",
+  30: "kindled +2",
+  40: "kindled +3",
+};
 function ds1Bonfires(buf, db) {
   if (!db || !Object.keys(db).length) return null;
   let best = [];
@@ -648,9 +915,12 @@ function ds1Bonfires(buf, db) {
       const seen = new Set();
       let p = o;
       while (p + DS1_BONFIRE_REC <= buf.length) {
-        const bid = u32(buf, p), state = u32(buf, p + DS1_BONFIRE_STATE_D);
+        const bid = u32(buf, p),
+          state = u32(buf, p + DS1_BONFIRE_STATE_D);
         if (!db[bid] || DS1_BONFIRE_STATE[state] === undefined || seen.has(bid)) break;
-        seen.add(bid); run.push([bid, state]); p += DS1_BONFIRE_REC;
+        seen.add(bid);
+        run.push([bid, state]);
+        p += DS1_BONFIRE_REC;
       }
       if (run.length > best.length) best = run;
       o = Math.max(p, o + 1);
@@ -674,7 +944,8 @@ function ds1Bonfires(buf, db) {
 // DS1_FLAG_BASE. The density gate is the guard: a real flag region is ~0.6% set bits
 // against ~32% for ordinary save data, so a moved region turns the feature off.
 const DS1_FLAG_BASE = { dsr: 127721, ptde: 127273 };
-const DS1_FLAG_MAX_DENSITY = 0.05, DS1_FLAG_SPAN = 23156;
+const DS1_FLAG_MAX_DENSITY = 0.05,
+  DS1_FLAG_SPAN = 23156;
 function ds1AttachFlags(ch, buf, table, game, known) {
   const base = DS1_FLAG_BASE[game];
   if (base == null || !table || !Object.keys(table).length) return;
@@ -682,7 +953,10 @@ function ds1AttachFlags(ch, buf, table, game, known) {
   let bits = 0;
   for (let i = base; i < base + DS1_FLAG_SPAN; i++) {
     let x = buf[i];
-    while (x) { bits += x & 1; x >>= 1; }
+    while (x) {
+      bits += x & 1;
+      x >>= 1;
+    }
   }
   if (bits > DS1_FLAG_SPAN * 8 * DS1_FLAG_MAX_DENSITY) return;
   const bosses = new Map();
@@ -699,10 +973,11 @@ function ds1AttachFlags(ch, buf, table, game, known) {
   // NPCs, covenant joined. See ds1_attach_flags in sl2/ds1.py.
   const world = [];
   for (const [cat, rows] of Object.entries(known || {})) {
-    const got = [], missing = [];
+    const got = [],
+      missing = [];
     for (const [off, mask, name] of rows) {
       const v = u32(buf, base + off);
-      ((v != null && (v & mask) >>> 0) ? got : missing).push(name);
+      (v != null && (v & mask) >>> 0 ? got : missing).push(name);
     }
     world.push([cat, got.length, got, rows.length, missing]);
   }
@@ -720,22 +995,44 @@ function ptdeParse(buf, itemDb) {
 }
 
 // ── DS3 ─────────────────────────────────────────────────────────────────
-const DS3_RECORD = 16, DS3_QTY_OFF = 4;
+const DS3_RECORD = 16,
+  DS3_QTY_OFF = 4;
 // Storage order != display order: Vitality lives alone at +40 after a two-field
 // gap; Str/Dex/Int/Fth/Luck are the contiguous +12..+28. See sl2_to_md.py.
-const DS3_STAT_D = [["Vigor", 0], ["Attunement", 4], ["Endurance", 8], ["Vitality", 40],
-  ["Strength", 12], ["Dexterity", 16], ["Intelligence", 20], ["Faith", 24], ["Luck", 28]];
-const DS3_HP_D = -40, DS3_FP_D = -28, DS3_STAM_D = -12, DS3_LEVEL_D = 44, DS3_SOULS_D = 48, DS3_LEVEL_BASE = 89;
+const DS3_STAT_D = [
+  ["Vigor", 0],
+  ["Attunement", 4],
+  ["Endurance", 8],
+  ["Vitality", 40],
+  ["Strength", 12],
+  ["Dexterity", 16],
+  ["Intelligence", 20],
+  ["Faith", 24],
+  ["Luck", 28],
+];
+const DS3_HP_D = -40,
+  DS3_FP_D = -28,
+  DS3_STAM_D = -12,
+  DS3_LEVEL_D = 44,
+  DS3_SOULS_D = 48,
+  DS3_LEVEL_BASE = 89;
 // Embered flag: uint8 at +188 in the stat-mirror struct behind the anchor; 1 = embered
 // (Max HP carries the +30% bonus), 0 = hollow. See sl2_to_md.py DS3_EMBER_D for the calibration.
 const DS3_EMBER_D = 188;
 // Covenant: uint32 equip HANDLE at +3944 from the anchor (DS3 wears the covenant like
 // an accessory), covenant item id = low 28 bits. See sl2_to_md.py DS3_COVENANT_D.
 const DS3_COVENANT_D = 3944;
-const DS3_COVENANT = new Map([[10000, "Blade of the Darkmoon"], [10020, "Watchdogs of Farron"],
-  [10030, "Aldrich Faithful"], [10040, "Warrior of Sunlight"], [10050, "Mound-makers"],
-  [10060, "Way of Blue"], [10070, "Blue Sentinels"], [10080, "Rosaria's Fingers"],
-  [10090, "Spears of the Church"]]);
+const DS3_COVENANT = new Map([
+  [10000, "Blade of the Darkmoon"],
+  [10020, "Watchdogs of Farron"],
+  [10030, "Aldrich Faithful"],
+  [10040, "Warrior of Sunlight"],
+  [10050, "Mound-makers"],
+  [10060, "Way of Blue"],
+  [10070, "Blue Sentinels"],
+  [10080, "Rosaria's Fingers"],
+  [10090, "Spears of the Church"],
+]);
 const SCAN_MIN_RUN = 3;
 // Bridge holes left by untabled items: two known records can sit 32/48 bytes apart
 // on the 16-byte grid. See sl2_to_md.py DS3_MAX_RUN_GAP.
@@ -744,8 +1041,10 @@ const DS3_MAX_RUN_GAP = 48;
 function scanInventory(buf, iddb) {
   const positions = [];
   for (let o = 0; o < buf.length - 8; o++) if (iddb.has(u32(buf, o))) positions.push(o);
-  const buckets = {}; const seen = new Set();
-  const n = positions.length; let i = 0;
+  const buckets = {};
+  const seen = new Set();
+  const n = positions.length;
+  let i = 0;
   while (i < n) {
     let j = i;
     while (j + 1 < n) {
@@ -761,7 +1060,8 @@ function scanInventory(buf, iddb) {
       for (let o = positions[i]; o <= positions[j]; o += DS3_RECORD) {
         if (seen.has(o)) continue;
         seen.add(o);
-        const iid = u32(buf, o), qty = u32(buf, o + DS3_QTY_OFF) || 0;
+        const iid = u32(buf, o),
+          qty = u32(buf, o + DS3_QTY_OFF) || 0;
         if (!(qty >= 1 && qty <= 9999)) continue;
         let entry = iddb.get(iid);
         if (entry === undefined) {
@@ -789,8 +1089,14 @@ function ds3FindStats(buf) {
     if (first != null && first >= 1 && first <= 99) {
       const vals = dists.map((d) => u32(buf, v + d));
       const lvl = u32(buf, v + DS3_LEVEL_D);
-      if (vals.every((x) => x != null && x >= 1 && x <= 99) && lvl != null && lvl >= 1 && lvl <= 802 &&
-          vals.reduce((a, b) => a + b, 0) - DS3_LEVEL_BASE === lvl) return v;
+      if (
+        vals.every((x) => x != null && x >= 1 && x <= 99) &&
+        lvl != null &&
+        lvl >= 1 &&
+        lvl <= 802 &&
+        vals.reduce((a, b) => a + b, 0) - DS3_LEVEL_BASE === lvl
+      )
+        return v;
     }
   }
   return null;
@@ -809,9 +1115,14 @@ function ds3Parse(buf, iddb, name) {
   if (v != null) for (const [k, d] of DS3_STAT_D) stats[k] = u32(buf, v + d);
   const has = v != null;
   return {
-    tier: has ? "full" : "inventory", game: "ds3",
+    tier: has ? "full" : "inventory",
+    game: "ds3",
     name: name && isValidName(name) ? name : "(unnamed slot)",
-    klass: null, stats, soul_memory: null, humanity: null, ng_plus: null,
+    klass: null,
+    stats,
+    soul_memory: null,
+    humanity: null,
+    ng_plus: null,
     level: has ? u32(buf, v + DS3_LEVEL_D) : null,
     souls: has ? u32(buf, v + DS3_SOULS_D) : null,
     stamina: has ? u32(buf, v + DS3_STAM_D) : null,
@@ -823,8 +1134,10 @@ function ds3Parse(buf, iddb, name) {
     equipped_armor: ds3EquippedArmor(buf, iddb, v),
     equipped_rings: ds3EquippedRings(buf, iddb, v),
     equipped_ammo: ds3EquippedAmmo(buf, iddb, v),
-    boss_souls: findBossSouls(goods), key_items: keyItems,
-    inv, unknown_count: 0,
+    boss_souls: findBossSouls(goods),
+    key_items: keyItems,
+    inv,
+    unknown_count: 0,
   };
 }
 // DS3 embered state: 1 -> true, 0 -> false, anything else (or no anchor) -> null.
@@ -838,24 +1151,36 @@ function ds3Embered(buf, v) {
 function ds3Covenant(buf, v) {
   if (v == null) return null;
   const h = u32(buf, v + DS3_COVENANT_D);
-  return h ? (DS3_COVENANT.get(h & 0x0FFFFFFF) ?? null) : null;
+  return h ? (DS3_COVENANT.get(h & 0x0fffffff) ?? null) : null;
 }
 // EquipGameData sits a fixed 664 bytes past the stat anchor; armour handles at
 // +0x20..+0x2C, head-to-toe. See sl2_to_md.py DS3_EQUIP_D / DS3_ARMOR_SLOTS.
 const DS3_EQUIP_D = 664;
-const DS3_ARMOR_SLOTS = [["Head", 0x20], ["Chest", 0x24], ["Hands", 0x28], ["Legs", 0x2C]];
+const DS3_ARMOR_SLOTS = [
+  ["Head", 0x20],
+  ["Chest", 0x24],
+  ["Hands", 0x28],
+  ["Legs", 0x2c],
+];
 // Ring slots +0x34..+0x40; a ring's handle encodes its id (type nibble 0xA -> 0x2).
 // See sl2_to_md.py DS3_RING_SLOTS / ds3_equipped_rings.
-const DS3_RING_SLOTS = [0x34, 0x38, 0x3C, 0x40];
-const DS3_RING_ID_MASK = 0x0FFFFFFF, DS3_RING_ID_TYPE = 0x20000000;
+const DS3_RING_SLOTS = [0x34, 0x38, 0x3c, 0x40];
+const DS3_RING_ID_MASK = 0x0fffffff,
+  DS3_RING_ID_TYPE = 0x20000000;
 // Ammo (arrow/bolt) slots +0x08..+0x14, GaItem handles resolving to the bolts category.
-const DS3_AMMO_SLOTS = [0x08, 0x0C, 0x10, 0x14];
+const DS3_AMMO_SLOTS = [0x08, 0x0c, 0x10, 0x14];
 // Weapon slots: the struct interleaves the hands (LH1,RH1,LH2,RH2,LH3,RH3) starting
 // 0x10 before the armour base, so right = -0xC/-0x4/+0x4, left = -0x10/-0x8/+0x0.
 // Pinned by a weapon-swap differential; the id carries the infusion, not the +N.
 // See sl2_to_md.py DS3_WEAPON_SLOTS / ds3_equipped_weapons.
-const DS3_WEAPON_SLOTS = [["Right Hand", -0x0C], ["Right Hand 2", -0x04], ["Right Hand 3", 0x04],
-  ["Left Hand", -0x10], ["Left Hand 2", -0x08], ["Left Hand 3", 0x00]];
+const DS3_WEAPON_SLOTS = [
+  ["Right Hand", -0x0c],
+  ["Right Hand 2", -0x04],
+  ["Right Hand 3", 0x04],
+  ["Left Hand", -0x10],
+  ["Left Hand 2", -0x08],
+  ["Left Hand 3", 0x00],
+];
 // Bare-fist id: an empty weapon slot reads this, not a null handle, so skip it.
 const DS3_FISTS = 110000;
 // Reinforcement is baked into the equipped weapon id as base+infusion*100+level
@@ -873,8 +1198,12 @@ function ds3ResolveWeapon(iddb, iid) {
 // Estus takes TWO consecutive goods ids per level (150/151 = +0 … 170/171 = +10;
 // 190/191 = Ashen +0 … 210/211 = +10), which a name-keyed db cannot express, so it is
 // resolved arithmetically. Only consulted after the table misses. See Python.
-const DS3_GOODS_TYPE = 0x40000000, DS3_ESTUS_MAX = 10;
-const DS3_ESTUS = [[150, "Estus Flask"], [190, "Ashen Estus Flask"]];
+const DS3_GOODS_TYPE = 0x40000000,
+  DS3_ESTUS_MAX = 10;
+const DS3_ESTUS = [
+  [150, "Estus Flask"],
+  [190, "Ashen Estus Flask"],
+];
 function ds3ResolveEstus(iid) {
   const raw = iid - DS3_GOODS_TYPE;
   for (const [base, name] of DS3_ESTUS) {
@@ -894,7 +1223,7 @@ function ds3GaitemMap(buf) {
     if (handle == null) break;
     const iid = u32(buf, off + 4);
     if (handle && iid) map.set(handle, iid);
-    const big = handle && DS3_GAITEM_TYPES_BIG.includes((handle & 0xF0000000) >>> 0);
+    const big = handle && DS3_GAITEM_TYPES_BIG.includes((handle & 0xf0000000) >>> 0);
     off += big ? DS3_GAITEM_BIG : 8;
   }
   return map;
@@ -905,7 +1234,9 @@ function ds3GaitemMap(buf) {
 // See sl2_to_md.py ds3_equipped_weapons.
 function ds3EquippedWeapons(buf, iddb, v) {
   if (v == null) return {};
-  const hmap = ds3GaitemMap(buf), base = v + DS3_EQUIP_D, out = {};
+  const hmap = ds3GaitemMap(buf),
+    base = v + DS3_EQUIP_D,
+    out = {};
   for (const [slot, d] of DS3_WEAPON_SLOTS) {
     const handle = u32(buf, base + d);
     const iid = handle ? hmap.get(handle) : null;
@@ -921,7 +1252,9 @@ function ds3EquippedWeapons(buf, iddb, v) {
 // See sl2_to_md.py ds3_equipped_armor.
 function ds3EquippedArmor(buf, iddb, v) {
   if (v == null) return {};
-  const hmap = ds3GaitemMap(buf), base = v + DS3_EQUIP_D, out = {};
+  const hmap = ds3GaitemMap(buf),
+    base = v + DS3_EQUIP_D,
+    out = {};
   for (const [slot, d] of DS3_ARMOR_SLOTS) {
     const handle = u32(buf, base + d);
     const iid = handle ? hmap.get(handle) : null;
@@ -934,7 +1267,8 @@ function ds3EquippedArmor(buf, iddb, v) {
 // only where it lands on a real rings item. Rings aren't in the GaItem array. See Python.
 function ds3EquippedRings(buf, iddb, v) {
   if (v == null) return [];
-  const base = v + DS3_EQUIP_D, out = [];
+  const base = v + DS3_EQUIP_D,
+    out = [];
   for (const d of DS3_RING_SLOTS) {
     const handle = u32(buf, base + d);
     if (!handle) continue;
@@ -948,7 +1282,9 @@ function ds3EquippedRings(buf, iddb, v) {
 // where the handle lands on a bolts item. Weapons proper not read. See Python.
 function ds3EquippedAmmo(buf, iddb, v) {
   if (v == null) return [];
-  const hmap = ds3GaitemMap(buf), base = v + DS3_EQUIP_D, out = [];
+  const hmap = ds3GaitemMap(buf),
+    base = v + DS3_EQUIP_D,
+    out = [];
   for (const d of DS3_AMMO_SLOTS) {
     const handle = u32(buf, base + d);
     const iid = handle ? hmap.get(handle) : null;
@@ -969,9 +1305,12 @@ function ds3Playtime(menu, i) {
 // before it; our decrypt drops alfizari's 4-byte length prefix, so the GaItem walk
 // starts at 0x6C (their 0x70). Constants/tables mirror sl2_to_md.py — verified on a
 // real save (Iudex + Cemetery/High Wall, zero false positives). Keep in sync.
-const DS3_GAITEM_START = 0x6C, DS3_GAITEM_SLOTS = 6144, DS3_GAITEM_BIG = 60;
+const DS3_GAITEM_START = 0x6c,
+  DS3_GAITEM_SLOTS = 6144,
+  DS3_GAITEM_BIG = 60;
 const DS3_GAITEM_TYPES_BIG = [0x80000000, 0x90000000];
-const DS3_FLAG_MAX_DENSITY = 0.01, DS3_FLAG_SAMPLE = 0x8000;
+const DS3_FLAG_MAX_DENSITY = 0.01,
+  DS3_FLAG_SAMPLE = 0x8000;
 // Bonfires + boss flags both come from db_ds3/*.json (bonfires: area -> [[dist,bit,name]];
 // boss_flags: name -> [dist,bit]), generated from the DS3 flag-id list via the flag-id->bit
 // formula. See sl2_to_md.py load_ds3_bonfires / load_ds3_boss_flags.
@@ -982,16 +1321,16 @@ function ds3EventFlagBase(buf) {
     if (handle == null) return null;
     // `& 0xF0000000` yields a signed int32 in JS — >>>0 back to unsigned so the
     // weapon/armour top-nibble compare matches (handles are >= 0x80000000).
-    const big = handle && DS3_GAITEM_TYPES_BIG.includes((handle & 0xF0000000) >>> 0);
+    const big = handle && DS3_GAITEM_TYPES_BIG.includes((handle & 0xf0000000) >>> 0);
     off += big ? DS3_GAITEM_BIG : 8;
   }
-  const aboveCounter = off + 0x13F + 0x1DD + 0x8808 + 0x11C;
+  const aboveCounter = off + 0x13f + 0x1dd + 0x8808 + 0x11c;
   const aboveSize = u32(buf, aboveCounter);
   if (aboveSize == null) return null;
-  const gestureEnd = aboveCounter + 4 + aboveSize * 8 + 0x18C + 0x4 + 0x8800 + 0xC + 0xA4;
+  const gestureEnd = aboveCounter + 4 + aboveSize * 8 + 0x18c + 0x4 + 0x8800 + 0xc + 0xa4;
   const table2Size = u32(buf, gestureEnd);
   if (table2Size == null) return null;
-  const base = gestureEnd + 4 + table2Size * 4 + 0x92 + 0xBCC - 0x12;
+  const base = gestureEnd + 4 + table2Size * 4 + 0x92 + 0xbcc - 0x12;
   if (!(base >= 0 && base < buf.length)) return null;
   // Event flags are sparse (a 100% NG+ slot measures 0.0022 set bits); ordinary save
   // data is far denser, so a base that walks off the region gives itself away and is
@@ -1002,7 +1341,14 @@ function ds3EventFlagBase(buf) {
   for (let i = 0; i < sample.length; i++) bits += popcount(sample[i]);
   return bits / (sample.length * 8) <= DS3_FLAG_MAX_DENSITY ? base : null;
 }
-function popcount(x) { let c = 0; while (x) { c += x & 1; x >>>= 1; } return c; }
+function popcount(x) {
+  let c = 0;
+  while (x) {
+    c += x & 1;
+    x >>>= 1;
+  }
+  return c;
+}
 /** Split an equipped ring name into its table key and reinforcement level. The db
  *  spells three Ring of Favor ids "Ring of Favor+N" and the fourth "Ring of Favor +3",
  *  so the space before the suffix is optional. Mirror of Python ds3_ring_level. */
@@ -1016,7 +1362,8 @@ function ds3RingLevel(name) {
  *  (ch.ring_mods). Mirror of Python ds3_attach_ring_effects. */
 function ds3AttachRingEffects(ch, table) {
   if (!table || !Object.keys(table).length) return;
-  const effects = [], mods = [];
+  const effects = [],
+    mods = [];
   for (const name of ch.equipped_rings || []) {
     const [base, lvl] = ds3RingLevel(name);
     const entry = table[base];
@@ -1032,16 +1379,28 @@ function ds3AttachRingEffects(ch, table) {
   if (mods.length) ch.ring_mods = mods;
 }
 
-function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, covenantDb,
-                        bossVictoryDb, lordCinderDb, pickupDb, endingDb) {
+function ds3AttachFlags(
+  ch,
+  buf,
+  base,
+  bonfireDb,
+  bossFlagDb,
+  questlineDb,
+  covenantDb,
+  bossVictoryDb,
+  lordCinderDb,
+  pickupDb,
+  endingDb,
+) {
   if (base == null) return;
   const areas = [];
   let anyLit = false;
   for (const [area, bonfires] of Object.entries(bonfireDb || {})) {
-    const named = [], missing = [];
+    const named = [],
+      missing = [];
     for (const [dist, bit, name] of bonfires) {
       const val = u8(buf, base + dist);
-      (val != null && (val & (1 << bit)) ? named : missing).push(name);
+      (val != null && val & (1 << bit) ? named : missing).push(name);
     }
     anyLit = anyLit || named.length > 0;
     areas.push([area, named.length, named, bonfires.length, missing]);
@@ -1054,7 +1413,7 @@ function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, coven
   for (const table of [bossFlagDb || {}, bossVictoryDb || {}]) {
     for (const [name, [dist, bit]] of Object.entries(table)) {
       const val = u8(buf, base + dist);
-      if (val != null && (val & (1 << bit))) (bosses[name] || (bosses[name] = new Set())).add("flag");
+      if (val != null && val & (1 << bit)) (bosses[name] || (bosses[name] = new Set())).add("flag");
     }
   }
   const keys = Object.keys(bosses);
@@ -1065,7 +1424,7 @@ function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, coven
   const cinders = [];
   for (const [lord, [dist, bit]] of Object.entries(lordCinderDb || {})) {
     const val = u8(buf, base + dist);
-    if (val != null && (val & (1 << bit))) cinders.push(lord);
+    if (val != null && val & (1 << bit)) cinders.push(lord);
   }
   if (cinders.length) ch.cinders = cinders;
   const quests = {};
@@ -1073,7 +1432,7 @@ function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, coven
     const got = [];
     for (const [dist, bit, rw] of rewards) {
       const val = u8(buf, base + dist);
-      if (val != null && (val & (1 << bit))) got.push(rw);
+      if (val != null && val & (1 << bit)) got.push(rw);
     }
     if (got.length) quests[src] = got;
   }
@@ -1083,14 +1442,15 @@ function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, coven
   const picks = [];
   let anyFound = false;
   for (const [area, items] of Object.entries(pickupDb || {})) {
-    const got = [], missing = [];
+    const got = [],
+      missing = [];
     for (const [dist, bit, item, where] of items) {
       const val = u8(buf, base + dist);
       // A missing item carries WHERE it is, when the table knows one: the list is a
       // to-do list, and "Titanite Shard" on its own is not one. About a quarter of the
       // flags have no location and stay a bare name.
       const label = where ? `${item} — ${where}` : item;
-      (val != null && (val & (1 << bit)) ? got : missing).push(label);
+      (val != null && val & (1 << bit) ? got : missing).push(label);
     }
     anyFound = anyFound || got.length > 0;
     picks.push([area, got.length, items.length, missing]);
@@ -1101,7 +1461,7 @@ function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, coven
     const got = [];
     for (const [dist, bit, what] of marks) {
       const val = u8(buf, base + dist);
-      if (val != null && (val & (1 << bit))) got.push(what);
+      if (val != null && val & (1 << bit)) got.push(what);
     }
     if (got.length) covs[cov] = got;
   }
@@ -1109,7 +1469,7 @@ function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, coven
   const endings = [];
   for (const [end, [dist, bit]] of Object.entries(endingDb || {})) {
     const val = u8(buf, base + dist);
-    if (val != null && (val & (1 << bit))) endings.push(end);
+    if (val != null && val & (1 << bit)) endings.push(end);
   }
   if (endings.length) ch.endings = endings;
 }
@@ -1118,11 +1478,12 @@ function ds3AttachFlags(ch, buf, base, bonfireDb, bossFlagDb, questlineDb, coven
 const DS3_NG_MAX = 99;
 function ds3Journey(buf, base) {
   if (base == null) return null;
-  const ng = u16(buf, base + 0x12 - 0xBCC);
+  const ng = u16(buf, base + 0x12 - 0xbcc);
   return ng != null && ng >= 0 && ng <= DS3_NG_MAX ? ng : null;
 }
 function parseRosterDs3(menu) {
-  const p = ROSTER_PARAMS_DS3, roster = new Map();
+  const p = ROSTER_PARAMS_DS3,
+    roster = new Map();
   for (let i = 0; i < 10; i++) {
     if (!u8(menu, p.occ + i)) continue;
     const name = readUtf16(menu, p.desc + p.stride * i, p.namelen);
@@ -1132,27 +1493,51 @@ function parseRosterDs3(menu) {
 }
 
 // ── Elden Ring ────────────────────────────────────────────────────────────
-const ER_GAITEM_START = 0x20, ER_GAITEM_COUNT = 0x1400;
-const ER_MENU_LEN_OFF = 352, ER_MENU_DATA_OFF = 356, ER_SLOT_COUNT = 10, ER_PROFILE_STRIDE = 588;
-const ER_PROFILE_NAME_LEN = 16, ER_PROFILE_LEVEL_OFF = 34;
-const ER_STAT_D = [["Vigor", 0], ["Mind", 4], ["Endurance", 8], ["Strength", 12],
-  ["Dexterity", 16], ["Intelligence", 20], ["Faith", 24], ["Arcane", 28]];
-const ER_HP_D = -40, ER_STAM_D = -12, ER_LEVEL_D = 44, ER_RUNES_D = 48, ER_LEVEL_BASE = 79;
+const ER_GAITEM_START = 0x20,
+  ER_GAITEM_COUNT = 0x1400;
+const ER_MENU_LEN_OFF = 352,
+  ER_MENU_DATA_OFF = 356,
+  ER_SLOT_COUNT = 10,
+  ER_PROFILE_STRIDE = 588;
+const ER_PROFILE_NAME_LEN = 16,
+  ER_PROFILE_LEVEL_OFF = 34;
+const ER_STAT_D = [
+  ["Vigor", 0],
+  ["Mind", 4],
+  ["Endurance", 8],
+  ["Strength", 12],
+  ["Dexterity", 16],
+  ["Intelligence", 20],
+  ["Faith", 24],
+  ["Arcane", 28],
+];
+const ER_HP_D = -40,
+  ER_STAM_D = -12,
+  ER_LEVEL_D = 44,
+  ER_RUNES_D = 48,
+  ER_LEVEL_BASE = 79;
 const ER_CAT = { 0x0: "weapons", 0x1: "armors", 0x2: "talismans", 0x4: "goods", 0x8: "ashes" };
 // id = base + affinity*100 + level: `% 100` is the reinforcement level, `- % 100` the
 // affinity row the table names, `- % 10000` the plain base. +25 is the ceiling, so a
 // larger remainder is not a level and none is claimed.
-const ER_WEAPON_BASE_STEP = 10000, ER_WEAPON_AFFINITY_STEP = 100, ER_MAX_REINFORCE = 25;
+const ER_WEAPON_BASE_STEP = 10000,
+  ER_WEAPON_AFFINITY_STEP = 100,
+  ER_MAX_REINFORCE = 25;
 
 function erRoster(menu) {
   const length = u32(menu, ER_MENU_LEN_OFF);
   if (length == null) return [];
-  const activeBase = ER_MENU_DATA_OFF + length, pbase = activeBase + ER_SLOT_COUNT;
+  const activeBase = ER_MENU_DATA_OFF + length,
+    pbase = activeBase + ER_SLOT_COUNT;
   const out = [];
   for (let i = 0; i < ER_SLOT_COUNT; i++) {
     const active = !!u8(menu, activeBase + i);
     const base = pbase + i * ER_PROFILE_STRIDE;
-    out.push([active, readUtf16(menu, base, ER_PROFILE_NAME_LEN), u32(menu, base + ER_PROFILE_LEVEL_OFF)]);
+    out.push([
+      active,
+      readUtf16(menu, base, ER_PROFILE_NAME_LEN),
+      u32(menu, base + ER_PROFILE_LEVEL_OFF),
+    ]);
   }
   return out;
 }
@@ -1163,7 +1548,7 @@ function* erGaitems(buf) {
     const iid = u32(buf, o + 4);
     o += 8;
     if (iid) {
-      const cat = iid & 0xF0000000;
+      const cat = iid & 0xf0000000;
       if (cat === 0x00000000) o += 13;
       else if (cat === 0x10000000) o += 8;
       yield iid;
@@ -1171,7 +1556,7 @@ function* erGaitems(buf) {
   }
 }
 function erResolve(iid, db) {
-  const cat = ER_CAT[(iid >>> 28) & 0xF];
+  const cat = ER_CAT[(iid >>> 28) & 0xf];
   if (cat === undefined) return [null, null];
   const table = db[cat] || new Map();
   let name = table.get(iid);
@@ -1192,14 +1577,21 @@ function erFindStats(buf) {
     if (first != null && first >= 1 && first <= 99) {
       const vals = dists.map((d) => u32(buf, v + d));
       const lvl = u32(buf, v + ER_LEVEL_D);
-      if (vals.every((x) => x != null && x >= 1 && x <= 99) && lvl != null && lvl >= 1 && lvl <= 713 &&
-          vals.reduce((a, b) => a + b, 0) - ER_LEVEL_BASE === lvl) return v;
+      if (
+        vals.every((x) => x != null && x >= 1 && x <= 99) &&
+        lvl != null &&
+        lvl >= 1 &&
+        lvl <= 713 &&
+        vals.reduce((a, b) => a + b, 0) - ER_LEVEL_BASE === lvl
+      )
+        return v;
     }
   }
   return null;
 }
 function erParse(buf, iddb, name, level) {
-  const buckets = {}; let unknown = 0;
+  const buckets = {};
+  let unknown = 0;
   for (const iid of erGaitems(buf)) {
     const [nm, cat] = erResolve(iid, iddb);
     if (nm) (buckets[cat] || (buckets[cat] = new Set())).add(nm);
@@ -1209,20 +1601,30 @@ function erParse(buf, iddb, name, level) {
   const inv = {};
   for (const c in buckets) inv[c] = [...buckets[c]].sort().map((n) => [n, null]);
   const remembrances = [];
-  for (const c in buckets) for (const n of [...buckets[c]].sort()) if (n.includes("Remembrance")) remembrances.push([n, null]);
+  for (const c in buckets)
+    for (const n of [...buckets[c]].sort())
+      if (n.includes("Remembrance")) remembrances.push([n, null]);
   const v = erFindStats(buf);
   const stats = {};
   if (v != null) for (const [k, d] of ER_STAT_D) stats[k] = u32(buf, v + d);
   const has = v != null;
   return {
-    tier: has ? "full" : "inventory", game: "er",
+    tier: has ? "full" : "inventory",
+    game: "er",
     name: name && isValidName(name) ? name : "(unnamed slot)",
-    klass: null, stats, soul_memory: null, humanity: null, ng_plus: null,
+    klass: null,
+    stats,
+    soul_memory: null,
+    humanity: null,
+    ng_plus: null,
     level: has ? u32(buf, v + ER_LEVEL_D) : level,
     souls: has ? u32(buf, v + ER_RUNES_D) : null,
     stamina: has ? u32(buf, v + ER_STAM_D) : null,
     hp: has ? u32(buf, v + ER_HP_D) : null,
-    boss_souls: remembrances, key_items: [], inv, unknown_count: unknown,
+    boss_souls: remembrances,
+    key_items: [],
+    inv,
+    unknown_count: unknown,
   };
 }
 
@@ -1231,33 +1633,52 @@ function erParse(buf, iddb, name, level) {
 // unencrypted, its fields do NOT move between patches, and its item records carry a
 // type code — so there is no content scan and no cross-type mis-naming to defend.
 const SDT_SLOT_COUNT = 10;
-const SDT_STEAM_OFF = 0x33E54, SDT_NG_OFF = 0x33F34, SDT_PLAYTIME_OFF = 0x33F80;
-const SDT_ATTACK_OFF = 0x3449C, SDT_SEN_OFF = 0x344D0;
+const SDT_STEAM_OFF = 0x33e54,
+  SDT_NG_OFF = 0x33f34,
+  SDT_PLAYTIME_OFF = 0x33f80;
+const SDT_ATTACK_OFF = 0x3449c,
+  SDT_SEN_OFF = 0x344d0;
 // Max HP and max Posture are each stored TWICE, and neither sits where the published
 // source says: both groups are [0][current][max][max], and alfizari's editor names the
 // CURRENT field. A differential settles it — 0x3446C moved 32 -> 160 across a 42-minute
 // window while 0x34470 and 0x34474 both held at 320. Read only where the two copies
 // agree. See SDT_HP_OFF / sdt_twin in sl2/sdt.py.
-const SDT_HP_OFF = 0x34470, SDT_HP_ALT = 0x34474;
-const SDT_POSTURE_OFF = 0x3448C, SDT_POSTURE_ALT = 0x34490;
+const SDT_HP_OFF = 0x34470,
+  SDT_HP_ALT = 0x34474;
+const SDT_POSTURE_OFF = 0x3448c,
+  SDT_POSTURE_ALT = 0x34490;
 
 // Vitality, the word immediately before Attack Power. Pinned by a Prayer Necklace
 // differential — see SDT_VITALITY_OFF in sl2/sdt.py. The stored value is the number
 // the status screen shows; a fresh character reads 1.
-const SDT_VITALITY_OFF = 0x34498, SDT_VITALITY_MAX = 20;
+const SDT_VITALITY_OFF = 0x34498,
+  SDT_VITALITY_MAX = 20;
 // Attack power on a character who has consumed no Memory — measured on a real save
 // that is minutes from the opening, which is what makes it a base and not a guess.
-const SDT_ATTACK_BASE = 1, SDT_ATTACK_MAX = 99, SDT_NG_MAX = 99;
-const SDT_LISTS = [["inv", 0x8F70C, 0x7000], ["key", 0x9670C, 0x2000],
-  ["storage", 0x987A0, 0x9000], ["storage", 0xA1958, 0x4000]];
+const SDT_ATTACK_BASE = 1,
+  SDT_ATTACK_MAX = 99,
+  SDT_NG_MAX = 99;
+const SDT_LISTS = [
+  ["inv", 0x8f70c, 0x7000],
+  ["key", 0x9670c, 0x2000],
+  ["storage", 0x987a0, 0x9000],
+  ["storage", 0xa1958, 0x4000],
+];
 const SDT_RECORD = 16;
-const SDT_CAT = { 0x8: "weapons", 0x9: "armors", 0xB: "goods" };
-const SDT_ID_MASK = 0x00FFFFFF;
+const SDT_CAT = { 0x8: "weapons", 0x9: "armors", 0xb: "goods" };
+const SDT_ID_MASK = 0x00ffffff;
 const SDT_ARTS_MAX = 9999;
 // Goods id blocks, read off db_sdt/goods.json in order. Mirrors SDT_GOODS_RANGES.
-const SDT_GOODS_RANGES = [[500, 1999, "consumables"], [2000, 2999, "key"],
-  [3000, 3999, "consumables"], [4000, 4499, "beads"], [5100, 5499, "memories"],
-  [5500, 5999, "key"], [6000, 6999, "upgrade"], [9000, 9999, "key"]];
+const SDT_GOODS_RANGES = [
+  [500, 1999, "consumables"],
+  [2000, 2999, "key"],
+  [3000, 3999, "consumables"],
+  [4000, 4499, "beads"],
+  [5100, 5499, "memories"],
+  [5500, 5999, "key"],
+  [6000, 6999, "upgrade"],
+  [9000, 9999, "key"],
+];
 
 function sdtGoodsCat(iid) {
   for (const [lo, hi, cat] of SDT_GOODS_RANGES) if (iid >= lo && iid <= hi) return cat;
@@ -1268,7 +1689,12 @@ function sdtGoodsCat(iid) {
 function sdtResolve(cat, iid, db) {
   let name = (db.names[cat] || new Map()).get(iid);
   if (name != null) {
-    if (cat === "weapons") return [name, db.prosthetics.has(iid) ? "prosthetics" : (iid <= SDT_ARTS_MAX ? "arts" : "skills"), false];
+    if (cat === "weapons")
+      return [
+        name,
+        db.prosthetics.has(iid) ? "prosthetics" : iid <= SDT_ARTS_MAX ? "arts" : "skills",
+        false,
+      ];
     if (cat === "goods") return [name, sdtGoodsCat(iid), false];
     return [name, cat, false];
   }
@@ -1281,8 +1707,12 @@ function sdtResolve(cat, iid, db) {
 // the Virtual Weapon / Upgrade Menu rows restate something already listed. The
 // `Another's Memory:` attire blocks are deliberately NOT here — see SDT_SUPPRESSED_
 // PREFIXES in sl2/sdt.py for why.
-const SDT_SUPPRESSED_PREFIXES = ["Original Memory:", "Immortal Severance Cutscene",
-  "Virtual Weapon:", "Upgrade Menu:"];
+const SDT_SUPPRESSED_PREFIXES = [
+  "Original Memory:",
+  "Immortal Severance Cutscene",
+  "Virtual Weapon:",
+  "Upgrade Menu:",
+];
 const sdtSuppressed = (name) => SDT_SUPPRESSED_PREFIXES.some((p) => name.startsWith(p));
 
 // A skill point is spendable currency, so it rides in the header, not the consumables.
@@ -1294,7 +1724,7 @@ function* sdtItems(buf, db) {
     for (let off = start; off < start + length; off += SDT_RECORD) {
       const handle = u32(buf, off);
       if (!handle) continue;
-      const cat = SDT_CAT[(handle >>> 28) & 0xF];
+      const cat = SDT_CAT[(handle >>> 28) & 0xf];
       if (cat === undefined) continue;
       const iid = u32(buf, off + 4);
       if (iid == null) continue;
@@ -1321,14 +1751,26 @@ function sdtMemoriesSpent(attack) {
 // a fixed slot offset, packed exactly the way DS3 packs its groups. See SDT_FLAG_REGION
 // and SDT_FLAG_MAPS in sl2/sdt.py for the derivation, for why the flat alternative
 // reading is wrong, and for why the map indices are not consecutive.
-const SDT_FLAG_REGION = 52, SDT_FLAG_CATEGORY = 0x500, SDT_FLAG_BLOCK = 128;
+const SDT_FLAG_REGION = 52,
+  SDT_FLAG_CATEGORY = 0x500,
+  SDT_FLAG_BLOCK = 128;
 const SDT_FLAG_GLOBAL_MAX = 10000;
-const SDT_FLAG_MAPS = new Map([["10,0", 2], ["11,0", 3], ["11,1", 4], ["11,2", 5],
-  ["13,0", 8], ["15,0", 9], ["17,0", 11], ["20,0", 13], ["25,0", 14]]);
+const SDT_FLAG_MAPS = new Map([
+  ["10,0", 2],
+  ["11,0", 3],
+  ["11,1", 4],
+  ["11,2", 5],
+  ["13,0", 8],
+  ["15,0", 9],
+  ["17,0", 11],
+  ["20,0", 13],
+  ["25,0", 14],
+]);
 
 /** Byte offset and bit of an event flag, or null where it cannot be placed. */
 function sdtFlagOffset(fid) {
-  const area = Math.floor(fid / 100000) % 100, sub = Math.floor(fid / 10000) % 10;
+  const area = Math.floor(fid / 100000) % 100,
+    sub = Math.floor(fid / 10000) % 10;
   let k;
   if (area >= 90 || area + sub === 0) {
     if (!(fid >= 0 && fid < SDT_FLAG_GLOBAL_MAX)) return null;
@@ -1338,8 +1780,8 @@ function sdtFlagOffset(fid) {
     if (k === undefined) return null;
   }
   const n = fid % 1000;
-  const block = SDT_FLAG_REGION + k * SDT_FLAG_CATEGORY
-    + (Math.floor(fid / 1000) % 10) * SDT_FLAG_BLOCK;
+  const block =
+    SDT_FLAG_REGION + k * SDT_FLAG_CATEGORY + (Math.floor(fid / 1000) % 10) * SDT_FLAG_BLOCK;
   return [block + (n >> 5) * 4 + 3 - ((n & 31) >> 3), 7 - (n & 7)];
 }
 
@@ -1366,7 +1808,8 @@ function sdtAttachFlags(ch, buf, dbs) {
   const areas = [];
   let anyLit = false;
   for (const [area, idols] of Object.entries(dbs.sdt.idols || {})) {
-    const named = [], missing = [];
+    const named = [],
+      missing = [];
     for (const [fid, name] of idols) (sdtFlag(buf, Number(fid)) ? named : missing).push(name);
     anyLit = anyLit || named.length > 0;
     areas.push([area, named.length, named, idols.length, missing]);
@@ -1377,7 +1820,8 @@ function sdtAttachFlags(ch, buf, dbs) {
   const minis = [];
   let anyDead = false;
   for (const [area, enemies] of Object.entries(dbs.sdt.minibosses || {})) {
-    const dead = [], alive = [];
+    const dead = [],
+      alive = [];
     for (const [eid, name] of enemies) (sdtFlag(buf, Number(eid)) ? dead : alive).push(name);
     anyDead = anyDead || dead.length > 0;
     minis.push([area, dead.length, enemies.length, alive]);
@@ -1389,7 +1833,8 @@ function sdtAttachFlags(ch, buf, dbs) {
 // separates a live character from a DELETED one, which slot content cannot — see
 // sdt_active_slots in sl2/sdt.py. Returns null (filter off) rather than hiding real
 // characters when the array cannot be trusted.
-const SDT_MENU_ENTRY = 10, SDT_OCCUPANCY_OFF = 212;
+const SDT_MENU_ENTRY = 10,
+  SDT_OCCUPANCY_OFF = 212;
 
 function sdtActiveSlots(data, entries) {
   if (entries.length <= SDT_MENU_ENTRY) return null;
@@ -1406,12 +1851,26 @@ function sdtActiveSlots(data, entries) {
 
 /** Parse one Sekiro slot. No name and no attributes — the game has neither. */
 function sdtParse(buf, db) {
-  const inv = {}, keyItems = [], memories = [];
-  let unknown = 0, internal = 0, suppressed = 0, skillPoints = null;
+  const inv = {},
+    keyItems = [],
+    memories = [];
+  let unknown = 0,
+    internal = 0,
+    suppressed = 0,
+    skillPoints = null;
   for (const [which, id, name, cat, qty, isInternal] of sdtItems(buf, db)) {
-    if (name == null) { unknown++; continue; }
-    if (isInternal) { internal++; continue; }
-    if (sdtSuppressed(name)) { suppressed++; continue; }
+    if (name == null) {
+      unknown++;
+      continue;
+    }
+    if (isInternal) {
+      internal++;
+      continue;
+    }
+    if (sdtSuppressed(name)) {
+      suppressed++;
+      continue;
+    }
     // Only a CARRIED skill point is promoted — one in the box is genuinely in the box.
     if (id === SDT_SKILL_POINT_ID && which !== "storage") {
       skillPoints = (skillPoints || 0) + (qty || 0);
@@ -1427,7 +1886,8 @@ function sdtParse(buf, db) {
       if (cat === "memories") memories.push(row);
     }
   }
-  const playTime = u32(buf, SDT_PLAYTIME_OFF), steamId = u64(buf, SDT_STEAM_OFF);
+  const playTime = u32(buf, SDT_PLAYTIME_OFF),
+    steamId = u64(buf, SDT_STEAM_OFF);
   // An unused slot is all zeros, which is the only occupancy test there is: the game
   // publishes no slot list, and the Steam id is read for this and nothing else.
   if (!Object.keys(inv).length && !keyItems.length && !playTime && !steamId) return null;
@@ -1437,19 +1897,29 @@ function sdtParse(buf, db) {
   let vitality = u32(buf, SDT_VITALITY_OFF);
   if (vitality != null && (vitality < 1 || vitality > SDT_VITALITY_MAX)) vitality = null;
   const ch = {
-    tier: "full", game: "sdt",
+    tier: "full",
+    game: "sdt",
     // Sekiro profiles carry no name; SDT_NOTE says what that means, once.
     name: "(unnamed)",
-    klass: null, stats: {}, level: null, soul_memory: null, humanity: null,
+    klass: null,
+    stats: {},
+    level: null,
+    soul_memory: null,
+    humanity: null,
     stamina: null,
     hp: sdtTwin(buf, SDT_HP_OFF, SDT_HP_ALT),
     posture: sdtTwin(buf, SDT_POSTURE_OFF, SDT_POSTURE_ALT),
     ng_plus: ng != null && ng <= SDT_NG_MAX ? ng : null,
     play_time: playTime,
     souls: u32(buf, SDT_SEN_OFF),
-    attack, vitality, skill_points: skillPoints,
-    boss_souls: memories, key_items: keyItems,
-    inv, unknown_count: unknown, internal_count: internal,
+    attack,
+    vitality,
+    skill_points: skillPoints,
+    boss_souls: memories,
+    key_items: keyItems,
+    inv,
+    unknown_count: unknown,
+    internal_count: internal,
     suppressed_count: suppressed,
   };
   const spent = sdtMemoriesSpent(attack);
@@ -1466,8 +1936,13 @@ export const GAMES = {
   ds3: { title: "Dark Souls III", tier: "full", slots: [0, 10] },
   er: { title: "Elden Ring", tier: "full", slots: [0, 10] },
   // `coverage` says what the tier does NOT cover. See GAMES["sdt"] in sl2/convert.py.
-  sdt: { title: "Sekiro: Shadows Die Twice", tier: "full", slots: [0, SDT_SLOT_COUNT],
-    coverage: "minibosses and world item pickups are not read — Sekiro publishes no id table for either, so there is nothing to look up even though the flag region itself is read" },
+  sdt: {
+    title: "Sekiro: Shadows Die Twice",
+    tier: "full",
+    slots: [0, SDT_SLOT_COUNT],
+    coverage:
+      "minibosses and world item pickups are not read — Sekiro publishes no id table for either, so there is nothing to look up even though the flag region itself is read",
+  },
 };
 
 /**
@@ -1494,11 +1969,15 @@ const SAVE_VERSION_MAX = 4095;
 /** The save-format version this file was written with, or null. */
 function saveFormatVersion(data, entries, game, slots) {
   if (!SAVE_VERSION_GAMES.has(game)) return null;
-  const dec = game === "dsr" ? (b) => decryptIvPrefixed(b, DSR_KEY)
-    : game === "ds3" ? (b) => decryptIvPrefixed(b, DS3_KEY) : decryptNone;
+  const dec =
+    game === "dsr"
+      ? (b) => decryptIvPrefixed(b, DSR_KEY)
+      : game === "ds3"
+        ? (b) => decryptIvPrefixed(b, DS3_KEY)
+        : decryptNone;
   for (let i = slots[0]; i < slots[1]; i++) {
     if (i >= entries.length) continue;
-    const buf = dec(blobOf(data, entries[i]));   // an unused slot is all zeros
+    const buf = dec(blobOf(data, entries[i])); // an unused slot is all zeros
     if (buf === null) continue;
     const v = u32(buf, 0);
     if (v != null && v > 0 && v <= SAVE_VERSION_MAX) return v;
@@ -1515,7 +1994,8 @@ const ER_REG_VER_OFF = 8;
 function erGamePatch(data, entries) {
   if (entries.length <= ER_REG_ENTRY) return null;
   const buf = decryptNone(blobOf(data, entries[ER_REG_ENTRY]));
-  if (buf.length < 4 || buf[0] !== 0x20 || buf[1] !== 0x47 || buf[2] !== 0x45 || buf[3] !== 0x52) return null;
+  if (buf.length < 4 || buf[0] !== 0x20 || buf[1] !== 0x47 || buf[2] !== 0x45 || buf[3] !== 0x52)
+    return null;
   const v = u32(buf, ER_REG_VER_OFF);
   if (v == null || v < 10000000 || v > 19999999) return null;
   const minor = Math.floor(v / 100000) % 100;
@@ -1538,19 +2018,22 @@ const STEAM_FOLDER_DEC = new Set(["sdt"]);
 // DS2 stores the same account as ASCII TEXT — entry 0, offset 53, sixteen hex chars.
 // See DS2_STEAM_ID_OFF in sl2/convert.py for why the old "DS2 has no account" claim
 // was wrong: the search looked for a number and DS2 writes the folder name.
-const DS2_STEAM_ID_OFF = 53, DS2_STEAM_ID_LEN = 16;
+const DS2_STEAM_ID_OFF = 53,
+  DS2_STEAM_ID_LEN = 16;
 
 /** DS2's account, parsed out of text. Same [accountId, steamId64Text] shape. */
 function ds2SteamOwner(data, entries, game) {
   if (!entries.length) return null;
-  const buf = decryptDs2(blobOf(data, entries[0]),
-    game === "ds2vanilla" ? DS2_VANILLA_KEY : undefined);
+  const buf = decryptDs2(
+    blobOf(data, entries[0]),
+    game === "ds2vanilla" ? DS2_VANILLA_KEY : undefined,
+  );
   if (buf === null || buf.length < DS2_STEAM_ID_OFF + DS2_STEAM_ID_LEN) return null;
   let text = "";
   for (let i = 0; i < DS2_STEAM_ID_LEN; i++) text += String.fromCharCode(buf[DS2_STEAM_ID_OFF + i]);
   if (!/^[0-9a-fA-F]{16}$/.test(text)) return null;
   const value = BigInt("0x" + text);
-  const account = Number(value & 0xFFFFFFFFn);
+  const account = Number(value & 0xffffffffn);
   if (Number(value >> 32n) !== STEAM_ID64_HIGH || !account) return null;
   return [account, value.toString()];
 }
@@ -1565,7 +2048,8 @@ function steamOwner(data, entries, game) {
   const dec = game === "ds3" ? (b) => decryptIvPrefixed(b, DS3_KEY) : decryptNone;
   const buf = dec(blobOf(data, entries[entry]));
   if (buf === null) return null;
-  const low = u32(buf, off), high = u32(buf, off + 4);
+  const low = u32(buf, off),
+    high = u32(buf, off + 4);
   if (low == null || high !== STEAM_ID64_HIGH || low === 0) return null;
   return [low, ((BigInt(high) << 32n) | BigInt(low)).toString()];
 }
@@ -1575,7 +2059,9 @@ function steamFolder(game, owner) {
   if (owner === null) return null;
   const account = owner[0];
   if (STEAM_FOLDER_HEX.has(game)) {
-    return STEAM_ID64_HIGH.toString(16).padStart(8, "0") + (account >>> 0).toString(16).padStart(8, "0");
+    return (
+      STEAM_ID64_HIGH.toString(16).padStart(8, "0") + (account >>> 0).toString(16).padStart(8, "0")
+    );
   }
   if (STEAM_FOLDER_DEC.has(game)) {
     return ((BigInt(STEAM_ID64_HIGH) << 32n) | BigInt(account)).toString();
@@ -1638,9 +2124,19 @@ export function parseSave(data, dbs) {
         ch.ng_plus = ds3Journey(slot, flagBase);
         attachDefeatedBosses(ch, dbs);
         ds3AttachRingEffects(ch, dbs.ds3.ringEffects);
-        ds3AttachFlags(ch, slot, flagBase, dbs.ds3.bonfires, dbs.ds3.bossFlags, dbs.ds3.questlines,
-          dbs.ds3.covenants, dbs.ds3.bossVictory, dbs.ds3.lordCinders, dbs.ds3.pickups,
-          dbs.ds3.endings);
+        ds3AttachFlags(
+          ch,
+          slot,
+          flagBase,
+          dbs.ds3.bonfires,
+          dbs.ds3.bossFlags,
+          dbs.ds3.questlines,
+          dbs.ds3.covenants,
+          dbs.ds3.bossVictory,
+          dbs.ds3.lordCinders,
+          dbs.ds3.pickups,
+          dbs.ds3.endings,
+        );
         attachProgressTotals(ch, dbs);
         characters.push({ slot: label(i), ch });
       }
@@ -1653,7 +2149,11 @@ export function parseSave(data, dbs) {
     const isDs2 = DS2_GAMES.has(game);
     const ds2Key = game === "ds2vanilla" ? DS2_VANILLA_KEY : DS2_KEY;
     const ds2Dec = (b) => decryptDs2(b, ds2Key);
-    const decrypt = isDs2 ? ds2Dec : game === "dsr" ? (b) => decryptIvPrefixed(b, DSR_KEY) : decryptNone;
+    const decrypt = isDs2
+      ? ds2Dec
+      : game === "dsr"
+        ? (b) => decryptIvPrefixed(b, DSR_KEY)
+        : decryptNone;
     const parse = isDs2 ? (b, d) => ds2Parse(b, d, game) : game === "dsr" ? dsrParse : ptdeParse;
     const itemDb = isDs2 ? dbs.ds2.items : dbs.ds1.items;
     const active = isDs2 ? ds2ActiveSlots(data, entries, meta.slots, ds2Dec) : null;
@@ -1690,7 +2190,18 @@ export function parseSave(data, dbs) {
   const gamePatch = game === "er" ? erGamePatch(data, entries) : null;
   const steam = steamOwner(data, entries, game);
   const saveFolder = steamFolder(game, steam);
-  return { game, title: meta.title, tier: meta.tier, coverage: meta.coverage || null, characters, bonfireTotal, saveVersion, gamePatch, steam, saveFolder };
+  return {
+    game,
+    title: meta.title,
+    tier: meta.tier,
+    coverage: meta.coverage || null,
+    characters,
+    bonfireTotal,
+    saveVersion,
+    gamePatch,
+    steam,
+    saveFolder,
+  };
 }
 
 export { ParseError };

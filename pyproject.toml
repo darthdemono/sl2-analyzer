@@ -1,0 +1,60 @@
+# Formatting and linting for the Python side. There is no build here — the CLI is run
+# straight from the checkout and the only runtime dependency is `cryptography` — so this
+# file exists purely to pin the tools, not to package anything.
+#
+#   ruff format .        # apply
+#   ruff format --check  # what CI does
+#   ruff check .         # lint
+
+[tool.ruff]
+# 88 is not a preference, it is what the codebase already is: the 95th-percentile line
+# is 86 characters and the 99th is 90. Picking anything else would reflow thousands of
+# lines that were already fine and bury the real changes in a diff nobody can review.
+line-length = 88
+target-version = "py39"
+# `*.md` is excluded because ruff 0.16 reformats Python code blocks INSIDE Markdown.
+# The README's snippets are teaching examples with hand-aligned trailing comments, and
+# prettier is already told to leave prose alone — the two tools should agree on that.
+extend-exclude = ["scratch", "test", "documentation", "vendor", "*.md"]
+
+[tool.ruff.format]
+# Double quotes and spaces are already the house style throughout.
+quote-style = "double"
+indent-style = "space"
+# Doxygen blocks are hand-wrapped to sit under the line limit and often line values up
+# in columns. Reformatting code *inside* docstrings would destroy that for no gain.
+docstring-code-format = false
+
+[tool.ruff.lint]
+# Deliberately not the full default set. This is a reverse-engineering codebase: it is
+# full of named constants, wide lookup tables and functions that read top-to-bottom, and
+# most style rules beyond the basics would fight the way it is meant to be read.
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes — unused imports and names, genuinely worth catching
+    "W",    # pycodestyle warnings
+    "I",    # import sorting
+    "UP",   # pyupgrade
+    "B",    # bugbear
+]
+ignore = [
+    # The formatter owns line length. Leaving E501 on means a hand-wrapped comment that
+    # runs one character long is reported as an error the formatter will not fix.
+    "E501",
+    # Offsets and masks are written the way the source material writes them. Rewriting
+    # `0x80000000 >> (n % 32)` to satisfy a spacing rule would make it harder to check
+    # against the document it came from.
+    "E226",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The entry point star-imports every module on purpose: the harnesses and every
+# scratch/ tool depend on `import sl2_to_md as m` reaching the whole API. That is
+# documented in CLAUDE.md and is not an accident to be linted away.
+# I001 too: both files order their imports by DEPENDENCY LAYER, not alphabetically
+# (reader → keys → bnd4 → crypto → detect → … → cli), which is the layering CLAUDE.md
+# documents. With star imports the order is not cosmetic — the last module to export a
+# name wins — so sorting them could silently change which definition `sl2_to_md.X`
+# resolves to.
+"sl2_to_md.py" = ["F401", "F403", "I001"]
+"sl2/__init__.py" = ["F401", "F403", "I001"]

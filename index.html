@@ -1,426 +1,1358 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SL2 Analyzer · FromSoftware save viewer</title>
-<meta name="description" content="Drop a Dark Souls, Dark Souls II, Dark Souls III, Sekiro or Elden Ring .sl2 save and read the whole playthrough: attributes, souls, every item carried, bonfires lit, bosses the save still proves are dead, and the Steam account the file belongs to.">
-<link rel="canonical" href="https://sl2-analyzer.darthdemono.com/">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#08080a">
-<meta property="og:type" content="website">
-<meta property="og:title" content="SL2 Analyzer · FromSoftware save viewer">
-<meta property="og:description" content="A Souls save is a locked box. Drop one in and read the whole playthrough: attributes, inventory, bonfires, bosses, and the account that owns the file.">
-<meta property="og:url" content="https://sl2-analyzer.darthdemono.com/">
-<!-- Social cards must be raster: no major platform renders an SVG og:image. -->
-<meta property="og:image" content="https://sl2-analyzer.darthdemono.com/og.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="SL2 Analyzer — a bonfire with the coiled sword">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="SL2 Analyzer · FromSoftware save viewer">
-<meta name="twitter:description" content="A Souls save is a locked box. Drop one in and read the playthrough.">
-<meta name="twitter:image" content="https://sl2-analyzer.darthdemono.com/og.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
-<style>
-  /* ── Base tokens = the Dark Souls level-up screen: parchment-gold on black,
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SL2 Analyzer · FromSoftware save viewer</title>
+    <meta
+      name="description"
+      content="Drop a Dark Souls, Dark Souls II, Dark Souls III, Sekiro or Elden Ring .sl2 save and read the whole playthrough: attributes, souls, every item carried, bonfires lit, bosses the save still proves are dead, and the Steam account the file belongs to."
+    />
+    <link rel="canonical" href="https://sl2-analyzer.darthdemono.com/" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#08080a" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="SL2 Analyzer · FromSoftware save viewer" />
+    <meta
+      property="og:description"
+      content="A Souls save is a locked box. Drop one in and read the whole playthrough: attributes, inventory, bonfires, bosses, and the account that owns the file."
+    />
+    <meta property="og:url" content="https://sl2-analyzer.darthdemono.com/" />
+    <!-- Social cards must be raster: no major platform renders an SVG og:image. -->
+    <meta property="og:image" content="https://sl2-analyzer.darthdemono.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SL2 Analyzer — a bonfire with the coiled sword" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SL2 Analyzer · FromSoftware save viewer" />
+    <meta
+      name="twitter:description"
+      content="A Souls save is a locked box. Drop one in and read the playthrough."
+    />
+    <meta name="twitter:image" content="https://sl2-analyzer.darthdemono.com/og.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── Base tokens = the Dark Souls level-up screen: parchment-gold on black,
         engraved caps, hairline gold rule. Each game theme overrides these. ── */
-  :root {
-    --bg: #08080a; --bg2: #0d0c0a; --panel: rgba(9, 8, 6, 0.62);
-    /* --ink-dim carries 11.5-14px text (notes, hints, eyebrows), so it is held at
+      :root {
+        --bg: #08080a;
+        --bg2: #0d0c0a;
+        --panel: rgba(9, 8, 6, 0.62);
+        /* --ink-dim carries 11.5-14px text (notes, hints, eyebrows), so it is held at
        >= 4.6:1 on --bg — WCAG AA for small text. It was 4.15:1 and failed. */
-    --ink: #cbb98d; --ink-dim: #857a5c;
-    --accent: #c7a85c; --accent-2: #9c8442; --val: #efe7d0;
-    --rule: rgba(199, 168, 92, 0.30); --rule-soft: rgba(199, 168, 92, 0.13);
-    --danger: #c8564b; --ok: #8aa15a; --soul: #7fa8c9; --gate: #c9a94b;
-    --font-body: 'EB Garamond', Georgia, 'Times New Roman', serif;
-    --font-title: 'Cinzel', 'EB Garamond', serif;
-    --glow: 0 0 26px rgba(199, 168, 92, 0.14);
-    --wash: radial-gradient(120% 90% at 50% -10%, rgba(199,168,92,.07), transparent 60%);
-    --radius: 2px;
-  }
-  /* Dark Souls II — cold steel blue, cleaner rule. */
-  .t-ds2 {
-    --panel: rgba(6, 9, 13, 0.64); --ink: #a7bccc; --ink-dim: #657c8f;
-    --accent: #7fa8c9; --accent-2: #536e84; --val: #e9f1f7;
-    --rule: rgba(127, 168, 201, 0.26); --rule-soft: rgba(127, 168, 201, 0.11);
-    --font-title: 'EB Garamond', serif; --glow: 0 0 26px rgba(127, 168, 201, 0.13);
-    --wash: radial-gradient(120% 90% at 50% -10%, rgba(127,168,201,.08), transparent 60%);
-  }
-  /* Dark Souls III — ashen charcoal, a single ember-amber accent, no ornament. */
-  .t-ds3 {
-    --panel: rgba(11, 11, 12, 0.60); --ink: #b8b4a9; --ink-dim: #7d7a6f;
-    --accent: #c07c3d; --accent-2: #7c5227; --val: #eae8e0;
-    --rule: rgba(184, 180, 169, 0.16); --rule-soft: rgba(184, 180, 169, 0.08);
-    --font-title: 'EB Garamond', serif; --glow: 0 0 22px rgba(192, 124, 61, 0.11);
-    --wash: radial-gradient(120% 90% at 50% -10%, rgba(192,124,61,.05), transparent 55%);
-  }
-  /* Elden Ring — ornate warm gold, heavier engraved title, double rule. */
-  .t-er {
-    --panel: rgba(10, 8, 6, 0.68); --ink: #c9b072; --ink-dim: #89794a;
-    --accent: #d9c07a; --accent-2: #a08542; --val: #f0e6c4;
-    --rule: rgba(217, 192, 122, 0.32); --rule-soft: rgba(217, 192, 122, 0.14);
-    --font-title: 'Cinzel', serif; --glow: 0 0 34px rgba(217, 192, 122, 0.17);
-    --wash: radial-gradient(120% 100% at 50% -5%, rgba(217,192,122,.10), transparent 62%);
-  }
-  /* Sekiro — sumi ink and washi paper, one vermilion accent. No gold: the game's
+        --ink: #cbb98d;
+        --ink-dim: #857a5c;
+        --accent: #c7a85c;
+        --accent-2: #9c8442;
+        --val: #efe7d0;
+        --rule: rgba(199, 168, 92, 0.3);
+        --rule-soft: rgba(199, 168, 92, 0.13);
+        --danger: #c8564b;
+        --ok: #8aa15a;
+        --soul: #7fa8c9;
+        --gate: #c9a94b;
+        --font-body: "EB Garamond", Georgia, "Times New Roman", serif;
+        --font-title: "Cinzel", "EB Garamond", serif;
+        --glow: 0 0 26px rgba(199, 168, 92, 0.14);
+        --wash: radial-gradient(120% 90% at 50% -10%, rgba(199, 168, 92, 0.07), transparent 60%);
+        --radius: 2px;
+      }
+      /* Dark Souls II — cold steel blue, cleaner rule. */
+      .t-ds2 {
+        --panel: rgba(6, 9, 13, 0.64);
+        --ink: #a7bccc;
+        --ink-dim: #657c8f;
+        --accent: #7fa8c9;
+        --accent-2: #536e84;
+        --val: #e9f1f7;
+        --rule: rgba(127, 168, 201, 0.26);
+        --rule-soft: rgba(127, 168, 201, 0.11);
+        --font-title: "EB Garamond", serif;
+        --glow: 0 0 26px rgba(127, 168, 201, 0.13);
+        --wash: radial-gradient(120% 90% at 50% -10%, rgba(127, 168, 201, 0.08), transparent 60%);
+      }
+      /* Dark Souls III — ashen charcoal, a single ember-amber accent, no ornament. */
+      .t-ds3 {
+        --panel: rgba(11, 11, 12, 0.6);
+        --ink: #b8b4a9;
+        --ink-dim: #7d7a6f;
+        --accent: #c07c3d;
+        --accent-2: #7c5227;
+        --val: #eae8e0;
+        --rule: rgba(184, 180, 169, 0.16);
+        --rule-soft: rgba(184, 180, 169, 0.08);
+        --font-title: "EB Garamond", serif;
+        --glow: 0 0 22px rgba(192, 124, 61, 0.11);
+        --wash: radial-gradient(120% 90% at 50% -10%, rgba(192, 124, 61, 0.05), transparent 55%);
+      }
+      /* Elden Ring — ornate warm gold, heavier engraved title, double rule. */
+      .t-er {
+        --panel: rgba(10, 8, 6, 0.68);
+        --ink: #c9b072;
+        --ink-dim: #89794a;
+        --accent: #d9c07a;
+        --accent-2: #a08542;
+        --val: #f0e6c4;
+        --rule: rgba(217, 192, 122, 0.32);
+        --rule-soft: rgba(217, 192, 122, 0.14);
+        --font-title: "Cinzel", serif;
+        --glow: 0 0 34px rgba(217, 192, 122, 0.17);
+        --wash: radial-gradient(120% 100% at 50% -5%, rgba(217, 192, 122, 0.1), transparent 62%);
+      }
+      /* Sekiro — sumi ink and washi paper, one vermilion accent. No gold: the game's
      menus are brush-and-paper, and the only colour on them is the seal red. */
-  .t-sdt {
-    --panel: rgba(10, 10, 11, 0.66); --ink: #cfc7b8; --ink-dim: #8a8377;
-    --accent: #b4452f; --accent-2: #7d3122; --val: #f2ece0;
-    --rule: rgba(207, 199, 184, 0.20); --rule-soft: rgba(207, 199, 184, 0.09);
-    --font-title: 'EB Garamond', serif; --glow: 0 0 24px rgba(180, 69, 47, 0.13);
-    --wash: radial-gradient(120% 90% at 50% -10%, rgba(180,69,47,.06), transparent 58%);
-  }
+      .t-sdt {
+        --panel: rgba(10, 10, 11, 0.66);
+        --ink: #cfc7b8;
+        --ink-dim: #8a8377;
+        --accent: #b4452f;
+        --accent-2: #7d3122;
+        --val: #f2ece0;
+        --rule: rgba(207, 199, 184, 0.2);
+        --rule-soft: rgba(207, 199, 184, 0.09);
+        --font-title: "EB Garamond", serif;
+        --glow: 0 0 24px rgba(180, 69, 47, 0.13);
+        --wash: radial-gradient(120% 90% at 50% -10%, rgba(180, 69, 47, 0.06), transparent 58%);
+      }
 
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body);
-    font-size: 17px; line-height: 1.6; overflow-x: hidden;
-    background-image: var(--wash); background-attachment: fixed; }
-  /* faint vignette so the screen darkens at the edges like the in-game menu */
-  body::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-    background: radial-gradient(130% 100% at 50% 40%, transparent 55%, rgba(0,0,0,.65)); }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-shadow: var(--glow); }
-  code { font-family: var(--font-body); font-style: italic; color: var(--accent); }
-  h1, h2, h3, h4 { font-family: var(--font-title); font-weight: 600; }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--font-body);
+        font-size: 17px;
+        line-height: 1.6;
+        overflow-x: hidden;
+        background-image: var(--wash);
+        background-attachment: fixed;
+      }
+      /* faint vignette so the screen darkens at the edges like the in-game menu */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background: radial-gradient(130% 100% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.65));
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-shadow: var(--glow);
+      }
+      code {
+        font-family: var(--font-body);
+        font-style: italic;
+        color: var(--accent);
+      }
+      h1,
+      h2,
+      h3,
+      h4 {
+        font-family: var(--font-title);
+        font-weight: 600;
+      }
 
-  header { width: 90%; max-width: 1600px; margin: 0 auto; padding: 64px 20px 4px; text-align: center; }
-  h1 { font-family: var(--font-title); font-size: 40px; font-weight: 700; letter-spacing: 0.18em;
-    text-transform: uppercase; margin: 0 0 14px; color: var(--val);
-    text-shadow: 0 0 30px rgba(199,168,92,.25); }
-  h1 .dot { color: var(--accent); font-weight: 400; }
-  .tag-line { color: var(--ink-dim); margin: 0 auto; max-width: 620px; font-size: 16px; font-style: italic; }
-  .privacy { display: inline-block; margin-top: 18px; font-size: 12px; letter-spacing: .16em;
-    text-transform: uppercase; color: var(--accent); font-family: var(--font-title); }
-  .privacy::before, .privacy::after { content: '—'; color: var(--rule); margin: 0 10px; }
-  main { width: 90%; max-width: 1600px; margin: 0 auto; padding: 20px 20px 96px; }
+      header {
+        width: 90%;
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 64px 20px 4px;
+        text-align: center;
+      }
+      h1 {
+        font-family: var(--font-title);
+        font-size: 40px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        margin: 0 0 14px;
+        color: var(--val);
+        text-shadow: 0 0 30px rgba(199, 168, 92, 0.25);
+      }
+      h1 .dot {
+        color: var(--accent);
+        font-weight: 400;
+      }
+      .tag-line {
+        color: var(--ink-dim);
+        margin: 0 auto;
+        max-width: 620px;
+        font-size: 16px;
+        font-style: italic;
+      }
+      .privacy {
+        display: inline-block;
+        margin-top: 18px;
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-family: var(--font-title);
+      }
+      .privacy::before,
+      .privacy::after {
+        content: "—";
+        color: var(--rule);
+        margin: 0 10px;
+      }
+      main {
+        width: 90%;
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 20px 20px 96px;
+      }
 
-  /* Framed menu panel — the recurring FromSoft status box (hairline + corner ticks). */
-  .frame { position: relative; background: var(--panel); border: 1px solid var(--rule);
-    border-radius: var(--radius); }
-  .frame::before, .frame::after { content: ''; position: absolute; width: 12px; height: 12px;
-    border: 1px solid var(--accent); opacity: .7; pointer-events: none; }
-  .frame::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
-  .frame::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
-  .t-ds3 .frame::before, .t-ds3 .frame::after { display: none; } /* DS3 is unadorned */
-  .t-er .frame { border-width: 1px; box-shadow: inset 0 0 0 3px rgba(217,192,122,.06); }
+      /* Framed menu panel — the recurring FromSoft status box (hairline + corner ticks). */
+      .frame {
+        position: relative;
+        background: var(--panel);
+        border: 1px solid var(--rule);
+        border-radius: var(--radius);
+      }
+      .frame::before,
+      .frame::after {
+        content: "";
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border: 1px solid var(--accent);
+        opacity: 0.7;
+        pointer-events: none;
+      }
+      .frame::before {
+        top: -1px;
+        left: -1px;
+        border-right: 0;
+        border-bottom: 0;
+      }
+      .frame::after {
+        bottom: -1px;
+        right: -1px;
+        border-left: 0;
+        border-top: 0;
+      }
+      .t-ds3 .frame::before,
+      .t-ds3 .frame::after {
+        display: none;
+      } /* DS3 is unadorned */
+      .t-er .frame {
+        border-width: 1px;
+        box-shadow: inset 0 0 0 3px rgba(217, 192, 122, 0.06);
+      }
 
-  /* A real <button>, so Tab reaches it and Enter/Space activate it for free. The
+      /* A real <button>, so Tab reaches it and Enter/Space activate it for free. The
      resets below undo the UA button styling; everything else is as it was. */
-  #drop { display: block; width: 100%; margin: 30px 0 6px; padding: 52px 24px; text-align: center;
-    cursor: pointer; border-style: dashed; font: inherit; color: inherit; -webkit-appearance: none;
-    transition: border-color .15s, box-shadow .15s, background .15s; }
-  #drop:hover, #drop.over { border-color: var(--accent); box-shadow: var(--glow);
-    background: color-mix(in srgb, var(--accent) 5%, var(--panel)); }
-  #drop .big { display: block; font-family: var(--font-title); font-size: 19px; letter-spacing: .12em;
-    text-transform: uppercase; color: var(--val); }
-  #drop .small { display: block; color: var(--ink-dim); font-size: 14px; font-style: italic; margin-top: 8px; }
+      #drop {
+        display: block;
+        width: 100%;
+        margin: 30px 0 6px;
+        padding: 52px 24px;
+        text-align: center;
+        cursor: pointer;
+        border-style: dashed;
+        font: inherit;
+        color: inherit;
+        -webkit-appearance: none;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s,
+          background 0.15s;
+      }
+      #drop:hover,
+      #drop.over {
+        border-color: var(--accent);
+        box-shadow: var(--glow);
+        background: color-mix(in srgb, var(--accent) 5%, var(--panel));
+      }
+      #drop .big {
+        display: block;
+        font-family: var(--font-title);
+        font-size: 19px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--val);
+      }
+      #drop .small {
+        display: block;
+        color: var(--ink-dim);
+        font-size: 14px;
+        font-style: italic;
+        margin-top: 8px;
+      }
 
-  /* Mode switch. Two real buttons, so Tab and Enter work without help. */
-  #modes { display: flex; align-items: center; gap: 10px; margin-top: 26px; flex-wrap: wrap; }
-  .mode { font-family: var(--font-title); font-size: 12px; letter-spacing: .14em;
-    text-transform: uppercase; padding: 8px 16px; color: var(--ink-dim); cursor: pointer;
-    background: transparent; border: 1px solid var(--rule); border-radius: 2px; }
-  .mode:hover { color: var(--ink); border-color: var(--accent); }
-  .mode.on { color: var(--bg); background: var(--accent); border-color: var(--accent); }
-  .mode-note { color: var(--ink-dim); font-size: 13px; font-style: italic; }
-  #pick-folder { margin-top: 10px; }
-  .combined-actions { display: flex; gap: 10px; margin: 22px 0 6px; flex-wrap: wrap; }
+      /* Mode switch. Two real buttons, so Tab and Enter work without help. */
+      #modes {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 26px;
+        flex-wrap: wrap;
+      }
+      .mode {
+        font-family: var(--font-title);
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding: 8px 16px;
+        color: var(--ink-dim);
+        cursor: pointer;
+        background: transparent;
+        border: 1px solid var(--rule);
+        border-radius: 2px;
+      }
+      .mode:hover {
+        color: var(--ink);
+        border-color: var(--accent);
+      }
+      .mode.on {
+        color: var(--bg);
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .mode-note {
+        color: var(--ink-dim);
+        font-size: 13px;
+        font-style: italic;
+      }
+      #pick-folder {
+        margin-top: 10px;
+      }
+      .combined-actions {
+        display: flex;
+        gap: 10px;
+        margin: 22px 0 6px;
+        flex-wrap: wrap;
+      }
 
-  /* The combined document, rendered from its own Markdown. */
-  .md-h { font-family: var(--font-title); letter-spacing: .06em; margin: 26px 0 10px; }
-  h2.md-h { font-size: 22px; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
-  h3.md-h { font-size: 18px; color: var(--accent); }
-  h4.md-h { font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); }
-  h5.md-h { font-size: 14px; }
-  .md-p { margin: 8px 0; line-height: 1.65; }
-  .md-list { margin: 8px 0 12px 18px; }
-  .md-list li { margin: 3px 0; }
-  .md-scroll { overflow-x: auto; margin: 10px 0 18px; }
-  .md-table { border-collapse: collapse; font-size: 14px; min-width: 100%; }
-  .md-table th, .md-table td { border: 1px solid var(--rule); padding: 6px 10px; text-align: left; white-space: nowrap; }
-  .md-table th { font-family: var(--font-title); font-size: 12px; letter-spacing: .1em;
-    text-transform: uppercase; color: var(--ink-dim); }
-  .md-details { margin: 20px 0; border: 1px solid var(--rule); padding: 12px 16px; }
-  .md-details summary { cursor: pointer; font-family: var(--font-title); letter-spacing: .08em; }
-  .ref { font-variant-numeric: tabular-nums; color: var(--accent); }
-  pre.code { overflow-x: auto; padding: 12px; border: 1px solid var(--rule); font-size: 13px; }
-  pre.mermaid { margin: 16px 0; text-align: center; overflow-x: auto; }
-  pre.mermaid svg { max-width: 100%; height: auto; }
-  /* One visible focus ring for every interactive element. :focus-visible so a mouse
+      /* The combined document, rendered from its own Markdown. */
+      .md-h {
+        font-family: var(--font-title);
+        letter-spacing: 0.06em;
+        margin: 26px 0 10px;
+      }
+      h2.md-h {
+        font-size: 22px;
+        border-bottom: 1px solid var(--rule);
+        padding-bottom: 8px;
+      }
+      h3.md-h {
+        font-size: 18px;
+        color: var(--accent);
+      }
+      h4.md-h {
+        font-size: 15px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-dim);
+      }
+      h5.md-h {
+        font-size: 14px;
+      }
+      .md-p {
+        margin: 8px 0;
+        line-height: 1.65;
+      }
+      .md-list {
+        margin: 8px 0 12px 18px;
+      }
+      .md-list li {
+        margin: 3px 0;
+      }
+      .md-scroll {
+        overflow-x: auto;
+        margin: 10px 0 18px;
+      }
+      .md-table {
+        border-collapse: collapse;
+        font-size: 14px;
+        min-width: 100%;
+      }
+      .md-table th,
+      .md-table td {
+        border: 1px solid var(--rule);
+        padding: 6px 10px;
+        text-align: left;
+        white-space: nowrap;
+      }
+      .md-table th {
+        font-family: var(--font-title);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-dim);
+      }
+      .md-details {
+        margin: 20px 0;
+        border: 1px solid var(--rule);
+        padding: 12px 16px;
+      }
+      .md-details summary {
+        cursor: pointer;
+        font-family: var(--font-title);
+        letter-spacing: 0.08em;
+      }
+      .ref {
+        font-variant-numeric: tabular-nums;
+        color: var(--accent);
+      }
+      pre.code {
+        overflow-x: auto;
+        padding: 12px;
+        border: 1px solid var(--rule);
+        font-size: 13px;
+      }
+      pre.mermaid {
+        margin: 16px 0;
+        text-align: center;
+        overflow-x: auto;
+      }
+      pre.mermaid svg {
+        max-width: 100%;
+        height: auto;
+      }
+      /* One visible focus ring for every interactive element. :focus-visible so a mouse
      click does not leave it behind, but a keyboard Tab always shows it. */
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-  #status { text-align: center; color: var(--ink-dim); min-height: 22px; font-size: 13px;
-    letter-spacing: .08em; text-transform: uppercase; margin-top: 14px; }
-  .error { background: color-mix(in srgb, var(--danger) 12%, var(--panel)); border: 1px solid var(--danger);
-    color: var(--val); border-radius: var(--radius); padding: 16px; margin: 16px 0; }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      #status {
+        text-align: center;
+        color: var(--ink-dim);
+        min-height: 22px;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-top: 14px;
+      }
+      .error {
+        background: color-mix(in srgb, var(--danger) 12%, var(--panel));
+        border: 1px solid var(--danger);
+        color: var(--val);
+        border-radius: var(--radius);
+        padding: 16px;
+        margin: 16px 0;
+      }
 
-  .btn { font-family: var(--font-title); font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
-    padding: .55rem 1.1rem; border-radius: var(--radius); cursor: pointer; transition: .18s;
-    border: 1px solid var(--rule); background: transparent; color: var(--accent); }
-  .btn-ghost:hover { border-color: var(--accent); box-shadow: var(--glow); }
+      .btn {
+        font-family: var(--font-title);
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding: 0.55rem 1.1rem;
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: 0.18s;
+        border: 1px solid var(--rule);
+        background: transparent;
+        color: var(--accent);
+      }
+      .btn-ghost:hover {
+        border-color: var(--accent);
+        box-shadow: var(--glow);
+      }
 
-  /* ── Result header: the "now viewing" banner, themed to the detected game. ── */
-  .gamebar { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px;
-    border-bottom: 1px solid var(--accent-2); padding: 26px 2px 14px; margin: 38px 0 8px; flex-wrap: wrap; }
-  .gb-eyebrow { font-family: var(--font-title); font-size: 11px; letter-spacing: .24em;
-    text-transform: uppercase; color: var(--ink-dim); margin-bottom: 6px; }
-  .gamebar h2 { margin: 0; font-size: 24px; letter-spacing: .08em; color: var(--val);
-    text-transform: uppercase; font-weight: 600; }
-  .t-er .gamebar h2 { letter-spacing: .12em; text-shadow: 0 0 24px rgba(217,192,122,.3); }
-  .gamebar .src { margin: 5px 0 0; color: var(--ink-dim); font-size: 13px; font-style: italic; }
-  .gb-right { display: flex; align-items: center; gap: 16px; }
-  .gamebar .count { color: var(--ink-dim); font-size: 12px; letter-spacing: .1em;
-    text-transform: uppercase; white-space: nowrap; }
+      /* ── Result header: the "now viewing" banner, themed to the detected game. ── */
+      .gamebar {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 18px;
+        border-bottom: 1px solid var(--accent-2);
+        padding: 26px 2px 14px;
+        margin: 38px 0 8px;
+        flex-wrap: wrap;
+      }
+      .gb-eyebrow {
+        font-family: var(--font-title);
+        font-size: 11px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--ink-dim);
+        margin-bottom: 6px;
+      }
+      .gamebar h2 {
+        margin: 0;
+        font-size: 24px;
+        letter-spacing: 0.08em;
+        color: var(--val);
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+      .t-er .gamebar h2 {
+        letter-spacing: 0.12em;
+        text-shadow: 0 0 24px rgba(217, 192, 122, 0.3);
+      }
+      .gamebar .src {
+        margin: 5px 0 0;
+        color: var(--ink-dim);
+        font-size: 13px;
+        font-style: italic;
+      }
+      .gb-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .gamebar .count {
+        color: var(--ink-dim);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
 
-  /* ── The in-game Level-Up screen: stone frame, title bar, boxed panels. ── */
-  .status { margin: 24px 0; }
-  .lvlup { position: relative; padding: 13px; border-radius: 7px;
-    background: linear-gradient(180deg, #14130f, #0a0908);
-    border: 1px solid rgba(0, 0, 0, 0.7);
-    box-shadow: 0 0 0 1px var(--rule), inset 0 0 0 1px rgba(255, 255, 255, 0.045),
-      inset 0 0 46px rgba(0, 0, 0, 0.6), 0 20px 52px rgba(0, 0, 0, 0.55); }
-  .t-ds2 .lvlup { background: linear-gradient(180deg, #0e1419, #07090d); }
-  .t-ds3 .lvlup { background: linear-gradient(180deg, #111110, #090909); }
-  .t-er .lvlup { background: linear-gradient(180deg, #16110a, #0a0806); }
-  /* ornate corner ticks (DS3 keeps them faint & grey — its screen is plainer) */
-  .lvlup::before, .lvlup::after { content: ''; position: absolute; width: 18px; height: 18px;
-    border: 2px solid var(--accent); opacity: .45; pointer-events: none; }
-  .lvlup::before { top: 5px; left: 5px; border-right: 0; border-bottom: 0; }
-  .lvlup::after { bottom: 5px; right: 5px; border-left: 0; border-top: 0; }
-  .t-ds3 .lvlup::before, .t-ds3 .lvlup::after { opacity: .22; border-color: var(--ink-dim); }
+      /* ── The in-game Level-Up screen: stone frame, title bar, boxed panels. ── */
+      .status {
+        margin: 24px 0;
+      }
+      .lvlup {
+        position: relative;
+        padding: 13px;
+        border-radius: 7px;
+        background: linear-gradient(180deg, #14130f, #0a0908);
+        border: 1px solid rgba(0, 0, 0, 0.7);
+        box-shadow:
+          0 0 0 1px var(--rule),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+          inset 0 0 46px rgba(0, 0, 0, 0.6),
+          0 20px 52px rgba(0, 0, 0, 0.55);
+      }
+      .t-ds2 .lvlup {
+        background: linear-gradient(180deg, #0e1419, #07090d);
+      }
+      .t-ds3 .lvlup {
+        background: linear-gradient(180deg, #111110, #090909);
+      }
+      .t-er .lvlup {
+        background: linear-gradient(180deg, #16110a, #0a0806);
+      }
+      /* ornate corner ticks (DS3 keeps them faint & grey — its screen is plainer) */
+      .lvlup::before,
+      .lvlup::after {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--accent);
+        opacity: 0.45;
+        pointer-events: none;
+      }
+      .lvlup::before {
+        top: 5px;
+        left: 5px;
+        border-right: 0;
+        border-bottom: 0;
+      }
+      .lvlup::after {
+        bottom: 5px;
+        right: 5px;
+        border-left: 0;
+        border-top: 0;
+      }
+      .t-ds3 .lvlup::before,
+      .t-ds3 .lvlup::after {
+        opacity: 0.22;
+        border-color: var(--ink-dim);
+      }
 
-  /* the "Level up" title bar — metallic sheen, character name + slot + tier */
-  .lvlup-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px;
-    padding: 10px 16px; margin: 2px 2px 12px; border-radius: 3px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0.32));
-    border: 1px solid var(--rule); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
-  .t-ds2 .lvlup-bar { background: linear-gradient(180deg, rgba(127, 168, 201, 0.24), rgba(8, 18, 28, 0.4)); }
-  .t-er .lvlup-bar { background: linear-gradient(180deg, rgba(217, 192, 122, 0.22), rgba(28, 20, 8, 0.42)); }
-  .lvlup-bar .lu-t { font-family: var(--font-title); font-size: 18px; letter-spacing: .1em;
-    color: var(--val); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .t-er .lvlup-bar .lu-t { text-shadow: 0 0 18px rgba(217, 192, 122, 0.3); }
-  .lvlup-bar .lu-r { display: flex; align-items: center; gap: 12px; flex: none; }
-  .lvlup-bar .lu-s { font-family: var(--font-title); font-size: 11px; letter-spacing: .18em;
-    text-transform: uppercase; color: var(--ink-dim); }
+      /* the "Level up" title bar — metallic sheen, character name + slot + tier */
+      .lvlup-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 10px 16px;
+        margin: 2px 2px 12px;
+        border-radius: 3px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0.32));
+        border: 1px solid var(--rule);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      }
+      .t-ds2 .lvlup-bar {
+        background: linear-gradient(180deg, rgba(127, 168, 201, 0.24), rgba(8, 18, 28, 0.4));
+      }
+      .t-er .lvlup-bar {
+        background: linear-gradient(180deg, rgba(217, 192, 122, 0.22), rgba(28, 20, 8, 0.42));
+      }
+      .lvlup-bar .lu-t {
+        font-family: var(--font-title);
+        font-size: 18px;
+        letter-spacing: 0.1em;
+        color: var(--val);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .t-er .lvlup-bar .lu-t {
+        text-shadow: 0 0 18px rgba(217, 192, 122, 0.3);
+      }
+      .lvlup-bar .lu-r {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: none;
+      }
+      .lvlup-bar .lu-s {
+        font-family: var(--font-title);
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-dim);
+      }
 
-  .lvlup-body { display: grid; grid-template-columns: minmax(216px, 0.85fr) 1.15fr; gap: 12px; align-items: start; }
-  .lvlup-body.solo { grid-template-columns: 1fr; }
-  @media (max-width: 720px) { .lvlup-body { grid-template-columns: 1fr; } }
-  .lp-stack { display: flex; flex-direction: column; gap: 12px; }
+      .lvlup-body {
+        display: grid;
+        grid-template-columns: minmax(216px, 0.85fr) 1.15fr;
+        gap: 12px;
+        align-items: start;
+      }
+      .lvlup-body.solo {
+        grid-template-columns: 1fr;
+      }
+      @media (max-width: 720px) {
+        .lvlup-body {
+          grid-template-columns: 1fr;
+        }
+      }
+      .lp-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
 
-  /* a carved sub-panel with a header label on its top rule */
-  .lp { position: relative; padding: 13px 15px 11px; border-radius: 4px;
-    background: rgba(0, 0, 0, 0.3); border: 1px solid var(--rule-soft);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02); }
-  .lp-h { font-family: var(--font-title); font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
-    color: var(--accent); padding-bottom: 8px; margin-bottom: 5px; border-bottom: 1px solid var(--rule); }
-  .lp-div { height: 1px; background: var(--rule); margin: 8px 2px; }
-  .lp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
-  @media (max-width: 520px) { .lp-cols { grid-template-columns: 1fr; } }
+      /* a carved sub-panel with a header label on its top rule */
+      .lp {
+        position: relative;
+        padding: 13px 15px 11px;
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--rule-soft);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+      }
+      .lp-h {
+        font-family: var(--font-title);
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--accent);
+        padding-bottom: 8px;
+        margin-bottom: 5px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .lp-div {
+        height: 1px;
+        background: var(--rule);
+        margin: 8px 2px;
+      }
+      .lp-cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 24px;
+      }
+      @media (max-width: 520px) {
+        .lp-cols {
+          grid-template-columns: 1fr;
+        }
+      }
 
-  .lp-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px;
-    padding: 6px 2px; border-bottom: 1px dotted var(--rule-soft); }
-  .t-ds3 .lp-row { border-bottom: 0; padding: 7px 2px; }
-  .lp-row .ic { width: 11px; height: 11px; border-radius: 2px; background: var(--ink-dim); opacity: .35; }
-  .lp-row .arw { font-size: 8px; letter-spacing: -2px; color: var(--ink-dim); opacity: .4;
-    width: 11px; text-align: center; }
-  .lp-row .nm { color: var(--ink); font-size: 14.5px; letter-spacing: .02em;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .t-ds3 .lp-row.attr .nm { letter-spacing: .1em; }
-  .lp-row .vl { font-weight: 600; font-size: 16px; color: var(--val);
-    font-variant-numeric: tabular-nums; text-align: right; }
-  .lp-row.big .nm { font-family: var(--font-title); letter-spacing: .08em; text-transform: uppercase; font-size: 12px; }
-  .lp-row.big .vl { font-size: 22px; color: var(--accent); }
-  .t-er .lp-row.attr .vl, .t-ds2 .lp-row.attr .vl { color: var(--accent); }
+      .lp-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 9px;
+        padding: 6px 2px;
+        border-bottom: 1px dotted var(--rule-soft);
+      }
+      .t-ds3 .lp-row {
+        border-bottom: 0;
+        padding: 7px 2px;
+      }
+      .lp-row .ic {
+        width: 11px;
+        height: 11px;
+        border-radius: 2px;
+        background: var(--ink-dim);
+        opacity: 0.35;
+      }
+      .lp-row .arw {
+        font-size: 8px;
+        letter-spacing: -2px;
+        color: var(--ink-dim);
+        opacity: 0.4;
+        width: 11px;
+        text-align: center;
+      }
+      .lp-row .nm {
+        color: var(--ink);
+        font-size: 14.5px;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .t-ds3 .lp-row.attr .nm {
+        letter-spacing: 0.1em;
+      }
+      .lp-row .vl {
+        font-weight: 600;
+        font-size: 16px;
+        color: var(--val);
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+      .lp-row.big .nm {
+        font-family: var(--font-title);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 12px;
+      }
+      .lp-row.big .vl {
+        font-size: 22px;
+        color: var(--accent);
+      }
+      .t-er .lp-row.attr .vl,
+      .t-ds2 .lp-row.attr .vl {
+        color: var(--accent);
+      }
 
-  /* the level-up screen's stat icons: HP red, stamina green, loads/defences colour-coded */
-  .ic.souls { background: var(--accent); opacity: .8; } .ic.mem { background: var(--ink-dim); opacity: .6; }
-  .ic.hp { background: #b5473a; opacity: .85; } .ic.stam { background: #5f8f43; opacity: .85; }
-  .ic.load { background: #4f7bb5; opacity: .8; } .ic.atk { background: #9a8a6a; opacity: .8; }
-  .ic.mag { background: #5f7bd6; opacity: .85; } .ic.fire { background: #c9733a; opacity: .85; }
-  .ic.lit { background: #d6b93a; opacity: .85; } .ic.dark { background: #8f5fc0; opacity: .85; }
-  .ic.agl { background: #7fa15a; opacity: .8; } .ic.poise { background: #8a8f6a; opacity: .8; }
+      /* the level-up screen's stat icons: HP red, stamina green, loads/defences colour-coded */
+      .ic.souls {
+        background: var(--accent);
+        opacity: 0.8;
+      }
+      .ic.mem {
+        background: var(--ink-dim);
+        opacity: 0.6;
+      }
+      .ic.hp {
+        background: #b5473a;
+        opacity: 0.85;
+      }
+      .ic.stam {
+        background: #5f8f43;
+        opacity: 0.85;
+      }
+      .ic.load {
+        background: #4f7bb5;
+        opacity: 0.8;
+      }
+      .ic.atk {
+        background: #9a8a6a;
+        opacity: 0.8;
+      }
+      .ic.mag {
+        background: #5f7bd6;
+        opacity: 0.85;
+      }
+      .ic.fire {
+        background: #c9733a;
+        opacity: 0.85;
+      }
+      .ic.lit {
+        background: #d6b93a;
+        opacity: 0.85;
+      }
+      .ic.dark {
+        background: #8f5fc0;
+        opacity: 0.85;
+      }
+      .ic.agl {
+        background: #7fa15a;
+        opacity: 0.8;
+      }
+      .ic.poise {
+        background: #8a8f6a;
+        opacity: 0.8;
+      }
 
-  .lp-note { margin: 11px 0 0; color: var(--ink-dim); font-size: 11.5px; font-style: italic; line-height: 1.55; }
+      .lp-note {
+        margin: 11px 0 0;
+        color: var(--ink-dim);
+        font-size: 11.5px;
+        font-style: italic;
+        line-height: 1.55;
+      }
 
-  /* A foldable sub-panel. Its summary IS the header rule, so it reads as a panel
+      /* A foldable sub-panel. Its summary IS the header rule, so it reads as a panel
      that opens rather than a widget bolted on. */
-  .lp-fold > summary { list-style: none; cursor: pointer; }
-  .lp-fold > summary::-webkit-details-marker { display: none; }
-  .lp-fold > summary::after { content: '+'; float: right; font-size: 13px; line-height: 1;
-    color: var(--accent); opacity: .8; }
-  .lp-fold[open] > summary::after { content: '−'; }
-  .lp-fold > summary:hover { color: var(--val); }
-  .lp-foldbody { padding-top: 4px; }
+      .lp-fold > summary {
+        list-style: none;
+        cursor: pointer;
+      }
+      .lp-fold > summary::-webkit-details-marker {
+        display: none;
+      }
+      .lp-fold > summary::after {
+        content: "+";
+        float: right;
+        font-size: 13px;
+        line-height: 1;
+        color: var(--accent);
+        opacity: 0.8;
+      }
+      .lp-fold[open] > summary::after {
+        content: "−";
+      }
+      .lp-fold > summary:hover {
+        color: var(--val);
+      }
+      .lp-foldbody {
+        padding-top: 4px;
+      }
 
-  /* Attribute Scaling rows — the stat, your value, what it governs, where it caps. */
-  .lp-scale { padding: 7px 2px; border-bottom: 1px dotted var(--rule-soft); }
-  .lp-scale:last-of-type { border-bottom: 0; }
-  .lp-scale .sc-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-  .lp-scale .sc-n { font-family: var(--font-title); font-size: 11.5px; letter-spacing: .1em;
-    text-transform: uppercase; color: var(--ink); }
-  .lp-scale .sc-v { font-weight: 600; font-size: 14px; color: var(--accent);
-    font-variant-numeric: tabular-nums; flex: none; }
-  .lp-scale .sc-g { color: var(--ink); font-size: 13px; line-height: 1.45; margin-top: 2px; }
-  .lp-scale .sc-c { color: var(--ink-dim); font-size: 12px; line-height: 1.45; font-style: italic; }
+      /* Attribute Scaling rows — the stat, your value, what it governs, where it caps. */
+      .lp-scale {
+        padding: 7px 2px;
+        border-bottom: 1px dotted var(--rule-soft);
+      }
+      .lp-scale:last-of-type {
+        border-bottom: 0;
+      }
+      .lp-scale .sc-h {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .lp-scale .sc-n {
+        font-family: var(--font-title);
+        font-size: 11.5px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink);
+      }
+      .lp-scale .sc-v {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+        flex: none;
+      }
+      .lp-scale .sc-g {
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.45;
+        margin-top: 2px;
+      }
+      .lp-scale .sc-c {
+        color: var(--ink-dim);
+        font-size: 12px;
+        line-height: 1.45;
+        font-style: italic;
+      }
 
-  /* Bonfire completion bar. Only drawn where the table holds every bonfire. */
-  .pbar { height: 6px; margin: 0 0 12px; border-radius: 3px; overflow: hidden;
-    background: rgba(0, 0, 0, .45); border: 1px solid var(--rule-soft); }
-  .pbar-f { display: block; height: 100%; background: var(--accent); opacity: .75; }
+      /* Bonfire completion bar. Only drawn where the table holds every bonfire. */
+      .pbar {
+        height: 6px;
+        margin: 0 0 12px;
+        border-radius: 3px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid var(--rule-soft);
+      }
+      .pbar-f {
+        display: block;
+        height: 100%;
+        background: var(--accent);
+        opacity: 0.75;
+      }
 
-  /* Slot tabs — only rendered when a save holds more than one character. */
-  .slot-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 4px; }
-  .slot-tab { font-family: var(--font-body); text-align: left; cursor: pointer;
-    padding: 8px 14px; border-radius: var(--radius); border: 1px solid var(--rule);
-    background: var(--panel); color: var(--ink-dim); transition: .15s; }
-  .slot-tab:hover { border-color: var(--accent); color: var(--ink); }
-  .slot-tab.on { border-color: var(--accent); color: var(--val); box-shadow: var(--glow);
-    background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
-  .slot-tab .st-n { display: block; font-family: var(--font-title); font-size: 14px; letter-spacing: .06em; }
-  .slot-tab .st-s { display: block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
-    color: var(--ink-dim); margin-top: 2px; }
-  .slot-tab.on .st-s { color: var(--accent-2); }
-  [hidden] { display: none !important; }
+      /* Slot tabs — only rendered when a save holds more than one character. */
+      .slot-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 22px 0 4px;
+      }
+      .slot-tab {
+        font-family: var(--font-body);
+        text-align: left;
+        cursor: pointer;
+        padding: 8px 14px;
+        border-radius: var(--radius);
+        border: 1px solid var(--rule);
+        background: var(--panel);
+        color: var(--ink-dim);
+        transition: 0.15s;
+      }
+      .slot-tab:hover {
+        border-color: var(--accent);
+        color: var(--ink);
+      }
+      .slot-tab.on {
+        border-color: var(--accent);
+        color: var(--val);
+        box-shadow: var(--glow);
+        background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+      }
+      .slot-tab .st-n {
+        display: block;
+        font-family: var(--font-title);
+        font-size: 14px;
+        letter-spacing: 0.06em;
+      }
+      .slot-tab .st-s {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-dim);
+        margin-top: 2px;
+      }
+      .slot-tab.on .st-s {
+        color: var(--accent-2);
+      }
+      [hidden] {
+        display: none !important;
+      }
 
-  .badge { display: inline-block; font-family: var(--font-title); font-size: 9.5px;
-    text-transform: uppercase; letter-spacing: .14em; padding: 4px 11px; border-radius: var(--radius);
-    border: 1px solid var(--rule); color: var(--ink-dim); }
-  .badge.full { color: var(--accent); border-color: var(--rule); box-shadow: var(--glow); }
+      .badge {
+        display: inline-block;
+        font-family: var(--font-title);
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        padding: 4px 11px;
+        border-radius: var(--radius);
+        border: 1px solid var(--rule);
+        color: var(--ink-dim);
+      }
+      .badge.full {
+        color: var(--accent);
+        border-color: var(--rule);
+        box-shadow: var(--glow);
+      }
 
-  /* ── Sub-sections (souls held, bonfires, bosses, inventory). ── */
-  .sec { margin: 26px 0 4px; }
-  .sec h4 { margin: 0 0 12px; font-size: 15px; letter-spacing: .12em; text-transform: uppercase;
-    color: var(--accent); border-bottom: 1px solid var(--rule); padding-bottom: 8px; font-weight: 600; }
-  .hint { margin: -6px 0 12px; color: var(--ink-dim); font-size: 14px; font-style: italic; }
+      /* ── Sub-sections (souls held, bonfires, bosses, inventory). ── */
+      .sec {
+        margin: 26px 0 4px;
+      }
+      .sec h4 {
+        margin: 0 0 12px;
+        font-size: 15px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        border-bottom: 1px solid var(--rule);
+        padding-bottom: 8px;
+        font-weight: 600;
+      }
+      .hint {
+        margin: -6px 0 12px;
+        color: var(--ink-dim);
+        font-size: 14px;
+        font-style: italic;
+      }
 
-  ul.items { list-style: none; margin: 0; padding: 0; }
-  ul.items li { display: flex; align-items: center; gap: 9px; padding: 4px 0; font-size: 16px; color: var(--ink); }
-  /* every item row leads with the ◆ bullet — item rows are text, no thumbnails */
-  ul.items li.noimg { padding-left: 18px; position: relative; }
-  ul.items li.noimg::before { content: "◆"; position: absolute; left: 0; top: 0; color: var(--accent-2); font-size: 9px; line-height: 2.1; }
-  ul.items.cols { columns: 2; } @media (max-width: 560px) { ul.items.cols { columns: 1; } }
-  ul.items.cols li { break-inside: avoid; }
+      ul.items {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      ul.items li {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 4px 0;
+        font-size: 16px;
+        color: var(--ink);
+      }
+      /* every item row leads with the ◆ bullet — item rows are text, no thumbnails */
+      ul.items li.noimg {
+        padding-left: 18px;
+        position: relative;
+      }
+      ul.items li.noimg::before {
+        content: "◆";
+        position: absolute;
+        left: 0;
+        top: 0;
+        color: var(--accent-2);
+        font-size: 9px;
+        line-height: 2.1;
+      }
+      ul.items.cols {
+        columns: 2;
+      }
+      @media (max-width: 560px) {
+        ul.items.cols {
+          columns: 1;
+        }
+      }
+      ul.items.cols li {
+        break-inside: avoid;
+      }
 
-  /* Progress areas (bonfires / idols / minibosses / world pickups). One block per
+      /* Progress areas (bonfires / idols / minibosses / world pickups). One block per
      area: the name on its own line with a dotted leader out to its tally, then the
      names underneath. The old shape ran the label inline with the name list inside a
      two-column list, which wrapped mid-label and left nothing to scan down. */
-  ul.areas { list-style: none; margin: 10px 0 0; padding: 0; }
-  ul.areas > li { padding: 7px 0; border-bottom: 1px solid var(--rule-soft); break-inside: avoid; }
-  ul.areas > li:last-child { border-bottom: 0; }
-  .area-head { display: flex; align-items: baseline; gap: 10px; }
-  .area-head .area { font-family: var(--font-title); color: var(--val);
-    letter-spacing: .04em; white-space: nowrap; }
-  /* The leader is what lets the eye run from a long area name to its number. */
-  .area-head .lead { flex: 1 1 auto; border-bottom: 1px dotted var(--rule); }
-  .area-head .tally { color: var(--accent); font-variant-numeric: tabular-nums;
-    white-space: nowrap; }
-  .area-names { margin-top: 3px; font-size: 15px; line-height: 1.5; }
-  .area-missing { margin-top: 3px; font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
-  /* Rows with no name line are short enough to pair up. */
-  ul.areas.two { columns: 2; column-gap: 30px; }
-  ul.areas.two > li { break-inside: avoid; }
-  @media (max-width: 700px) { ul.areas.two { columns: 1; } }
-  .tag { font-family: var(--font-title); font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em;
-    padding: 2px 8px; border-radius: 2px; margin-left: 6px; vertical-align: middle; }
-  .tag.flag { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); }
-  .tag.soul { background: color-mix(in srgb, var(--soul) 20%, transparent); color: var(--soul); }
-  .tag.gate { background: color-mix(in srgb, var(--gate) 22%, transparent); color: var(--gate); }
-  .tag.clear { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--accent); }
+      ul.areas {
+        list-style: none;
+        margin: 10px 0 0;
+        padding: 0;
+      }
+      ul.areas > li {
+        padding: 7px 0;
+        border-bottom: 1px solid var(--rule-soft);
+        break-inside: avoid;
+      }
+      ul.areas > li:last-child {
+        border-bottom: 0;
+      }
+      .area-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .area-head .area {
+        font-family: var(--font-title);
+        color: var(--val);
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+      /* The leader is what lets the eye run from a long area name to its number. */
+      .area-head .lead {
+        flex: 1 1 auto;
+        border-bottom: 1px dotted var(--rule);
+      }
+      .area-head .tally {
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .area-names {
+        margin-top: 3px;
+        font-size: 15px;
+        line-height: 1.5;
+      }
+      .area-missing {
+        margin-top: 3px;
+        font-size: 13px;
+        color: var(--ink-dim);
+        line-height: 1.5;
+      }
+      /* Rows with no name line are short enough to pair up. */
+      ul.areas.two {
+        columns: 2;
+        column-gap: 30px;
+      }
+      ul.areas.two > li {
+        break-inside: avoid;
+      }
+      @media (max-width: 700px) {
+        ul.areas.two {
+          columns: 1;
+        }
+      }
+      .tag {
+        font-family: var(--font-title);
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 2px 8px;
+        border-radius: 2px;
+        margin-left: 6px;
+        vertical-align: middle;
+      }
+      .tag.flag {
+        background: color-mix(in srgb, var(--ok) 20%, transparent);
+        color: var(--ok);
+      }
+      .tag.soul {
+        background: color-mix(in srgb, var(--soul) 20%, transparent);
+        color: var(--soul);
+      }
+      .tag.gate {
+        background: color-mix(in srgb, var(--gate) 22%, transparent);
+        color: var(--gate);
+      }
+      .tag.clear {
+        background: color-mix(in srgb, var(--accent) 24%, transparent);
+        color: var(--accent);
+      }
 
-  .inv h5 { font-family: var(--font-title); margin: 18px 0 6px; font-size: 12px; letter-spacing: .12em;
-    text-transform: uppercase; color: var(--ink); font-weight: 500; }
-  .inv h5:first-child { margin-top: 0; }
-  .note { color: var(--ink-dim); font-size: 14px; font-style: italic; background: color-mix(in srgb, var(--accent) 4%, var(--panel));
-    border-left: 2px solid var(--rule); padding: 10px 14px; border-radius: var(--radius); margin: 14px 0; }
-  .foot { color: var(--ink-dim); font-size: 13px; font-style: italic; text-align: center; margin: 40px 0 0; }
-  footer { text-align: center; color: var(--ink-dim); font-size: 13px; padding: 0 20px 52px;
-    letter-spacing: .02em; font-style: italic; max-width: 720px; margin: 0 auto; }
+      .inv h5 {
+        font-family: var(--font-title);
+        margin: 18px 0 6px;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink);
+        font-weight: 500;
+      }
+      .inv h5:first-child {
+        margin-top: 0;
+      }
+      .note {
+        color: var(--ink-dim);
+        font-size: 14px;
+        font-style: italic;
+        background: color-mix(in srgb, var(--accent) 4%, var(--panel));
+        border-left: 2px solid var(--rule);
+        padding: 10px 14px;
+        border-radius: var(--radius);
+        margin: 14px 0;
+      }
+      .foot {
+        color: var(--ink-dim);
+        font-size: 13px;
+        font-style: italic;
+        text-align: center;
+        margin: 40px 0 0;
+      }
+      footer {
+        text-align: center;
+        color: var(--ink-dim);
+        font-size: 13px;
+        padding: 0 20px 52px;
+        letter-spacing: 0.02em;
+        font-style: italic;
+        max-width: 720px;
+        margin: 0 auto;
+      }
 
-  /* "How it works" panels, styled as menu scrolls. */
-  .how { margin: 18px 0 0; padding: 22px 26px; }
-  .how > summary { font-family: var(--font-title); text-transform: uppercase; letter-spacing: .18em;
-    font-size: 13px; color: var(--accent); list-style: none; cursor: default; pointer-events: none;
-    padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
-  .how > summary::-webkit-details-marker { display: none; }
-  .how-body { padding: 16px 0 2px; color: var(--ink-dim); font-size: 15.5px; line-height: 1.7; }
-  .how-body p { margin: 0 0 13px; } .how-body p:last-child { margin-bottom: 0; }
-  .how-body ul { margin: 0 0 13px; padding-left: 20px; list-style: none; }
-  .how-body li { margin: 7px 0; position: relative; }
-  .how-body li::before { content: "◆"; position: absolute; left: -16px; top: 0; color: var(--accent-2); font-size: 8px; line-height: 2.4; }
-  .how-body b { color: var(--ink); font-weight: 600; }
-</style>
-</head>
-<body>
-<header>
-  <h1>SL2<span class="dot"> · </span>Analyzer</h1>
-  <p class="tag-line">A Souls save is a locked box. Encrypted, undocumented, and useless to you as a file. Drop one here and it opens into the screen the game would have shown you: level and attributes, souls held, every item carried, every bonfire lit, and every boss the save can still prove is dead.</p>
-  <span class="privacy">Seven save formats · reads the file, never writes to it</span>
-</header>
-<main>
-  <details class="how frame" open>
-    <summary>What it supports</summary>
-    <div class="how-body">
-      <p>All seven <code>.sl2</code> variants, and you never tell it which game it is — that comes out of the bytes. Each one renders in its own status screen, skinned to that game.</p>
-      <ul>
-        <li><b>Dark Souls Remastered</b> — identity, class, gender, every attribute, souls, humanity, play time, deaths, the full inventory, held boss souls, twelve boss-defeat flags, and all 43 bonfires with how far each one is kindled. Dark Souls is the only game here that records a bonfire you found but never lit, so it is the only one that can tell you.</li>
-        <li><b>Dark Souls: Prepare to Die</b> — the same, at the same depth. The two releases keep the same stat block; only where it sits differs.</li>
-        <li><b>Dark Souls II: Scholar of the First Sin</b> — attributes, class, covenant with rank, gender, hollowing, deaths, play time, and an inventory that names infusions and reinforcement levels. All 77 bonfires by area, and bosses defeated from three separate signals that have to agree.</li>
-        <li><b>Dark Souls II (vanilla, pre-Scholar)</b> — the same depth as Scholar. The two releases differ by one encryption key and nothing else; everything inside sits in the same place.</li>
-        <li><b>Dark Souls III</b> — the deepest read here. Attributes, souls, play time, embered state, NG+, the full inventory, equipped weapons with their infusion and <code>+N</code>, armour, rings and ammo. All 77 bonfires by name. Bosses from two independent flag sets, so a New Game+ character still reads correctly. Covenants joined, rewards from 57 NPCs, which Lords of Cinder are on the throne, 426 world items picked up across six areas — and, of the bosses still alive, which ones you can actually reach right now.</li>
-        <li><b>Sekiro: Shadows Die Twice</b> — the odd one out. No character name, no attributes, no levelling: the game has none of them, so none appear. What it does have is the one thing nothing else here can do — Attack Power goes up by exactly one per Memory consumed, so the bosses whose token you spent hours ago are still counted. Play time, journey, Sen, max HP and Posture, everything carried, the key items and the storage box, each named against its own type table. Boss kills and Sculptor's Idols are read from their own event flags, which matters more here than anywhere else: a Memory still sitting in your bag does not say which boss it came off, and the flag does. Both reset when you start a new journey, so an NG+ save honestly reports fewer than the character has earned — Attack Power carries over and the flags do not.</li>
-        <li><b>Elden Ring</b> — identity, attributes and runes in full; owned weapons, armour and ashes named by type, so an armour can never resolve to a weapon; remembrances held and the bosses they prove dead. Talismans, spells and goods live in a part of the save that shifts between patches and is not parsed, so the item list is partial. It says so where the list is.</li>
-      </ul>
-      <p>A slot drops to <b>inventory only</b> rather than print an attribute it cannot verify. A save holding several characters gets a tab each, and every export button writes the whole file — every slot, not the one you happen to be looking at.</p>
-
-    </div>
-  </details>
-  <details class="how frame" open>
-    <summary>How it works</summary>
-    <div class="how-body">
-      <p>A <code>.sl2</code> is one packed archive of blocks — most of them encrypted, one per character, a few more for the world. The page unpacks the archive, decrypts each block with the key the game itself ships, and reads the fields off positions the community mapped over years. It only ever reads: point it at your live save if you like, the worst case is a bad report rather than a broken character.</p>
-      <p>The parsing runs on a background thread, so a nine-megabyte save does not freeze the page, and only the tables for the game you dropped get fetched instead of every game's worth. After the first visit it works <b>offline</b> — the page, its code and the tables it has already used are cached, so you can read a save on a plane.</p>
-      <p>Three ways to take the reading with you. <b>Copy Markdown</b> puts all of it on your clipboard, which is the format to paste into an LLM — it cannot open a <code>.sl2</code>, but it reads Markdown fine. <b>Download .md</b> is that same text as a file. <b>Download .json</b> is the same data written for a program instead of a person, against a <a href="schema.json">published schema</a>, and byte-for-byte identical to what the command-line tool writes. A harness holds those two together on every save, so nothing can tell which one produced a file. One thing to know before you consume it: a field is there only if it was read. Dark Souls III keeps no death counter, so a DS3 character has no <code>deaths</code> key at all — not a zero, not a null. That way you can always tell "the game does not record this" from "it really is none".</p>
-      <p>Every game hides its data somewhere else, so each one is read differently.</p>
-      <ul>
-        <li><b>Dark Souls II (both releases):</b> vanilla and Scholar use different keys over an identical layout, so the page tries both and reads whichever one opens. Which release you have is decided by which key works, not by a guess. Bonfires and boss kills come from a second world block the game keeps well away from the character.</li>
-        <li><b>Dark Souls Remastered / Prepare to Die:</b> the character block moves as the save grows, so a fixed offset is worthless. Remastered is found by a marker that always sits beside it; Prepare to Die has no such marker, so it is found by your character's own name.</li>
-        <li><b>Dark Souls III:</b> the stats move between patches, so the block is located by content rather than position — the nine numbers that add up to your level. That is the game's own formula, so a false match is close to impossible.</li>
-        <li><b>Elden Ring:</b> the same trick with eight numbers, plus every owned item read straight out of the game's item array.</li>
-        <li><b>Sekiro:</b> the easy one, for once. Nothing is encrypted and nothing moves between patches, so the fields are read where they are. Each item record carries a type code beside its ID, which is why a piece of armour can never come back named as a weapon.</li>
-      </ul>
-      <p>Two rules, and neither one bends.</p>
-      <p><b>It never prints a number it cannot verify.</b> If a stat block fails its own check, that slot drops to inventory-only and the attributes are simply gone. A missing field costs you nothing. A wrong one quietly tells you your character is something it is not, and you would have no way of knowing. So the field goes.</p>
-      <p><b>Progress is a floor, not a ceiling.</b> A boss counts as dead only when the save still proves it: the soul sitting in your pack, a defeat flag, or a place past it you could not have reached with the boss alive. Kill a boss and spend the soul, with no flag and no gate behind it, and it stays off the list. The tool under-claims on purpose. Everything it shows you happened. There is simply more that it cannot see.</p>
-    </div>
-  </details>
-  <div id="modes" role="group" aria-label="What to read">
-    <button type="button" id="mode-single" class="mode on" aria-pressed="true">One save</button>
-    <button type="button" id="mode-combined" class="mode" aria-pressed="false">Combined</button>
-    <span class="mode-note" id="mode-note">One save, read in full.</span>
-  </div>
-  <button type="button" id="drop" class="frame" aria-describedby="drop-note">
-    <span class="big" id="drop-big">Drop a .sl2 save here, or click to choose</span>
-    <span class="small" id="drop-note">Read on this machine. Nothing is sent anywhere.</span>
-  </button>
-  <button type="button" id="pick-folder" class="mode" hidden>Choose a folder instead</button>
-  <input id="file" type="file" accept=".sl2" hidden>
-  <input id="folder" type="file" hidden webkitdirectory>
-  <div id="status" role="status" aria-live="polite"></div>
-  <div id="out"></div>
-</main>
-<footer>
-  <a href="documentation/">Documentation</a>
-  · <a href="https://github.com/darthdemono/sl2-analyzer?tab=readme-ov-file">GitHub</a>
-  · <a href="https://github.com/darthdemono/sl2-analyzer?tab=License-1-ov-file">MIT License</a>
-  · <a href="https://darthdemono.com/">DarthDemono</a>
-</footer>
-<script type="module" src="app/main.js"></script>
-</body>
+      /* "How it works" panels, styled as menu scrolls. */
+      .how {
+        margin: 18px 0 0;
+        padding: 22px 26px;
+      }
+      .how > summary {
+        font-family: var(--font-title);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 13px;
+        color: var(--accent);
+        list-style: none;
+        cursor: default;
+        pointer-events: none;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .how > summary::-webkit-details-marker {
+        display: none;
+      }
+      .how-body {
+        padding: 16px 0 2px;
+        color: var(--ink-dim);
+        font-size: 15.5px;
+        line-height: 1.7;
+      }
+      .how-body p {
+        margin: 0 0 13px;
+      }
+      .how-body p:last-child {
+        margin-bottom: 0;
+      }
+      .how-body ul {
+        margin: 0 0 13px;
+        padding-left: 20px;
+        list-style: none;
+      }
+      .how-body li {
+        margin: 7px 0;
+        position: relative;
+      }
+      .how-body li::before {
+        content: "◆";
+        position: absolute;
+        left: -16px;
+        top: 0;
+        color: var(--accent-2);
+        font-size: 8px;
+        line-height: 2.4;
+      }
+      .how-body b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>SL2<span class="dot"> · </span>Analyzer</h1>
+      <p class="tag-line">
+        A Souls save is a locked box. Encrypted, undocumented, and useless to you as a file. Drop
+        one here and it opens into the screen the game would have shown you: level and attributes,
+        souls held, every item carried, every bonfire lit, and every boss the save can still prove
+        is dead.
+      </p>
+      <span class="privacy">Seven save formats · reads the file, never writes to it</span>
+    </header>
+    <main>
+      <details class="how frame" open>
+        <summary>What it supports</summary>
+        <div class="how-body">
+          <p>
+            All seven <code>.sl2</code> variants, and you never tell it which game it is — that
+            comes out of the bytes. Each one renders in its own status screen, skinned to that game.
+          </p>
+          <ul>
+            <li>
+              <b>Dark Souls Remastered</b> — identity, class, gender, every attribute, souls,
+              humanity, play time, deaths, the full inventory, held boss souls, twelve boss-defeat
+              flags, and all 43 bonfires with how far each one is kindled. Dark Souls is the only
+              game here that records a bonfire you found but never lit, so it is the only one that
+              can tell you.
+            </li>
+            <li>
+              <b>Dark Souls: Prepare to Die</b> — the same, at the same depth. The two releases keep
+              the same stat block; only where it sits differs.
+            </li>
+            <li>
+              <b>Dark Souls II: Scholar of the First Sin</b> — attributes, class, covenant with
+              rank, gender, hollowing, deaths, play time, and an inventory that names infusions and
+              reinforcement levels. All 77 bonfires by area, and bosses defeated from three separate
+              signals that have to agree.
+            </li>
+            <li>
+              <b>Dark Souls II (vanilla, pre-Scholar)</b> — the same depth as Scholar. The two
+              releases differ by one encryption key and nothing else; everything inside sits in the
+              same place.
+            </li>
+            <li>
+              <b>Dark Souls III</b> — the deepest read here. Attributes, souls, play time, embered
+              state, NG+, the full inventory, equipped weapons with their infusion and
+              <code>+N</code>, armour, rings and ammo. All 77 bonfires by name. Bosses from two
+              independent flag sets, so a New Game+ character still reads correctly. Covenants
+              joined, rewards from 57 NPCs, which Lords of Cinder are on the throne, 426 world items
+              picked up across six areas — and, of the bosses still alive, which ones you can
+              actually reach right now.
+            </li>
+            <li>
+              <b>Sekiro: Shadows Die Twice</b> — the odd one out. No character name, no attributes,
+              no levelling: the game has none of them, so none appear. What it does have is the one
+              thing nothing else here can do — Attack Power goes up by exactly one per Memory
+              consumed, so the bosses whose token you spent hours ago are still counted. Play time,
+              journey, Sen, max HP and Posture, everything carried, the key items and the storage
+              box, each named against its own type table. Boss kills and Sculptor's Idols are read
+              from their own event flags, which matters more here than anywhere else: a Memory still
+              sitting in your bag does not say which boss it came off, and the flag does. Both reset
+              when you start a new journey, so an NG+ save honestly reports fewer than the character
+              has earned — Attack Power carries over and the flags do not.
+            </li>
+            <li>
+              <b>Elden Ring</b> — identity, attributes and runes in full; owned weapons, armour and
+              ashes named by type, so an armour can never resolve to a weapon; remembrances held and
+              the bosses they prove dead. Talismans, spells and goods live in a part of the save
+              that shifts between patches and is not parsed, so the item list is partial. It says so
+              where the list is.
+            </li>
+          </ul>
+          <p>
+            A slot drops to <b>inventory only</b> rather than print an attribute it cannot verify. A
+            save holding several characters gets a tab each, and every export button writes the
+            whole file — every slot, not the one you happen to be looking at.
+          </p>
+        </div>
+      </details>
+      <details class="how frame" open>
+        <summary>How it works</summary>
+        <div class="how-body">
+          <p>
+            A <code>.sl2</code> is one packed archive of blocks — most of them encrypted, one per
+            character, a few more for the world. The page unpacks the archive, decrypts each block
+            with the key the game itself ships, and reads the fields off positions the community
+            mapped over years. It only ever reads: point it at your live save if you like, the worst
+            case is a bad report rather than a broken character.
+          </p>
+          <p>
+            The parsing runs on a background thread, so a nine-megabyte save does not freeze the
+            page, and only the tables for the game you dropped get fetched instead of every game's
+            worth. After the first visit it works <b>offline</b> — the page, its code and the tables
+            it has already used are cached, so you can read a save on a plane.
+          </p>
+          <p>
+            Three ways to take the reading with you. <b>Copy Markdown</b> puts all of it on your
+            clipboard, which is the format to paste into an LLM — it cannot open a
+            <code>.sl2</code>, but it reads Markdown fine. <b>Download .md</b> is that same text as
+            a file. <b>Download .json</b> is the same data written for a program instead of a
+            person, against a <a href="schema.json">published schema</a>, and byte-for-byte
+            identical to what the command-line tool writes. A harness holds those two together on
+            every save, so nothing can tell which one produced a file. One thing to know before you
+            consume it: a field is there only if it was read. Dark Souls III keeps no death counter,
+            so a DS3 character has no <code>deaths</code> key at all — not a zero, not a null. That
+            way you can always tell "the game does not record this" from "it really is none".
+          </p>
+          <p>Every game hides its data somewhere else, so each one is read differently.</p>
+          <ul>
+            <li>
+              <b>Dark Souls II (both releases):</b> vanilla and Scholar use different keys over an
+              identical layout, so the page tries both and reads whichever one opens. Which release
+              you have is decided by which key works, not by a guess. Bonfires and boss kills come
+              from a second world block the game keeps well away from the character.
+            </li>
+            <li>
+              <b>Dark Souls Remastered / Prepare to Die:</b> the character block moves as the save
+              grows, so a fixed offset is worthless. Remastered is found by a marker that always
+              sits beside it; Prepare to Die has no such marker, so it is found by your character's
+              own name.
+            </li>
+            <li>
+              <b>Dark Souls III:</b> the stats move between patches, so the block is located by
+              content rather than position — the nine numbers that add up to your level. That is the
+              game's own formula, so a false match is close to impossible.
+            </li>
+            <li>
+              <b>Elden Ring:</b> the same trick with eight numbers, plus every owned item read
+              straight out of the game's item array.
+            </li>
+            <li>
+              <b>Sekiro:</b> the easy one, for once. Nothing is encrypted and nothing moves between
+              patches, so the fields are read where they are. Each item record carries a type code
+              beside its ID, which is why a piece of armour can never come back named as a weapon.
+            </li>
+          </ul>
+          <p>Two rules, and neither one bends.</p>
+          <p>
+            <b>It never prints a number it cannot verify.</b> If a stat block fails its own check,
+            that slot drops to inventory-only and the attributes are simply gone. A missing field
+            costs you nothing. A wrong one quietly tells you your character is something it is not,
+            and you would have no way of knowing. So the field goes.
+          </p>
+          <p>
+            <b>Progress is a floor, not a ceiling.</b> A boss counts as dead only when the save
+            still proves it: the soul sitting in your pack, a defeat flag, or a place past it you
+            could not have reached with the boss alive. Kill a boss and spend the soul, with no flag
+            and no gate behind it, and it stays off the list. The tool under-claims on purpose.
+            Everything it shows you happened. There is simply more that it cannot see.
+          </p>
+        </div>
+      </details>
+      <div id="modes" role="group" aria-label="What to read">
+        <button type="button" id="mode-single" class="mode on" aria-pressed="true">One save</button>
+        <button type="button" id="mode-combined" class="mode" aria-pressed="false">Combined</button>
+        <span class="mode-note" id="mode-note">One save, read in full.</span>
+      </div>
+      <button type="button" id="drop" class="frame" aria-describedby="drop-note">
+        <span class="big" id="drop-big">Drop a .sl2 save here, or click to choose</span>
+        <span class="small" id="drop-note">Read on this machine. Nothing is sent anywhere.</span>
+      </button>
+      <button type="button" id="pick-folder" class="mode" hidden>Choose a folder instead</button>
+      <input id="file" type="file" accept=".sl2" hidden />
+      <input id="folder" type="file" hidden webkitdirectory />
+      <div id="status" role="status" aria-live="polite"></div>
+      <div id="out"></div>
+    </main>
+    <footer>
+      <a href="documentation/">Documentation</a>
+      · <a href="https://github.com/darthdemono/sl2-analyzer?tab=readme-ov-file">GitHub</a> ·
+      <a href="https://github.com/darthdemono/sl2-analyzer?tab=License-1-ov-file">MIT License</a> ·
+      <a href="https://darthdemono.com/">DarthDemono</a>
+    </footer>
+    <script type="module" src="app/main.js"></script>
+  </body>
 </html>

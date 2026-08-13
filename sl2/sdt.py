@@ -16,10 +16,11 @@ alfizari/Sekiro-Save-Editor (the slot fields), every one of them verified agains
 S0000.sl2 — and two of that editor's labels corrected against a differential, because
 they point at the current value rather than the maximum.
 """
+
 import json
 import os
-from .reader import u8, u32, u64
 
+from .reader import u8, u32, u64
 
 ## @brief How many character slots the game has. Entry 10 is the settings/profile
 #  block and entry 11 (present on the current patch, absent in the published layout)
@@ -35,11 +36,11 @@ SDT_SLOT_COUNT = 10
 # unused slot is all zeros and a used one carries its owner's id. That was checked
 # both ways: the id matches the save's own folder name, and the nine unused slots (and
 # a second, characterless save file) read zero.
-SDT_STEAM_OFF = 0x33E54     # u64
-SDT_NG_OFF = 0x33F34        # u8, journey (New Game+) count
+SDT_STEAM_OFF = 0x33E54  # u64
+SDT_NG_OFF = 0x33F34  # u8, journey (New Game+) count
 SDT_PLAYTIME_OFF = 0x33F80  # u32, SECONDS
-SDT_ATTACK_OFF = 0x3449C    # u32, attack power
-SDT_SEN_OFF = 0x344D0       # u32, Sen (the currency — alfizari's README calls it Souls)
+SDT_ATTACK_OFF = 0x3449C  # u32, attack power
+SDT_SEN_OFF = 0x344D0  # u32, Sen (the currency — alfizari's README calls it Souls)
 
 
 ##
@@ -156,14 +157,14 @@ def sdt_weapon_cat(iid, prosthetics):
 # mirror the in-game menu instead of dumping 279 rows under one heading. Ranges are
 # inclusive on both ends.
 SDT_GOODS_RANGES = (
-    (500, 1999, "consumables"),    # Spirit Emblem, Regenerative Power, Skill Point
-    (2000, 2999, "key"),           # Kusabimaru, Mortal Blade, the esoteric texts
-    (3000, 3999, "consumables"),   # gourds, sugars, spiritfall, confetti, shards
-    (4000, 4499, "beads"),         # Prayer Bead, the ten necklaces, Gourd Seed
-    (5100, 5499, "memories"),      # Memory: / Remnant: — the boss tokens
-    (5500, 5999, "key"),           # Mask Fragments, Dragon's Blood Droplet
-    (6000, 6999, "upgrade"),       # scrap iron, gunpowder, wax, lapis lazuli
-    (9000, 9999, "key"),           # quest items, notes, Rot Essence, shop scrolls
+    (500, 1999, "consumables"),  # Spirit Emblem, Regenerative Power, Skill Point
+    (2000, 2999, "key"),  # Kusabimaru, Mortal Blade, the esoteric texts
+    (3000, 3999, "consumables"),  # gourds, sugars, spiritfall, confetti, shards
+    (4000, 4499, "beads"),  # Prayer Bead, the ten necklaces, Gourd Seed
+    (5100, 5499, "memories"),  # Memory: / Remnant: — the boss tokens
+    (5500, 5999, "key"),  # Mask Fragments, Dragon's Blood Droplet
+    (6000, 6999, "upgrade"),  # scrap iron, gunpowder, wax, lapis lazuli
+    (9000, 9999, "key"),  # quest items, notes, Rot Essence, shop scrolls
 )
 
 
@@ -195,8 +196,12 @@ def sdt_goods_cat(iid):
 # real row rather than items.
 #
 # Suppressed rows are counted, not hidden — see @c suppressed_count.
-SDT_SUPPRESSED_PREFIXES = ("Original Memory:", "Immortal Severance Cutscene",
-                           "Virtual Weapon:", "Upgrade Menu:")
+SDT_SUPPRESSED_PREFIXES = (
+    "Original Memory:",
+    "Immortal Severance Cutscene",
+    "Virtual Weapon:",
+    "Upgrade Menu:",
+)
 
 
 def sdt_suppressed(name):
@@ -233,6 +238,7 @@ def load_sdt_db(db_dir):
                 return {int(k): v for k, v in json.load(f).items()}
         except (OSError, ValueError):
             return {}
+
     names = {cat: table(cat) for cat in SDT_DB_FILES}
     dev = {cat: table(cat + "_devnames") for cat in SDT_DB_FILES}
     return {"names": names, "dev": dev, "prosthetics": set(table("prosthetics"))}
@@ -365,28 +371,41 @@ def sdt_parse(buf, db):
     if vitality is not None and not 1 <= vitality <= SDT_VITALITY_MAX:
         vitality = None
     ch = {
-        "tier": "full", "game": "sdt",
+        "tier": "full",
+        "game": "sdt",
         # Sekiro profiles carry no name — the game never asks for one — so the slot
         # is labelled the same way an empty Elden Ring roster entry is. What that
         # means is said once, in SDT_NOTE, rather than inside every heading and
         # every chart box that has to carry the name.
         "name": "(unnamed)",
-        "klass": None, "stats": {}, "level": None, "soul_memory": None,
-        "humanity": None, "stamina": None,
+        "klass": None,
+        "stats": {},
+        "level": None,
+        "soul_memory": None,
+        "humanity": None,
+        "stamina": None,
         "hp": sdt_twin(buf, SDT_HP_OFF, SDT_HP_ALT),
         "posture": sdt_twin(buf, SDT_POSTURE_OFF, SDT_POSTURE_ALT),
         "ng_plus": ng if ng is not None and ng <= SDT_NG_MAX else None,
         "play_time": play_time,
         "souls": u32(buf, SDT_SEN_OFF),
-        "attack": attack, "vitality": vitality, "skill_points": skill_points,
-        "boss_souls": memories, "key_items": key_items,
-        "inv": inv, "unknown_count": unknown, "internal_count": internal,
+        "attack": attack,
+        "vitality": vitality,
+        "skill_points": skill_points,
+        "boss_souls": memories,
+        "key_items": key_items,
+        "inv": inv,
+        "unknown_count": unknown,
+        "internal_count": internal,
         "suppressed_count": suppressed,
     }
     spent = sdt_memories_spent(attack)
     if spent is not None:
-        ch["memories"] = {"spent": spent, "held": len(memories),
-                          "cumulative": bool(ch["ng_plus"])}
+        ch["memories"] = {
+            "spent": spent,
+            "held": len(memories),
+            "cumulative": bool(ch["ng_plus"]),
+        }
     return ch
 
 
@@ -454,8 +473,17 @@ SDT_FLAG_GLOBAL_MAX = 10000
 # third-party checkpoint pack, one reads nine idols both before and after Owl while the
 # other reads zero then nine — and Fountainhead is the map you cannot reach until Owl is
 # dead.
-SDT_FLAG_MAPS = {(10, 0): 2, (11, 0): 3, (11, 1): 4, (11, 2): 5, (13, 0): 8,
-                 (15, 0): 9, (17, 0): 11, (20, 0): 13, (25, 0): 14}
+SDT_FLAG_MAPS = {
+    (10, 0): 2,
+    (11, 0): 3,
+    (11, 1): 4,
+    (11, 2): 5,
+    (13, 0): 8,
+    (15, 0): 9,
+    (17, 0): 11,
+    (20, 0): 13,
+    (25, 0): 14,
+}
 
 
 ##
@@ -485,8 +513,9 @@ def sdt_flag_offset(fid):
         if k is None:
             return None
     n = fid % 1000
-    block = (SDT_FLAG_REGION + k * SDT_FLAG_CATEGORY
-             + (fid // 1000) % 10 * SDT_FLAG_BLOCK)
+    block = (
+        SDT_FLAG_REGION + k * SDT_FLAG_CATEGORY + (fid // 1000) % 10 * SDT_FLAG_BLOCK
+    )
     return block + (n >> 5) * 4 + 3 - ((n & 31) >> 3), 7 - (n & 7)
 
 
@@ -516,7 +545,7 @@ def sdt_active_slots(data, entries, decrypt):
     if len(entries) <= SDT_MENU_ENTRY:
         return None
     e = entries[SDT_MENU_ENTRY]
-    menu = decrypt(data[e.offset:e.offset + e.size])
+    menu = decrypt(data[e.offset : e.offset + e.size])
     if menu is None:
         return None
     active = set()

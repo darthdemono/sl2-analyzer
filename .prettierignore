@@ -1,0 +1,19 @@
+# Data, not code. These are generated or curated lookup tables — tens of thousands of
+# lines whose formatting nobody reads and whose diff would bury every real change.
+db_ds1/
+db_ds2/
+db_ds3/
+db_er/
+db_sdt/
+schema.json
+
+# Third-party, generated, or git-ignored working material.
+vendor/
+documentation/
+scratch/
+test/
+node_modules/
+
+# Prose, not code. The README and the notices are authored documents; reflowing their
+# paragraphs churns the whole file and changes nothing a reader cares about.
+*.md

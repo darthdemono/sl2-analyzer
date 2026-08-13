@@ -17,7 +17,7 @@
 const ESTUS_RE = /^Estus Flask(?: \+(\d+))?$/;
 
 export function estusLevel(ch) {
-  for (const [name] of ((ch.inv || {}).consumables || [])) {
+  for (const [name] of (ch.inv || {}).consumables || []) {
     const mt = ESTUS_RE.exec(name);
     if (mt) return Number(mt[1] || 0);
   }
@@ -45,11 +45,23 @@ export function snapshot(ch, file, slot, game, title) {
   for (const [q, v] of Object.entries(ch.questlines || {})) questlines[q] = [...v];
   const pickups = {};
   let pickupTotal = 0;
-  for (const [a, c, t] of (ch.pickups || [])) { pickups[a] = c; pickupTotal += t; }
+  for (const [a, c, t] of ch.pickups || []) {
+    pickups[a] = c;
+    pickupTotal += t;
+  }
   return {
-    path: file.path, file: file.file, mtime: file.mtime, size: file.size,
-    game, title, slot, name: ch.name || "?", tier: ch.tier,
-    play_time: ch.play_time || 0, level: ch.level || 0, souls: ch.souls || 0,
+    path: file.path,
+    file: file.file,
+    mtime: file.mtime,
+    size: file.size,
+    game,
+    title,
+    slot,
+    name: ch.name || "?",
+    tier: ch.tier,
+    play_time: ch.play_time || 0,
+    level: ch.level || 0,
+    souls: ch.souls || 0,
     attack: ch.attack == null ? null : ch.attack,
     vitality: ch.vitality == null ? null : ch.vitality,
     key_items: [...new Set((ch.key_items || []).map(([n]) => n))].sort(),
@@ -60,7 +72,11 @@ export function snapshot(ch, file, slot, game, title) {
     covenant: ch.covenant || null,
     ng_plus: ch.ng_plus == null ? null : ch.ng_plus,
     estus: estusLevel(ch),
-    bonfires, bosses, covenants, questlines, pickups,
+    bonfires,
+    bosses,
+    covenants,
+    questlines,
+    pickups,
     pickup_total: pickupTotal,
     endings: [...(ch.endings || [])],
     cinders: [...(ch.cinders || [])],
@@ -84,12 +100,17 @@ export function groupRuns(snaps) {
     runs.get(k).push(s);
   }
   for (const rows of runs.values()) {
-    rows.sort((a, b) => a.play_time - b.play_time || a.mtime - b.mtime
-      || cmp(a.file, b.file) || a.slot - b.slot);
+    rows.sort(
+      (a, b) =>
+        a.play_time - b.play_time || a.mtime - b.mtime || cmp(a.file, b.file) || a.slot - b.slot,
+    );
   }
   // Ties keep insertion order, which is what Python's stable sort does too.
-  return new Map([...runs.entries()].sort((x, y) =>
-    Math.min(...x[1].map((s) => s.mtime)) - Math.min(...y[1].map((s) => s.mtime))));
+  return new Map(
+    [...runs.entries()].sort(
+      (x, y) => Math.min(...x[1].map((s) => s.mtime)) - Math.min(...y[1].map((s) => s.mtime)),
+    ),
+  );
 }
 
 /** A run's identity as a string key. JSON rather than a joined string: it needs no
@@ -112,13 +133,18 @@ export const pairKey = (a, n) => [a, n].join(PAIR_SEP);
 export const pairName = (key) => key.split(PAIR_SEP)[1];
 
 /** Python sorts strings by code point; so must this, or the two orders drift. */
-export function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
+export function cmp(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
 
 /** Boss kills that came from a FLAG — the only boss evidence that cannot go
  *  backwards. A boss known by its held soul vanishes the moment the soul is spent. */
 export function flagBosses(s) {
-  return new Set(Object.entries(s.bosses)
-    .filter(([, ev]) => ev.includes("flag") || ev.includes("clear")).map(([b]) => b));
+  return new Set(
+    Object.entries(s.bosses)
+      .filter(([, ev]) => ev.includes("flag") || ev.includes("clear"))
+      .map(([b]) => b),
+  );
 }
 
 /** The monotone progress a snapshot holds — only one-way signals. Souls are spent, a
@@ -151,7 +177,8 @@ const subset = (a, b) => [...a].every((x) => b.has(x));
  *  endings are never waived, which is what separates two saves finished differently
  *  from the same parent. */
 export function descends(a, b) {
-  const pa = progress(a), pb = progress(b);
+  const pa = progress(a),
+    pb = progress(b);
   if (pa.ng_plus > pb.ng_plus) return false;
   if (!subset(pa.endings, pb.endings)) return false;
   if (pa.level > pb.level || pa.estus > pb.estus) return false;
@@ -169,10 +196,15 @@ export function descends(a, b) {
  * @returns {{parents: (number|null)[], restarts: Set<number>}}
  */
 export function buildTree(rows) {
-  const parents = [], restarts = new Set();
+  const parents = [],
+    restarts = new Set();
   for (let i = 0; i < rows.length; i++) {
     let best = null;
-    for (let j = i - 1; j >= 0; j--) if (descends(rows[j], rows[i])) { best = j; break; }
+    for (let j = i - 1; j >= 0; j--)
+      if (descends(rows[j], rows[i])) {
+        best = j;
+        break;
+      }
     if (best === null && i > 0) restarts.add(i);
     parents.push(best);
   }
@@ -204,7 +236,8 @@ export function carryBosses(rows, parents) {
 
 /** The bosses a snapshot can only prove through an ancestor. */
 export function carriedOnly(row, carried) {
-  return [...carried.entries()].filter(([b]) => !(b in row.bosses))
+  return [...carried.entries()]
+    .filter(([b]) => !(b in row.bosses))
     .map(([b, [ev, at]]) => [b, ev, at])
     .sort((x, y) => x[2] - y[2] || cmp(x[0], y[0]));
 }
@@ -233,12 +266,21 @@ const diff = (a, b) => sortedSet(new Set([...a].filter((x) => !b.has(x))));
  * by how much it means and capped so a node stays readable.
  */
 export function achievements(cur, prev, cap = 3) {
-  const was = prev ? progress(prev) : {
-    bonfires: new Set(), bosses: new Set(), endings: new Set(), cinders: new Set(),
-    covenants: new Set(), pickups: {}, level: 0, attack: -1, vitality: -1,
-    estus: -1,
-    ng_plus: -1,
-  };
+  const was = prev
+    ? progress(prev)
+    : {
+        bonfires: new Set(),
+        bosses: new Set(),
+        endings: new Set(),
+        cinders: new Set(),
+        covenants: new Set(),
+        pickups: {},
+        level: 0,
+        attack: -1,
+        vitality: -1,
+        estus: -1,
+        ng_plus: -1,
+      };
   const cp = progress(cur);
   const out = [];
   for (const end of diff(cp.endings, was.endings)) out.push(`ENDING: ${end}`);
@@ -251,8 +293,9 @@ export function achievements(cur, prev, cap = 3) {
   const had = prev ? new Set(Object.keys(prev.bosses)) : new Set();
   const nb = diff(new Set(Object.keys(cur.bosses)), had);
   if (nb.length) {
-    out.push("BOSS: " + nb.slice(0, 2).join(" · ")
-      + (nb.length > 2 ? ` +${nb.length - 2} more` : ""));
+    out.push(
+      "BOSS: " + nb.slice(0, 2).join(" · ") + (nb.length > 2 ? ` +${nb.length - 2} more` : ""),
+    );
   }
   // Sekiro's version of the same news, and the only one it can give: Attack Power
   // rises by one per Memory consumed, so a step here IS a boss whose token has
@@ -268,8 +311,11 @@ export function achievements(cur, prev, cap = 3) {
   // NOT in the containment test — some key items are consumed on use.
   const nk = diff(new Set(cur.key_items), new Set(prev ? prev.key_items : []));
   if (nk.length) {
-    out.push("KEY ITEM: " + nk.slice(0, 2).join(" \u00b7 ")
-      + (nk.length > 2 ? ` +${nk.length - 2} more` : ""));
+    out.push(
+      "KEY ITEM: " +
+        nk.slice(0, 2).join(" \u00b7 ") +
+        (nk.length > 2 ? ` +${nk.length - 2} more` : ""),
+    );
   }
   const nc = diff(cp.cinders, was.cinders);
   if (nc.length) out.push("CINDERS: " + nc.join(" · "));
@@ -278,15 +324,18 @@ export function achievements(cur, prev, cap = 3) {
   const nf = diff(cp.bonfires, was.bonfires);
   if (nf.length) {
     const named = nf.slice(0, 2).map(pairName).join(" · ");
-    out.push(nf.length <= 2
-      ? `+${nf.length} bonfire${nf.length === 1 ? "" : "s"}: ${named}`
-      : `+${nf.length} bonfires`);
+    out.push(
+      nf.length <= 2
+        ? `+${nf.length} bonfire${nf.length === 1 ? "" : "s"}: ${named}`
+        : `+${nf.length} bonfires`,
+    );
   }
   if (cur.estus != null && was.estus >= 0 && cur.estus > was.estus) {
     out.push(`Estus +${was.estus} → +${cur.estus}`);
   }
   let gained = 0;
-  for (const [a, n] of Object.entries(cur.pickups)) gained += Math.max(0, n - (was.pickups[a] || 0));
+  for (const [a, n] of Object.entries(cur.pickups))
+    gained += Math.max(0, n - (was.pickups[a] || 0));
   if (gained) out.push(`+${gained} world item${gained === 1 ? "" : "s"}`);
   if (cur.level > was.level) {
     out.push(prev ? `lv${was.level} → lv${cur.level}` : `lv${cur.level}`);
@@ -315,7 +364,7 @@ export function referenceIndex(snaps) {
   const root = order.length > 1 ? commonDir(order.map(([p]) => p)) : "";
   const out = order.map(([p, t]) => {
     const b = basename(p);
-    const label = (dupes.get(b) || 0) < 2 ? b : (root ? relTo(p, root) : p);
+    const label = (dupes.get(b) || 0) < 2 ? b : root ? relTo(p, root) : p;
     return [refs.get(p), label, t, p];
   });
   return { refs, order: out };
@@ -343,11 +392,15 @@ function relTo(p, root) {
 
 /** Generic first-seen walk: the earliest snapshot each item appears in. */
 export function firstSeen(rows, get) {
-  const seen = new Set(), out = [];
+  const seen = new Set(),
+    out = [];
   for (const r of rows) {
     for (const item of get(r)) {
       const k = typeof item === "string" ? item : JSON.stringify(item);
-      if (!seen.has(k)) { seen.add(k); out.push([item, r]); }
+      if (!seen.has(k)) {
+        seen.add(k);
+        out.push([item, r]);
+      }
     }
   }
   return out;

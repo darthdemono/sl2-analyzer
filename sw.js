@@ -35,15 +35,21 @@ const SHELL = [
 self.addEventListener("install", (e) => {
   // One missing file must not fail the whole install, so they are added
   // individually rather than with the all-or-nothing addAll.
-  e.waitUntil(caches.open(CACHE)
-    .then((c) => Promise.all(SHELL.map((u) => c.add(u).catch(() => {}))))
-    .then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches
+      .open(CACHE)
+      .then((c) => Promise.all(SHELL.map((u) => c.add(u).catch(() => {}))))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener("activate", (e) => {
-  e.waitUntil(caches.keys()
-    .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-    .then(() => self.clients.claim()));
+  e.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
+  );
 });
 
 const isDb = (url) => /\/db_(ds1|ds2|ds3|er)\//.test(url.pathname);
@@ -56,32 +62,49 @@ self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;   // same-origin only, by design
+  if (url.origin !== self.location.origin) return; // same-origin only, by design
 
   // Item tables are content-addressed in practice — a name/id table only changes
   // when the repo does — so serve them from cache and only hit the network on a
   // miss. This is what makes a second save of the same game load instantly.
   if (isDb(url) || isVendor(url)) {
-    e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-      if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
-      return res;
-    })));
+    e.respondWith(
+      caches.match(req).then(
+        (hit) =>
+          hit ||
+          fetch(req).then((res) => {
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(req, copy));
+            }
+            return res;
+          }),
+      ),
+    );
     return;
   }
 
   // Everything else (the page and its modules) is network-first, so a deploy is
   // picked up on the next load instead of being pinned by the cache. Falling back
   // to the cache is what keeps the app working offline.
-  e.respondWith(fetch(req)
-    .then((res) => {
-      if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
-      return res;
-    })
-    // The index.html fallback is for the APP being opened offline. The generated
-    // documentation is a separate site under /documentation/, so serving it the app
-    // shell would answer "where are the docs" with the analyzer — worse than failing.
-    // Once visited online it is cached by the same network-first path above, so this
-    // only bites on a page never opened.
-    .catch(() => caches.match(req).then((hit) =>
-      hit || (isDocs(url) ? Response.error() : caches.match("index.html")))));
+  e.respondWith(
+    fetch(req)
+      .then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      })
+      // The index.html fallback is for the APP being opened offline. The generated
+      // documentation is a separate site under /documentation/, so serving it the app
+      // shell would answer "where are the docs" with the analyzer — worse than failing.
+      // Once visited online it is cached by the same network-first path above, so this
+      // only bites on a page never opened.
+      .catch(() =>
+        caches
+          .match(req)
+          .then((hit) => hit || (isDocs(url) ? Response.error() : caches.match("index.html"))),
+      ),
+  );
 });

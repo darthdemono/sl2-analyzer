@@ -12,20 +12,41 @@ character a save belongs to comes from the save, and the order comes from the ga
 own play-time clock (falling back to the file date where a game does not store one).
 Backups can be named anything.
 """
+
 import os
 from collections import OrderedDict
 from datetime import datetime
 
-from .chart import (hms, journey_chart, plural, rank, rank_cell, rank_label,
-                    reference_list, run_chart)
+from .chart import (
+    hms,
+    journey_chart,
+    plural,
+    rank,
+    rank_cell,
+    rank_label,
+    reference_list,
+    run_chart,
+)
 from .convert import GAMES, META_LABEL, parse_save
 from .render import md_for_character
-from .timeline import (build_tree, carried_only, carry_bosses, first_seen,
-                       fork_count, group_runs, reference_index, snapshot)
+from .timeline import (
+    build_tree,
+    carried_only,
+    carry_bosses,
+    first_seen,
+    fork_count,
+    group_runs,
+    reference_index,
+    snapshot,
+)
 
 ## @brief Evidence tags, spelled out. Same words the single-save export uses.
-SRC = {"flag": "confirmed", "soul": "soul held", "gate": "progression",
-       "clear": "cleared (NG+)"}
+SRC = {
+    "flag": "confirmed",
+    "soul": "soul held",
+    "gate": "progression",
+    "clear": "cleared (NG+)",
+}
 
 
 ##
@@ -53,8 +74,10 @@ def read_file(path, base_dir):
         return []
     cfg = GAMES[save.game]
     start = cfg["slots"].start
-    return [snapshot(ch, path, i - start + 1, save.game, cfg["title"])
-            for i, ch in save.characters]
+    return [
+        snapshot(ch, path, i - start + 1, save.game, cfg["title"])
+        for i, ch in save.characters
+    ]
 
 
 ##
@@ -62,8 +85,10 @@ def read_file(path, base_dir):
 # @param carried The newest snapshot's carried boss set, from @ref carry_bosses.
 def run_summary(rows, carried=None):
     first, last = rows[0], rows[-1]
-    bits = [f"{len(rows)} save{'' if len(rows) == 1 else 's'}",
-            f"{rank(first)} → {rank(last)}"]
+    bits = [
+        f"{len(rows)} save{'' if len(rows) == 1 else 's'}",
+        f"{rank(first)} → {rank(last)}",
+    ]
     if last["play_time"]:
         bits.append(f"{hms(first['play_time'])} → {hms(last['play_time'])} played")
     if last["bonfires"]:
@@ -71,11 +96,19 @@ def run_summary(rows, carried=None):
     known = carried if carried else last["bosses"]
     if known:
         extra = len(known) - len(last["bosses"])
-        bits.append(plural(len(known), "boss")
-                    + (f" ({len(last['bosses'])} still provable in the newest save, "
-                       f"{extra} carried from earlier)" if extra else ""))
+        bits.append(
+            plural(len(known), "boss")
+            + (
+                f" ({len(last['bosses'])} still provable in the newest save, "
+                f"{extra} carried from earlier)"
+                if extra
+                else ""
+            )
+        )
     if last["pickups"]:
-        bits.append(f"{sum(last['pickups'].values())} of {last['pickup_total']} world items")
+        bits.append(
+            f"{sum(last['pickups'].values())} of {last['pickup_total']} world items"
+        )
     if last["endings"]:
         bits.append("finished: " + " · ".join(sorted(last["endings"])))
     return "_" + " · ".join(bits) + "._"
@@ -89,36 +122,59 @@ def run_summary(rows, carried=None):
 # branch, which is stated in the document rather than hidden.
 def run_timeline(rows, refs):
     L = []
-    ref = lambda r: f"^{refs.get(r['path'], '?')}"
+
+    def ref(r):
+        return f"^{refs.get(r['path'], '?')}"
+
     lv = rank_label(rows[0]["game"]) if rows else "Lv"
 
     bosses = first_seen(rows, lambda r: r["bosses"])
     if bosses:
-        L += ["#### Bosses — first appearance", "",
-              "| Play Time | %s | Boss | Evidence | Save |" % lv, "|---|---|---|---|---|"]
+        L += [
+            "#### Bosses — first appearance",
+            "",
+            f"| Play Time | {lv} | Boss | Evidence | Save |",
+            "|---|---|---|---|---|",
+        ]
         for boss, r in bosses:
             ev = ", ".join(SRC.get(e, e) for e in sorted(r["bosses"][boss]))
-            L.append(f"| {hms(r['play_time'])} | {rank_cell(r)} | {boss} | {ev} | {ref(r)} |")
+            L.append(
+                f"| {hms(r['play_time'])} | {rank_cell(r)} | {boss} | {ev} | {ref(r)} |"
+            )
         L.append("")
 
     covs = first_seen(rows, lambda r: r["covenants"])
     if covs:
-        L += ["#### Covenants — first found", "",
-              "| Play Time | %s | Covenant | Progress | Save |" % lv, "|---|---|---|---|---|"]
+        L += [
+            "#### Covenants — first found",
+            "",
+            f"| Play Time | {lv} | Covenant | Progress | Save |",
+            "|---|---|---|---|---|",
+        ]
         for cov, r in covs:
-            L.append(f"| {hms(r['play_time'])} | {rank_cell(r)} | {cov} | "
-                     f"{', '.join(r['covenants'][cov])} | {ref(r)} |")
+            L.append(
+                f"| {hms(r['play_time'])} | {rank_cell(r)} | {cov} | "
+                f"{', '.join(r['covenants'][cov])} | {ref(r)} |"
+            )
         L.append("")
 
-    rewards = first_seen(rows, lambda r: [(q, rw) for q, v in r["questlines"].items()
-                                          for rw in v])
+    rewards = first_seen(
+        rows, lambda r: [(q, rw) for q, v in r["questlines"].items() for rw in v]
+    )
     if rewards:
-        L += ["#### Rewards — first obtained", "",
-              "_A floor: only rewards actually collected are visible._", "",
-              "| Play Time | %s | Source | Reward | Save |" % lv, "|---|---|---|---|---|"]
+        L += [
+            "#### Rewards — first obtained",
+            "",
+            "_A floor: only rewards actually collected are visible._",
+            "",
+            f"| Play Time | {lv} | Source | Reward | Save |",
+            "|---|---|---|---|---|",
+        ]
         for pair, r in rewards:
-            L.append(f"| {hms(r['play_time'])} | {rank_cell(r)} | {pair[0]} | {pair[1]} "
-                     f"| {ref(r)} |")
+            L.append(
+                f"| {hms(r['play_time'])} | {rank_cell(r)} | {pair[0]} | {pair[1]} "
+                f"| {ref(r)} |"
+            )
         L.append("")
 
     fires = first_seen(rows, lambda r: [tuple(b) for b in r["bonfires"]])
@@ -131,34 +187,55 @@ def run_timeline(rows, refs):
                 continue
             seen.update(new)
             total += len(new)
-            L.append(f"**{hms(r['play_time'])} · {rank(r)} · {ref(r)}** — "
-                     f"{total} total (+{len(new)})")
+            L.append(
+                f"**{hms(r['play_time'])} · {rank(r)} · {ref(r)}** — "
+                f"{total} total (+{len(new)})"
+            )
             L += ["", *[f"- {a}: {n}" if a else f"- {n}" for a, n in sorted(new)], ""]
 
-    est = [r for i, r in enumerate(rows)
-           if r["estus"] is not None and (i == 0 or r["estus"] != rows[i - 1]["estus"])]
+    est = [
+        r
+        for i, r in enumerate(rows)
+        if r["estus"] is not None and (i == 0 or r["estus"] != rows[i - 1]["estus"])
+    ]
     if len(est) > 1:
-        L += ["#### Estus — reinforcement", "",
-              "_Each step is one Undead Bone Shard burned. The level is stored in the "
-              "flask's own item id, so this is read, not inferred._", "",
-              "| Play Time | %s | Estus | Save |" % lv, "|---|---|---|---|"]
+        L += [
+            "#### Estus — reinforcement",
+            "",
+            "_Each step is one Undead Bone Shard burned. The level is stored in the "
+            "flask's own item id, so this is read, not inferred._",
+            "",
+            f"| Play Time | {lv} | Estus | Save |",
+            "|---|---|---|---|",
+        ]
         for r in est:
-            L.append(f"| {hms(r['play_time'])} | {rank_cell(r)} | +{r['estus']} | {ref(r)} |")
+            L.append(
+                f"| {hms(r['play_time'])} | {rank_cell(r)} | +{r['estus']} | {ref(r)} |"
+            )
         L.append("")
 
     if any(r["pickups"] for r in rows):
-        L += ["#### World items — where the count moved", "",
-              "_Only the areas whose pickup-flag group is mapped are counted, so an area "
-              "absent here is unmapped, not empty._", ""]
+        L += [
+            "#### World items — where the count moved",
+            "",
+            "_Only the areas whose pickup-flag group is mapped are counted, so an area "
+            "absent here is unmapped, not empty._",
+            "",
+        ]
         prev = {}
         for r in rows:
-            gained = [(a, c - prev.get(a, 0)) for a, c in sorted(r["pickups"].items())
-                      if c > prev.get(a, 0)]
+            gained = [
+                (a, c - prev.get(a, 0))
+                for a, c in sorted(r["pickups"].items())
+                if c > prev.get(a, 0)
+            ]
             if not gained:
                 continue
-            L.append(f"**{hms(r['play_time'])} · {rank(r)} · {ref(r)}** — "
-                     f"{sum(r['pickups'].values())} total "
-                     f"(+{sum(n for _a, n in gained)})")
+            L.append(
+                f"**{hms(r['play_time'])} · {rank(r)} · {ref(r)}** — "
+                f"{sum(r['pickups'].values())} total "
+                f"(+{sum(n for _a, n in gained)})"
+            )
             L += ["", *[f"- {a}: +{n} (now {r['pickups'][a]})" for a, n in gained], ""]
             prev = r["pickups"]
     return L
@@ -180,22 +257,29 @@ def run_section(key, rows, refs, base_dir):
 
     L = [f"## {last['title']} — {name}", "", run_summary(rows, carried[-1]), ""]
     L += ["### Save Tree", ""]
-    L.append("_Each box is one save file, numbered as in the references at the end. A "
-             "snapshot's parent is the latest earlier one whose progress it still "
-             "entirely contains — event flags never clear, so a fork (the same save "
-             "played on twice) lands both children on the shared ancestor._")
+    L.append(
+        "_Each box is one save file, numbered as in the references at the end. A "
+        "snapshot's parent is the latest earlier one whose progress it still "
+        "entirely contains — event flags never clear, so a fork (the same save "
+        "played on twice) lands both children on the shared ancestor._"
+    )
     L.append("")
-    note = [f"{forks} fork{'' if forks == 1 else 's'}" if forks else "No forks",
-            f"{len(restarts)} separate line{'' if len(restarts) == 1 else 's'}"
-            if restarts else None,
-            "a dashed box is where a line stopped"]
+    note = [
+        f"{forks} fork{'' if forks == 1 else 's'}" if forks else "No forks",
+        f"{len(restarts)} separate line{'' if len(restarts) == 1 else 's'}"
+        if restarts
+        else None,
+        "a dashed box is where a line stopped",
+    ]
     L.append("_" + ", ".join(n for n in note if n) + "._")
     if restarts:
         L.append("")
-        L.append("_A box marked SEPARATE LINE could not descend from anything before it "
-                 "— it holds less progress than saves that came earlier, so it belongs to "
-                 "a different playthrough that happens to share this character's name and "
-                 "slot._")
+        L.append(
+            "_A box marked SEPARATE LINE could not descend from anything before it "
+            "— it holds less progress than saves that came earlier, so it belongs to "
+            "a different playthrough that happens to share this character's name and "
+            "slot._"
+        )
     L.append("")
     L += run_chart(rows, parents, restarts, refs, game)
     L.append("")
@@ -211,8 +295,10 @@ def run_section(key, rows, refs, base_dir):
             if i - start + 1 == last["slot"]:
                 # Demote every heading one level: the dump's own "## Slot 1" has to sit
                 # under this run's "##", not beside it.
-                L += [ln if not ln.startswith("#") else "#" + ln
-                      for ln in md_for_character(ch, last["slot"]).split("\n")]
+                L += [
+                    ln if not ln.startswith("#") else "#" + ln
+                    for ln in md_for_character(ch, last["slot"]).split("\n")
+                ]
                 break
     except (OSError, ValueError, SystemExit):
         L.append("_The newest save could not be re-read for a full dump._")
@@ -220,17 +306,24 @@ def run_section(key, rows, refs, base_dir):
 
     lost = carried_only(last, carried[-1])
     if lost:
-        L += ["### Bosses Carried Forward", "",
-              "_Proven by an EARLIER save on this line and not by the newest one. A held "
-              "boss soul is proof of a kill, and spending the soul destroys the proof — "
-              "but a kill is permanent, so the evidence stands. Only this save's own "
-              "ancestors count; a boss killed on a different branch was never killed "
-              "here._", "",
-              "| Boss | Evidence | Proven in | Play Time |", "|---|---|---|---|"]
+        L += [
+            "### Bosses Carried Forward",
+            "",
+            "_Proven by an EARLIER save on this line and not by the newest one. A held "
+            "boss soul is proof of a kill, and spending the soul destroys the proof — "
+            "but a kill is permanent, so the evidence stands. Only this save's own "
+            "ancestors count; a boss killed on a different branch was never killed "
+            "here._",
+            "",
+            "| Boss | Evidence | Proven in | Play Time |",
+            "|---|---|---|---|",
+        ]
         for boss, ev, at in lost:
             src = rows[at]
-            L.append(f"| {boss} | {', '.join(SRC.get(e, e) for e in ev)} | "
-                     f"^{refs.get(src['path'], '?')} | {hms(src['play_time'])} |")
+            L.append(
+                f"| {boss} | {', '.join(SRC.get(e, e) for e in ev)} | "
+                f"^{refs.get(src['path'], '?')} | {hms(src['play_time'])} |"
+            )
         L.append("")
 
     tl = run_timeline(rows, refs)
@@ -262,22 +355,33 @@ def build_combined(folder, base_dir, meta=None):
         parents, _restarts = build_tree(rows)
         for row, got in zip(rows, carry_bosses(rows, parents)):
             row["carried_bosses"] = {b: ev for b, (ev, _at) in got.items()}
-    games = OrderedDict((s["title"], None) for s in
-                        sorted(snaps, key=lambda s: s["mtime"]))
+    games = OrderedDict(
+        (s["title"], None) for s in sorted(snaps, key=lambda s: s["mtime"])
+    )
 
-    L = ["# FromSoftware Saves — Combined Playthrough Timeline", "",
-         f"_Reconstructed from {len(order)} save file{'' if len(order) == 1 else 's'} "
-         f"across {len(runs)} run{'' if len(runs) == 1 else 's'} and "
-         f"{len(games)} game{'' if len(games) == 1 else 's'}: "
-         + " · ".join(games) + "._", "",
-         "_Every timestamp is an UPPER BOUND, not the moment it happened: a thing is "
-         "dated to the first save it appears in, so the real event is somewhere between "
-         "the previous save and that one. This is a reconstruction from sparse backups, "
-         "not a log._", "",
-         "---", "", "## The Journey", "",
-         "_One box per character, in the order the files were last written — the only "
-         "clock the games share, since a Dark Souls II play time and a Dark Souls III "
-         "one are unrelated numbers._", ""]
+    L = [
+        "# FromSoftware Saves — Combined Playthrough Timeline",
+        "",
+        f"_Reconstructed from {len(order)} save file{'' if len(order) == 1 else 's'} "
+        f"across {len(runs)} run{'' if len(runs) == 1 else 's'} and "
+        f"{len(games)} game{'' if len(games) == 1 else 's'}: "
+        + " · ".join(games)
+        + "._",
+        "",
+        "_Every timestamp is an UPPER BOUND, not the moment it happened: a thing is "
+        "dated to the first save it appears in, so the real event is somewhere between "
+        "the previous save and that one. This is a reconstruction from sparse backups, "
+        "not a log._",
+        "",
+        "---",
+        "",
+        "## The Journey",
+        "",
+        "_One box per character, in the order the files were last written — the only "
+        "clock the games share, since a Dark Souls II play time and a Dark Souls III "
+        "one are unrelated numbers._",
+        "",
+    ]
     L += journey_chart(runs, refs)
     L += ["", "---", ""]
 
@@ -300,24 +404,44 @@ def combined_footer(snaps, runs, meta):
     seen = OrderedDict()
     for s in sorted(snaps, key=lambda s: s["mtime"]):
         seen.setdefault(s["game"], s["title"])
-    L = ["---", "", "<details>",
-         "<summary>About this file — how it was produced, and how far to trust it"
-         "</summary>", "",
-         f"- **Save files read:** {len({s['path'] for s in snaps})}",
-         f"- **Runs (characters):** {len(runs)}", "", "**Games covered**", ""]
+    L = [
+        "---",
+        "",
+        "<details>",
+        "<summary>About this file — how it was produced, and how far to trust it"
+        "</summary>",
+        "",
+        f"- **Save files read:** {len({s['path'] for s in snaps})}",
+        f"- **Runs (characters):** {len(runs)}",
+        "",
+        "**Games covered**",
+        "",
+    ]
     for game, title in seen.items():
         L.append(f"- **{title}:** support tier {GAMES[game]['tier']}")
     if meta:
-        L += ["", "**Setup**  _(supplied by the caller — not read from the saves, "
-              "which cannot know any of it)_", ""]
+        L += [
+            "",
+            "**Setup**  _(supplied by the caller — not read from the saves, "
+            "which cannot know any of it)_",
+            "",
+        ]
         for key, value in meta.items():
             lab = META_LABEL.get(key) or key.replace("_", " ").capitalize()
-            shown = " · ".join(str(v) for v in value) if isinstance(value, list) else value
+            shown = (
+                " · ".join(str(v) for v in value) if isinstance(value, list) else value
+            )
             L.append(f"- **{lab}:** {shown}")
-    L += ["", "Everything above is read out of the saves themselves, in this browser or "
-          "on this machine — nothing is uploaded. A field the tool cannot verify is "
-          "left out rather than guessed, and every progress section is a FLOOR: it "
-          "reports what the saves prove, never what they merely suggest.", "",
-          f"_Generated {datetime.now():%Y-%m-%d %H:%M} by sl2-analyzer._", "",
-          "</details>", ""]
+    L += [
+        "",
+        "Everything above is read out of the saves themselves, in this browser or "
+        "on this machine — nothing is uploaded. A field the tool cannot verify is "
+        "left out rather than guessed, and every progress section is a FLOOR: it "
+        "reports what the saves prove, never what they merely suggest.",
+        "",
+        f"_Generated {datetime.now():%Y-%m-%d %H:%M} by sl2-analyzer._",
+        "",
+        "</details>",
+        "",
+    ]
     return L

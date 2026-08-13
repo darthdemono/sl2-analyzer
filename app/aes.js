@@ -25,13 +25,19 @@ const INV_SBOX = new Uint8Array(256);
   const inv = new Uint8Array(256);
   for (let i = 1; i < 256; i++) {
     for (let j = 1; j < 256; j++) {
-      if (gmul(i, j) === 1) { inv[i] = j; break; }
+      if (gmul(i, j) === 1) {
+        inv[i] = j;
+        break;
+      }
     }
   }
   for (let i = 0; i < 256; i++) {
     let x = inv[i];
     let s = x;
-    for (let c = 0; c < 4; c++) { x = ((x << 1) | (x >> 7)) & 0xff; s ^= x; }
+    for (let c = 0; c < 4; c++) {
+      x = ((x << 1) | (x >> 7)) & 0xff;
+      s ^= x;
+    }
     s ^= 0x63;
     SBOX[i] = s;
     INV_SBOX[s] = i;
@@ -44,10 +50,19 @@ function keyExpansion(key) {
   w.set(key, 0);
   let rcon = 1;
   for (let i = 16; i < 176; i += 4) {
-    let t0 = w[i - 4], t1 = w[i - 3], t2 = w[i - 2], t3 = w[i - 1];
+    let t0 = w[i - 4],
+      t1 = w[i - 3],
+      t2 = w[i - 2],
+      t3 = w[i - 1];
     if (i % 16 === 0) {
-      const r0 = SBOX[t1] ^ rcon, r1 = SBOX[t2], r2 = SBOX[t3], r3 = SBOX[t0];
-      t0 = r0; t1 = r1; t2 = r2; t3 = r3;
+      const r0 = SBOX[t1] ^ rcon,
+        r1 = SBOX[t2],
+        r2 = SBOX[t3],
+        r3 = SBOX[t0];
+      t0 = r0;
+      t1 = r1;
+      t2 = r2;
+      t3 = r3;
       rcon = gmul(rcon, 2);
     }
     w[i] = w[i - 16] ^ t0;
@@ -81,20 +96,27 @@ function invShiftRows(s) {
 // ran an 8-iteration loop 16 times per column per round, and profiling a real
 // save put invMixColumns + gmul at 88% of the whole parse (13 s for a DS3 save).
 // Table-driven it is ~17x faster and byte-for-byte identical.
-const MUL9 = new Uint8Array(256), MUL11 = new Uint8Array(256),
-      MUL13 = new Uint8Array(256), MUL14 = new Uint8Array(256);
+const MUL9 = new Uint8Array(256),
+  MUL11 = new Uint8Array(256),
+  MUL13 = new Uint8Array(256),
+  MUL14 = new Uint8Array(256);
 for (let i = 0; i < 256; i++) {
-  MUL9[i] = gmul(i, 9); MUL11[i] = gmul(i, 11);
-  MUL13[i] = gmul(i, 13); MUL14[i] = gmul(i, 14);
+  MUL9[i] = gmul(i, 9);
+  MUL11[i] = gmul(i, 11);
+  MUL13[i] = gmul(i, 13);
+  MUL14[i] = gmul(i, 14);
 }
 
 function invMixColumns(s) {
   for (let c = 0; c < 4; c++) {
-    const a0 = s[4 * c], a1 = s[4 * c + 1], a2 = s[4 * c + 2], a3 = s[4 * c + 3];
-    s[4 * c]     = MUL14[a0] ^ MUL11[a1] ^ MUL13[a2] ^ MUL9[a3];
-    s[4 * c + 1] = MUL9[a0]  ^ MUL14[a1] ^ MUL11[a2] ^ MUL13[a3];
-    s[4 * c + 2] = MUL13[a0] ^ MUL9[a1]  ^ MUL14[a2] ^ MUL11[a3];
-    s[4 * c + 3] = MUL11[a0] ^ MUL13[a1] ^ MUL9[a2]  ^ MUL14[a3];
+    const a0 = s[4 * c],
+      a1 = s[4 * c + 1],
+      a2 = s[4 * c + 2],
+      a3 = s[4 * c + 3];
+    s[4 * c] = MUL14[a0] ^ MUL11[a1] ^ MUL13[a2] ^ MUL9[a3];
+    s[4 * c + 1] = MUL9[a0] ^ MUL14[a1] ^ MUL11[a2] ^ MUL13[a3];
+    s[4 * c + 2] = MUL13[a0] ^ MUL9[a1] ^ MUL14[a2] ^ MUL11[a3];
+    s[4 * c + 3] = MUL11[a0] ^ MUL13[a1] ^ MUL9[a2] ^ MUL14[a3];
   }
 }
 

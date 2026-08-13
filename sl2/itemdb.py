@@ -1,17 +1,26 @@
 """Item-name databases. Three id schemes across the four games — see the db_*/
 folders and CLAUDE.md for why DS2 is id-keyed and the others are not.
 """
+
 import json
 import os
-
 
 ## @brief DS2 tables: filename stem to category. Ids are unique across categories.
 #  Categories are finer than the game's raw tabs so the output can mirror the
 #  in-game menu: consumables, trade goods, emotes and boss souls each stand alone.
-DS2_DB_FILES = {"weapons": "weapons", "armors": "armors", "rings": "rings",
-                "spells": "spells", "key": "keys", "bolts": "bolts",
-                "upgrade": "upgrade", "consumables": "consumables",
-                "online": "online", "emotes": "emotes", "bosssouls": "bosssouls"}
+DS2_DB_FILES = {
+    "weapons": "weapons",
+    "armors": "armors",
+    "rings": "rings",
+    "spells": "spells",
+    "key": "keys",
+    "bolts": "bolts",
+    "upgrade": "upgrade",
+    "consumables": "consumables",
+    "online": "online",
+    "emotes": "emotes",
+    "bosssouls": "bosssouls",
+}
 
 
 ## @brief DS1 (DSR and PtDE) tables. Ids repeat across categories, so lookups stay
@@ -19,8 +28,13 @@ DS2_DB_FILES = {"weapons": "weapons", "armors": "armors", "rings": "rings",
 #  Spells are stored as ordinary goods by the game (Soul Arrow is good 3000), but they
 #  are kept in their own file so they render under their own heading like DS2/DS3 —
 #  the slot type cannot tell them apart, the id range can.
-DS1_DB_FILES = {"MeleeWeapons": "weapons", "Armor": "armors",
-                "Rings": "rings", "Consumables": "goods", "Spells": "spells"}
+DS1_DB_FILES = {
+    "MeleeWeapons": "weapons",
+    "Armor": "armors",
+    "Rings": "rings",
+    "Consumables": "goods",
+    "Spells": "spells",
+}
 
 
 ##
@@ -52,7 +66,9 @@ def load_item_db(db_dir, flat, files):
             path = os.path.join(db_dir, stem + ".json")
             if os.path.exists(path):
                 for hx, name in json.load(open(path, encoding="utf-8")).items():
-                    db.setdefault(int.from_bytes(bytes.fromhex(hx), "little"), (name, cat))
+                    db.setdefault(
+                        int.from_bytes(bytes.fromhex(hx), "little"), (name, cat)
+                    )
         return db
     db = {}
     for stem, cat in files.items():

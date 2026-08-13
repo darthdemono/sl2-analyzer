@@ -21,6 +21,7 @@ DS2 is deliberately absent: its ids are little-endian save bytes, not param ids,
 and its tables are already complete from the SOTFS Hex Code Compendium. Paramdex
 DS2S cannot be mapped onto them and must not be imported.
 """
+
 import argparse
 import json
 import os
@@ -50,7 +51,7 @@ DEVNAME = re.compile(r" -- ")
 ## Hand corrections applied last, after the merge. Small by design: if this map
 #  grows past a dozen entries the upstream table is the thing to fix.
 NAME_FIXUPS = {
-    "Havel's ring +3": "Havel's Ring+3",   # lowercase/space drift on one variant
+    "Havel's ring +3": "Havel's Ring+3",  # lowercase/space drift on one variant
 }
 
 
@@ -91,6 +92,7 @@ def read_names(paramdex, game, stem):
 # Each gate exists because two param tables share one inventory prefix, or
 # because a range is deliberately not reported. Never widen one without saying
 # which collision it was guarding.
+
 
 def ds1_spells(i, _n):
     """DS1 stores sorceries/miracles/pyromancies as ordinary goods, 3000-8999.
@@ -152,34 +154,49 @@ STRICT = {"db_ds3/rings"}
 PRUNE_EXISTING = {"db_ds1/Consumables", "db_ds1/Spells", "db_ds3/rings"}
 
 PLAN = [
-    ("ds1", "db_ds1", "name_str", [
-        # DS1R and DS1 PtDE share an id space; DS1R is the superset. The audit
-        # believed spells were unshipped — they are present, but folded into
-        # Consumables under a "Sorcery:/Pyromancy:/Miracle:" prefix. Splitting
-        # them out is what gives DS1 a spells heading like DS2/DS3 have.
-        # Order matters: Consumables runs first and evicts the spell ids, which
-        # Spells then adopts *with the names already on them* ("Sorcery: Soul
-        # Arrow"), rather than taking Paramdex's bare "Soul Arrow".
-        ("Consumables",   "DS1R", "EquipParamGoods",     0, ds1_goods),
-        ("Spells",        "DS1R", "EquipParamGoods",     0, ds1_spells),
-        ("MeleeWeapons",  "DS1R", "EquipParamWeapon",    0, None),
-        ("Armor",         "DS1R", "EquipParamProtector", 0, None),
-        ("Rings",         "DS1R", "EquipParamAccessory", 0, None),
-    ]),
-    ("ds3", "db_ds3", "name_int", [
-        ("goods",   "DS3", "EquipParamGoods",     G, ds3_goods),
-        ("rings",   "DS3", "EquipParamAccessory", A, ds3_rings),
-        ("weapons", "DS3", "EquipParamWeapon",    W, ds3_weapons),
-        ("armors",  "DS3", "EquipParamProtector", P, ds3_armors),
-        ("spells",  "DS3", "Magic",               G, None),
-    ]),
-    ("er", "db_er", "hex_name", [
-        ("weapons",   "ER", "EquipParamWeapon",    W,   None),
-        ("armors",    "ER", "EquipParamProtector", P,   None),
-        ("goods",     "ER", "EquipParamGoods",     G,   None),
-        ("talismans", "ER", "EquipParamAccessory", A,   None),
-        ("ashes",     "ER", "EquipParamGem",       GEM, None),
-    ]),
+    (
+        "ds1",
+        "db_ds1",
+        "name_str",
+        [
+            # DS1R and DS1 PtDE share an id space; DS1R is the superset. The audit
+            # believed spells were unshipped — they are present, but folded into
+            # Consumables under a "Sorcery:/Pyromancy:/Miracle:" prefix. Splitting
+            # them out is what gives DS1 a spells heading like DS2/DS3 have.
+            # Order matters: Consumables runs first and evicts the spell ids, which
+            # Spells then adopts *with the names already on them* ("Sorcery: Soul
+            # Arrow"), rather than taking Paramdex's bare "Soul Arrow".
+            ("Consumables", "DS1R", "EquipParamGoods", 0, ds1_goods),
+            ("Spells", "DS1R", "EquipParamGoods", 0, ds1_spells),
+            ("MeleeWeapons", "DS1R", "EquipParamWeapon", 0, None),
+            ("Armor", "DS1R", "EquipParamProtector", 0, None),
+            ("Rings", "DS1R", "EquipParamAccessory", 0, None),
+        ],
+    ),
+    (
+        "ds3",
+        "db_ds3",
+        "name_int",
+        [
+            ("goods", "DS3", "EquipParamGoods", G, ds3_goods),
+            ("rings", "DS3", "EquipParamAccessory", A, ds3_rings),
+            ("weapons", "DS3", "EquipParamWeapon", W, ds3_weapons),
+            ("armors", "DS3", "EquipParamProtector", P, ds3_armors),
+            ("spells", "DS3", "Magic", G, None),
+        ],
+    ),
+    (
+        "er",
+        "db_er",
+        "hex_name",
+        [
+            ("weapons", "ER", "EquipParamWeapon", W, None),
+            ("armors", "ER", "EquipParamProtector", P, None),
+            ("goods", "ER", "EquipParamGoods", G, None),
+            ("talismans", "ER", "EquipParamAccessory", A, None),
+            ("ashes", "ER", "EquipParamGem", GEM, None),
+        ],
+    ),
     # Sekiro is deliberately not in this plan, and is handled by
     # tools/gen_sdt_from_regulation.py instead. The reason is the same one that
     # generator exists for: Paramdex SDT/Names carries machine-translated dev rows
@@ -200,7 +217,7 @@ def load_existing(path, shape):
         # A name-keyed value may be a LIST: one name, several ids (see dump).
         out = {}
         for name, value in raw.items():
-            for i in (value if isinstance(value, list) else [value]):
+            for i in value if isinstance(value, list) else [value]:
                 out[int(i)] = name
         return out, raw
     if shape == "hex_name":
@@ -225,14 +242,16 @@ def dump(table, shape):
             byname.setdefault(n, []).append(cast(i))
         return {n: (v[0] if len(v) == 1 else v) for n, v in byname.items()}
     if shape == "hex_name":
-        return {"%08X" % i: n for i, n in items}
+        return {f"{i:08X}": n for i, n in items}
     return {str(i): n for i, n in items}
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--paramdex", required=True)
-    ap.add_argument("--repo", default=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    ap.add_argument(
+        "--repo", default=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
     ap.add_argument("--only")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
@@ -246,7 +265,10 @@ def main():
         for stem, pgame, pstem, prefix, filt in tables:
             src = read_names(args.paramdex, pgame, pstem)
             if not src:
-                print("  !! no Paramdex rows for %s/%s" % (pgame, pstem), file=sys.stderr)
+                print(
+                    f"  !! no Paramdex rows for {pgame}/{pstem}",
+                    file=sys.stderr,
+                )
                 continue
             if filt:
                 src = {i: n for i, n in src.items() if filt(i, n)}
@@ -268,23 +290,31 @@ def main():
             if key_name in STRICT:
                 evicted = {i: n for i, n in have.items() if i not in src}
                 if evicted:
-                    print("   evicted (not in Paramdex): %s"
-                          % ", ".join(sorted(evicted.values())))
+                    print(
+                        "   evicted (not in Paramdex): {}".format(
+                            ", ".join(sorted(evicted.values()))
+                        )
+                    )
                 have = {i: n for i, n in have.items() if i in src}
 
             merged = dict(src)
             merged.update({i: n for i, n in carried.items() if i in src})
-            merged.update(have)            # hand-disambiguated name wins
+            merged.update(have)  # hand-disambiguated name wins
             merged = {i: NAME_FIXUPS.get(n, n) for i, n in merged.items()}
             added = len(merged) - len(have)
             total_added += added
-            print("%-24s %5d -> %5d  (+%d)" % (dbdir + "/" + stem, len(have), len(merged), added))
+            print(
+                f"{dbdir + '/' + stem:<24} {len(have):5d} -> {len(merged):5d}  (+{added})"
+            )
             if not args.dry_run:
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 with open(path, "w", encoding="utf-8") as fh:
                     json.dump(dump(merged, shape), fh, ensure_ascii=False, indent=1)
                     fh.write("\n")
-    print("\ntotal rows added: %d%s" % (total_added, "  (dry run, nothing written)" if args.dry_run else ""))
+    print(
+        f"\ntotal rows added: {total_added}"
+        + ("  (dry run, nothing written)" if args.dry_run else "")
+    )
 
 
 if __name__ == "__main__":

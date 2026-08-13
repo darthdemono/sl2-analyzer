@@ -40,7 +40,11 @@ self.addEventListener("message", async ({ data }) => {
   } catch (e) {
     // Error subclasses do not survive structured clone, so the "is this a
     // user-facing message or an internal crash" bit is sent alongside it.
-    self.postMessage({ id, ok: false, error: e && e.message ? e.message : String(e),
-                       parseError: e instanceof ParseError });
+    self.postMessage({
+      id,
+      ok: false,
+      error: e && e.message ? e.message : String(e),
+      parseError: e instanceof ParseError,
+    });
   }
 });

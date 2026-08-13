@@ -2,11 +2,23 @@
 missing. Kept out of progress.py because naming the gap needs every game's own
 tables, which would otherwise make the two import each other.
 """
-from .progress import (BOSS_SOUL_DB_DIR, DS3_CINDER_ITEM, DS3_LORDS, MANDATORY_BOSSES,
-                       load_boss_route, load_boss_soul_map)
+
 from .ds1 import load_ds1_boss_flags
 from .ds2 import DS2_COVENANT, DS2_GAMES, load_ds2_boss_souls, load_ds2_bosses
-from .ds3 import DS3_COVENANT, load_ds3_boss_flags, load_ds3_boss_victory, load_ds3_covenants
+from .ds3 import (
+    DS3_COVENANT,
+    load_ds3_boss_flags,
+    load_ds3_boss_victory,
+    load_ds3_covenants,
+)
+from .progress import (
+    BOSS_SOUL_DB_DIR,
+    DS3_CINDER_ITEM,
+    DS3_LORDS,
+    MANDATORY_BOSSES,
+    load_boss_route,
+    load_boss_soul_map,
+)
 from .sdt import load_sdt_boss_flags
 
 
@@ -20,13 +32,16 @@ from .sdt import load_sdt_boss_flags
 # cannot be reported either way and must not inflate the denominator.
 def boss_roster(game, base_dir):
     if game in DS2_GAMES:
-        return (set(load_ds2_bosses(base_dir).values())
-                | set(load_ds2_boss_souls(base_dir).values()))
+        return set(load_ds2_bosses(base_dir).values()) | set(
+            load_ds2_boss_souls(base_dir).values()
+        )
     subdir = BOSS_SOUL_DB_DIR.get(game)
     names = set(load_boss_soul_map(base_dir, subdir).values()) if subdir else set()
     names |= set(MANDATORY_BOSSES.get(game, ()))
     if game == "ds3":
-        names |= set(load_ds3_boss_flags(base_dir)) | set(load_ds3_boss_victory(base_dir))
+        names |= set(load_ds3_boss_flags(base_dir)) | set(
+            load_ds3_boss_victory(base_dir)
+        )
     if game in ("dsr", "ptde"):
         names |= set(load_ds1_boss_flags(base_dir))
     if game == "sdt":
@@ -86,9 +101,14 @@ def attach_progress_totals(ch, base_dir):
     if reached and route and roster:
         # Only a boss the roster can name may be listed: "available" is a refinement of
         # "missing", and a boss outside the roster is one the tool cannot say is alive.
-        avail = [b for b, (area, after) in route.items()
-                 if b in roster and b not in ch_bosses and area in reached
-                 and all(p in ch_bosses for p in after if p in roster)]
+        avail = [
+            b
+            for b, (area, after) in route.items()
+            if b in roster
+            and b not in ch_bosses
+            and area in reached
+            and all(p in ch_bosses for p in after if p in roster)
+        ]
         if avail:
             ch["bosses_available"] = avail
     if game != "ds3":
@@ -97,9 +117,15 @@ def attach_progress_totals(ch, base_dir):
     held = sum(q for n, q in (ch.get("key_items") or []) if n == DS3_CINDER_ITEM)
     named = ch.get("cinders") or []
     if dead or named:
-        lords = {"total": len(DS3_LORDS), "named": named, "dead": len(dead), "held": held}
+        lords = {
+            "total": len(DS3_LORDS),
+            "named": named,
+            "dead": len(dead),
+            "held": held,
+        }
         # The subtraction only holds on a first journey; otherwise report just what the
         # mapped throne flags prove, and say the count is a floor.
-        lords["placed"] = (max(len(dead) - held, len(named))
-                           if (ch.get("ng_plus") or 0) == 0 else None)
+        lords["placed"] = (
+            max(len(dead) - held, len(named)) if (ch.get("ng_plus") or 0) == 0 else None
+        )
         ch["lords"] = lords

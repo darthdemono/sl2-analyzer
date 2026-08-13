@@ -1,8 +1,20 @@
 // Shared lookup tables and formatters used by the DOM renderer (render.js).
 
-export const STAT_ABBR = { Vigor: "VGR", Endurance: "END", Vitality: "VIT", Attunement: "ATN",
-  Strength: "STR", Dexterity: "DEX", Adaptability: "ADP", Intelligence: "INT", Faith: "FTH",
-  Resistance: "RES", Luck: "LCK", Mind: "MND", Arcane: "ARC" };
+export const STAT_ABBR = {
+  Vigor: "VGR",
+  Endurance: "END",
+  Vitality: "VIT",
+  Attunement: "ATN",
+  Strength: "STR",
+  Dexterity: "DEX",
+  Adaptability: "ADP",
+  Intelligence: "INT",
+  Faith: "FTH",
+  Resistance: "RES",
+  Luck: "LCK",
+  Mind: "MND",
+  Arcane: "ARC",
+};
 
 // What each attribute governs, per game. Static game fact (not read from the save,
 // never a copied stat value) so it is true for any build — obeys the "never print
@@ -74,8 +86,15 @@ const FAMILY = { dsr: "ds1", ptde: "ds1", ds2vanilla: "ds2sotfs" };
 export const statFamily = (game) => FAMILY[game] || game;
 
 /** Detected per-slot game id → visual theme family (dsr/ptde collapse to ds1). */
-export const GAME_THEME = { dsr: "ds1", ptde: "ds1", ds2sotfs: "ds2", ds2vanilla: "ds2",
-  ds3: "ds3", er: "er", sdt: "sdt" };
+export const GAME_THEME = {
+  dsr: "ds1",
+  ptde: "ds1",
+  ds2sotfs: "ds2",
+  ds2vanilla: "ds2",
+  ds3: "ds3",
+  er: "er",
+  sdt: "sdt",
+};
 
 // Soft-cap / per-level breakpoint reference per attribute, per game. Documented
 // scaling RATES and soft-cap levels — a game-mechanics fact, NOT a per-character
@@ -135,27 +154,59 @@ export function statCapsFor(game) {
 /** Capitalize the first character only (keeps "HP"/"FP" intact, unlike toUpperCase). */
 export const capFirst = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
-export const CAT_TITLE = { weapons: "Weapons", armors: "Armor", rings: "Rings", talismans: "Talismans",
-  spells: "Spells", bolts: "Ammunition", upgrade: "Upgrade Materials", consumables: "Consumables",
-  online: "Summon & Covenant Items", goods: "Consumables & Goods", ashes: "Ashes of War",
-  emotes: "Gestures", bosssouls: "Boss Souls", items: "Items Owned",
+export const CAT_TITLE = {
+  weapons: "Weapons",
+  armors: "Armor",
+  rings: "Rings",
+  talismans: "Talismans",
+  spells: "Spells",
+  bolts: "Ammunition",
+  upgrade: "Upgrade Materials",
+  consumables: "Consumables",
+  online: "Summon & Covenant Items",
+  goods: "Consumables & Goods",
+  ashes: "Ashes of War",
+  emotes: "Gestures",
+  bosssouls: "Boss Souls",
+  items: "Items Owned",
   // Sekiro's own six. Its storage box stands alone because an item in the box is
   // owned but not carried, and only a read that keeps them apart can say which.
-  arts: "Combat Arts", prosthetics: "Prosthetic Tools", skills: "Skills & Techniques",
-  beads: "Prayer Beads & Gourd Seeds", memories: "Memories & Remnants",
-  storage: "Storage (item box)" };
+  arts: "Combat Arts",
+  prosthetics: "Prosthetic Tools",
+  skills: "Skills & Techniques",
+  beads: "Prayer Beads & Gourd Seeds",
+  memories: "Memories & Remnants",
+  storage: "Storage (item box)",
+};
 
 /** Per-game heading overrides. "Armor" is wrong for Sekiro under any reading — the
  *  game has no armour system, and what survives the suppression filter is attire. */
 export const CAT_TITLE_GAME = { sdt: { armors: "Attire" } };
 
-export const catTitle = (game, cat) =>
-  ((CAT_TITLE_GAME[game] || {})[cat]) || CAT_TITLE[cat];
+export const catTitle = (game, cat) => (CAT_TITLE_GAME[game] || {})[cat] || CAT_TITLE[cat];
 
-
-export const CAT_ORDER = ["weapons", "arts", "prosthetics", "skills", "armors", "rings",
-  "talismans", "spells", "bolts", "upgrade", "consumables", "beads", "goods", "ashes",
-  "online", "bosssouls", "memories", "emotes", "items", "storage"];
+export const CAT_ORDER = [
+  "weapons",
+  "arts",
+  "prosthetics",
+  "skills",
+  "armors",
+  "rings",
+  "talismans",
+  "spells",
+  "bolts",
+  "upgrade",
+  "consumables",
+  "beads",
+  "goods",
+  "ashes",
+  "online",
+  "bosssouls",
+  "memories",
+  "emotes",
+  "items",
+  "storage",
+];
 
 /** What a game calls the money in your pocket. Souls unless it says otherwise. */
 export const CURRENCY = { er: "Runes", sdt: "Sen" };
@@ -171,9 +222,11 @@ export function memoriesLine(m) {
   const lap = m.cumulative
     ? "across every journey so far — Attack Power carries into New Game+ while the Memories do not"
     : "this journey; a boss that drops no Memory is not counted either way";
-  return `${total} Memory-dropping boss${total === 1 ? "" : "es"} defeated`
-    + `  _(${m.spent} Memor${m.spent === 1 ? "y" : "ies"} already spent, read back from `
-    + `Attack Power, plus ${m.held} still held — ${lap})_`;
+  return (
+    `${total} Memory-dropping boss${total === 1 ? "" : "es"} defeated` +
+    `  _(${m.spent} Memor${m.spent === 1 ? "y" : "ies"} already spent, read back from ` +
+    `Attack Power, plus ${m.held} still held — ${lap})_`
+  );
 }
 
 /**
@@ -184,15 +237,26 @@ export function memoriesLine(m) {
  */
 export function vitalityNecklaces(vitality) {
   const used = vitality - 1;
-  return used === 0 ? "no Prayer Necklace used yet"
-    : `${used} Prayer Necklace${used === 1 ? "" : "s"} used — four Prayer Beads each, `
-      + "read back from Vitality across every journey so far";
+  return used === 0
+    ? "no Prayer Necklace used yet"
+    : `${used} Prayer Necklace${used === 1 ? "" : "s"} used — four Prayer Beads each, ` +
+        "read back from Vitality across every journey so far";
 }
 
-export const DS2_GREAT_SOULS = new Set(["Old Witch Soul", "Old Dead One Soul", "Old King Soul", "Old Paledrake Soul"]);
+export const DS2_GREAT_SOULS = new Set([
+  "Old Witch Soul",
+  "Old Dead One Soul",
+  "Old King Soul",
+  "Old Paledrake Soul",
+]);
 
 // Boss-defeat evidence tag → printed label.
-export const SRC = { flag: "confirmed", soul: "soul held", gate: "progression", clear: "cleared (NG+)" };
+export const SRC = {
+  flag: "confirmed",
+  soul: "soul held",
+  gate: "progression",
+  clear: "cleared (NG+)",
+};
 
 /** Rough build label from the attribute spread. Mirrors Python guess_build. */
 export function guessBuild(stats) {
@@ -208,11 +272,34 @@ export function guessBuild(stats) {
 }
 
 /** Roll i-frames by Agility value (fextralife/community breakpoints); highest key <= AGL. */
-const DS2_IFRAMES = [[85, 5], [86, 8], [88, 9], [92, 10], [96, 11], [99, 12], [105, 13], [111, 14], [114, 15], [116, 16]];
+const DS2_IFRAMES = [
+  [85, 5],
+  [86, 8],
+  [88, 9],
+  [92, 10],
+  [96, 11],
+  [99, 12],
+  [105, 13],
+  [111, 14],
+  [114, 15],
+  [116, 16],
+];
 /** Attunement values that unlock a spell slot; slot count = how many are <= ATN. */
 const DS2_SLOT_BREAKS = [10, 13, 16, 20, 25, 30, 40, 50, 60, 75, 94];
 /** Physical attack bonus (ATK: Str/Dex) decade breakpoints; weapon-independent curve. */
-const DS2_PHYS_ATK_BP = [[0, 50], [10, 57], [20, 80], [30, 102], [40, 140], [50, 155], [60, 162], [70, 170], [80, 185], [90, 192], [99, 200]];
+const DS2_PHYS_ATK_BP = [
+  [0, 50],
+  [10, 57],
+  [20, 80],
+  [30, 102],
+  [40, 140],
+  [50, 155],
+  [60, 162],
+  [70, 170],
+  [80, 185],
+  [90, 192],
+  [99, 200],
+];
 
 /** ATK: Str/Dex at a stat value: linear-interpolate the decade breakpoints, floored. */
 function ds2PhysAtk(stat) {
@@ -240,10 +327,14 @@ function ds2ElemDef(stat) {
  * Mirrors Python ds2_derived_stats. @returns {{stamina, equip_load, agility, iframes}}
  */
 export function ds2DerivedStats(stats) {
-  const end = stats.Endurance || 0, vit = stats.Vitality || 0;
-  const adp = stats.Adaptability || 0, atn = stats.Attunement || 0;
-  const stg = stats.Strength || 0, dex = stats.Dexterity || 0;
-  const intel = stats.Intelligence || 0, fth = stats.Faith || 0;
+  const end = stats.Endurance || 0,
+    vit = stats.Vitality || 0;
+  const adp = stats.Adaptability || 0,
+    atn = stats.Attunement || 0;
+  const stg = stats.Strength || 0,
+    dex = stats.Dexterity || 0;
+  const intel = stats.Intelligence || 0,
+    fth = stats.Faith || 0;
   let stamina = 80 + 2 * Math.min(end, 20) + Math.max(0, Math.min(end, 99) - 20);
   if (end >= 99) stamina += 1;
   let load = 38.5 + 1.5 * Math.min(vit, 29);
@@ -260,10 +351,18 @@ export function ds2DerivedStats(stats) {
   if (nn > 50) poise += 0.1 * (Math.min(nn, 98) - 50);
   if (nn >= 99) poise += 0.2;
   return {
-    stamina, equip_load: load, agility, iframes, slots, poise,
-    atk_str: ds2PhysAtk(stg), atk_dex: ds2PhysAtk(dex),
-    magic_def: ds2ElemDef(intel), fire_def: ds2ElemDef(Math.floor((intel + fth) / 2)),
-    lightning_def: ds2ElemDef(fth), dark_def: ds2ElemDef(Math.min(intel, fth)),
+    stamina,
+    equip_load: load,
+    agility,
+    iframes,
+    slots,
+    poise,
+    atk_str: ds2PhysAtk(stg),
+    atk_dex: ds2PhysAtk(dex),
+    magic_def: ds2ElemDef(intel),
+    fire_def: ds2ElemDef(Math.floor((intel + fth) / 2)),
+    lightning_def: ds2ElemDef(fth),
+    dark_def: ds2ElemDef(Math.min(intel, fth)),
   };
 }
 
@@ -273,11 +372,18 @@ const DS3_SLOT_BREAKS = [10, 14, 18, 24, 30, 40, 50, 60, 80, 99];
  *  ds3_ring_bonuses. @returns [totals, {stat: [[ring name, value]]}] */
 export function ds3RingBonuses(ringMods) {
   const keys = ["load_pct", "discovery", "slots", "hp_pct", "stam_pct"];
-  const total = {}, who = {};
-  for (const k of keys) { total[k] = 0; who[k] = []; }
+  const total = {},
+    who = {};
+  for (const k of keys) {
+    total[k] = 0;
+    who[k] = [];
+  }
   for (const [name, mods] of ringMods || []) {
     for (const [k, v] of Object.entries(mods)) {
-      if (k in total) { total[k] += v; who[k].push([name, v]); }
+      if (k in total) {
+        total[k] += v;
+        who[k].push([name, v]);
+      }
     }
   }
   return [total, who];
@@ -289,14 +395,17 @@ export function ds3RingBonuses(ringMods) {
  *  nothing else would show the ring. Equip-load percentages sum rather than compound.
  *  See sl2_to_md.py ds3_derived_stats. */
 export function ds3DerivedStats(stats, ringMods) {
-  const atn = stats.Attunement || 0, vit = stats.Vitality || 0, lck = stats.Luck || 0;
+  const atn = stats.Attunement || 0,
+    vit = stats.Vitality || 0,
+    lck = stats.Luck || 0;
   const [total, who] = ds3RingBonuses(ringMods);
-  const base = 40 + vit, slots = DS3_SLOT_BREAKS.filter((b) => atn >= b).length;
+  const base = 40 + vit,
+    slots = DS3_SLOT_BREAKS.filter((b) => atn >= b).length;
   const discovery = Math.min(199, 100 + lck);
   return {
     slots: slots + total.slots,
     slots_base: slots,
-    equip_load: Math.trunc(base * (100 + total.load_pct) / 10) / 10,
+    equip_load: Math.trunc((base * (100 + total.load_pct)) / 10) / 10,
     equip_load_base: base,
     item_discovery: discovery + total.discovery,
     item_discovery_base: discovery,
@@ -309,7 +418,8 @@ export function ds3DerivedStats(stats, ringMods) {
  *  so they are not recomputed. See sl2_to_md.py ds1_derived_stats. */
 const DS1_SLOT_BREAKS = [10, 12, 14, 16, 19, 23, 28, 34, 41, 50];
 export function ds1DerivedStats(stats) {
-  const end = stats.Endurance || 0, atn = stats.Attunement || 0;
+  const end = stats.Endurance || 0,
+    atn = stats.Attunement || 0;
   return {
     slots: DS1_SLOT_BREAKS.filter((b) => atn >= b).length,
     equip_load: 40 + end,
@@ -330,7 +440,8 @@ export function countDupes(names) {
   return [...seen].map(([n, c]) => (c === 1 ? n : `${n} ×${c}`));
 }
 
-export const fmt = (v) => (v == null ? "—" : typeof v === "number" ? v.toLocaleString("en-US") : String(v));
+export const fmt = (v) =>
+  v == null ? "—" : typeof v === "number" ? v.toLocaleString("en-US") : String(v);
 
 /** Format a play-time count of seconds as H:MM:SS (hours can exceed 24). */
 export const fmtPlaytime = (s) =>

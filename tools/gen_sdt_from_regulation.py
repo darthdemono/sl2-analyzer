@@ -44,14 +44,13 @@ EXIT CODES
 from __future__ import annotations
 
 import argparse
-import io
-import os
 import re
 import struct
 import sys
-import zlib
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass, field as dc_field
+import zlib
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from pathlib import Path
 
 # --------------------------------------------------------------------------
@@ -69,8 +68,13 @@ TARGETS: dict[str, dict] = {
     # both 100 and 1100). Dedupe on bonfireEntityId, never on row id.
     "BonfireWarpParam": {
         "out": "idols.tsv",
-        "fields": ["eventflagId", "bonfireEntityId", "grayoutEventflagId",
-                   "msgId", "menuTextId"],
+        "fields": [
+            "eventflagId",
+            "bonfireEntityId",
+            "grayoutEventflagId",
+            "msgId",
+            "menuTextId",
+        ],
         "name_fmg": ("menuTextId", "menu"),
         "purpose": "Sculptor's Idol discovery flags",
     },
@@ -82,9 +86,11 @@ TARGETS: dict[str, dict] = {
         # EventFlagManByte<i> carries the required state for EventFlagId<i>
         # (i.e. flag polarity). Without it a "defeated" flag and a "not yet
         # available" flag look identical.
-        "fields": (["WarpPointId"]
-                   + [f"EventFlagId{i}" for i in range(1, 11)]
-                   + [f"EventFlagManByte{i}" for i in range(1, 11)]),
+        "fields": (
+            ["WarpPointId"]
+            + [f"EventFlagId{i}" for i in range(1, 11)]
+            + [f"EventFlagManByte{i}" for i in range(1, 11)]
+        ),
         "name_fmg": None,
         "purpose": "boss/miniboss roster + gating flags",
     },
@@ -107,8 +113,8 @@ TARGETS: dict[str, dict] = {
     "ItemLotParam": {
         "out": "item_flags.tsv",
         "fields": [f"lotItemId{i:02d}" for i in range(1, 9)]
-                  + [f"getItemFlagId{i:02d}" for i in range(1, 9)]
-                  + ["getItemFlagId", "cumulateNumFlagId"],
+        + [f"getItemFlagId{i:02d}" for i in range(1, 9)]
+        + ["getItemFlagId", "cumulateNumFlagId"],
         "name_fmg": None,
         "purpose": "item pickup flags",
     },
@@ -172,6 +178,7 @@ JUNK = re.compile(
 # DCX
 # ==========================================================================
 
+
 def dcx_decompress(data: bytes) -> bytes:
     """Unwrap a DCX container. Sekiro uses DFLT (raw zlib)."""
     if data[:4] != b"DCX\0":
@@ -180,7 +187,7 @@ def dcx_decompress(data: bytes) -> bytes:
     if dca < 0:
         raise ValueError("DCX: no DCA block")
     (dca_size,) = struct.unpack_from(">i", data, dca + 4)
-    payload = data[dca + dca_size:]
+    payload = data[dca + dca_size :]
     try:
         return zlib.decompress(payload)
     except zlib.error:
@@ -192,12 +199,13 @@ def dcx_decompress(data: bytes) -> bytes:
                     return zlib.decompress(payload[i:])
                 except zlib.error:
                     continue
-        raise ValueError("DCX: could not inflate (Oodle/KRAK payload?)")
+        raise ValueError("DCX: could not inflate (Oodle/KRAK payload?)") from None
 
 
 # ==========================================================================
 # BND4
 # ==========================================================================
+
 
 @dataclass
 class BinderFile:
@@ -225,16 +233,19 @@ def read_bnd4(data: bytes) -> list[BinderFile]:
     (file_header_size,) = struct.unpack_from(e + "q", data, 0x20)
     unicode_names = data[0x30] != 0
     fmt = data[0x31]
-    extended = data[0x32]
+    _extended = data[0x32]  # layout note: kept for the record, unused
 
     out: list[BinderFile] = []
     pos = header_size
     for _ in range(file_count):
         p = pos
-        flags = data[p]
+        _flags = data[p]  # layout note: kept for the record, unused
         (compressed_size,) = struct.unpack_from(e + "q", data, p + 0x08)
-        (uncompressed_size,) = struct.unpack_from(e + "q", data, p + 0x10) \
-            if (fmt & 0b0010_0000) else (compressed_size,)
+        (uncompressed_size,) = (
+            struct.unpack_from(e + "q", data, p + 0x10)
+            if (fmt & 0b0010_0000)
+            else (compressed_size,)
+        )
         off_field = 0x18 if (fmt & 0b0010_0000) else 0x10
         (data_offset,) = struct.unpack_from(e + "I", data, p + off_field)
         (file_id,) = struct.unpack_from(e + "i", data, p + off_field + 4)
@@ -251,7 +262,7 @@ def read_bnd4(data: bytes) -> list[BinderFile]:
                 end = data.find(b"\x00", name_offset)
                 name = data[name_offset:end].decode("shift_jis", "replace")
 
-        blob = data[data_offset:data_offset + compressed_size]
+        blob = data[data_offset : data_offset + compressed_size]
         if blob[:4] == b"DCX\0":
             blob = dcx_decompress(blob)
         out.append(BinderFile(file_id, name, blob))
@@ -267,13 +278,31 @@ def read_bnd4(data: bytes) -> list[BinderFile]:
 # ==========================================================================
 
 _SIZES = {
-    "s8": 1, "u8": 1, "s16": 2, "u16": 2, "s32": 4, "u32": 4,
-    "b32": 4, "f32": 4, "angle32": 4, "f64": 8,
-    "dummy8": 1, "fixstr": 1, "fixstrW": 2,
+    "s8": 1,
+    "u8": 1,
+    "s16": 2,
+    "u16": 2,
+    "s32": 4,
+    "u32": 4,
+    "b32": 4,
+    "f32": 4,
+    "angle32": 4,
+    "f64": 8,
+    "dummy8": 1,
+    "fixstr": 1,
+    "fixstrW": 2,
 }
 _STRUCT = {
-    "s8": "b", "u8": "B", "s16": "h", "u16": "H", "s32": "i", "u32": "I",
-    "b32": "i", "f32": "f", "angle32": "f", "f64": "d",
+    "s8": "b",
+    "u8": "B",
+    "s16": "h",
+    "u16": "H",
+    "s32": "i",
+    "u32": "I",
+    "b32": "i",
+    "f32": "f",
+    "angle32": "f",
+    "f64": "d",
 }
 _DEF_RE = re.compile(
     r"^\s*(?P<type>\w+)\s+(?P<name>\w+)"
@@ -318,12 +347,14 @@ def load_paramdef(path: Path) -> ParamDef:
         m = _DEF_RE.match(node.get("Def", ""))
         if not m:
             raise ValueError(f"{path.name}: unparsable Def {node.get('Def')!r}")
-        fields.append(DefField(
-            type=m.group("type"),
-            name=m.group("name"),
-            array=int(m.group("arr")) if (m.group("arr") or "").isdigit() else 1,
-            bits=int(m.group("bits") or -1),
-        ))
+        fields.append(
+            DefField(
+                type=m.group("type"),
+                name=m.group("name"),
+                array=int(m.group("arr")) if (m.group("arr") or "").isdigit() else 1,
+                bits=int(m.group("bits") or -1),
+            )
+        )
 
     # Offset pass, mirroring SoulsFormats' bit packing: consecutive bitfields
     # of the same DefType share one storage unit; anything else flushes it.
@@ -435,7 +466,7 @@ def read_param(blob: bytes) -> Param:
             else:
                 end = blob.find(b"\x00", name_off)
                 name = blob[name_off:end].decode("shift_jis", "replace")
-        rows.append(ParamRow(rid, name, blob[data_off:data_off + max(detected, 0)]))
+        rows.append(ParamRow(rid, name, blob[data_off : data_off + max(detected, 0)]))
 
     return Param(param_type, rows, detected)
 
@@ -454,6 +485,7 @@ def read_cell(row: ParamRow, f: DefField, big: bool = False):
 # ==========================================================================
 # FMG
 # ==========================================================================
+
 
 def read_fmg(blob: bytes) -> dict[int, str]:
     big = blob[1] != 0
@@ -504,7 +536,9 @@ def load_fmg_bundle(msg_dir: Path, bundle: str) -> dict[str, dict[int, str]]:
     return tables
 
 
-def pick_name_table(tables: dict[str, dict[int, str]], ids: set[int]) -> tuple[str, dict[int, str]]:
+def pick_name_table(
+    tables: dict[str, dict[int, str]], ids: set[int]
+) -> tuple[str, dict[int, str]]:
     """Pick the FMG whose ids best cover the param's row ids. Reported, not assumed."""
     best, best_hit = "", -1
     for name, tbl in tables.items():
@@ -519,6 +553,7 @@ def pick_name_table(tables: dict[str, dict[int, str]], ids: set[int]) -> tuple[s
 # ==========================================================================
 # Paramdex Names (for the acceptance gate)
 # ==========================================================================
+
 
 def load_paramdex_names(path: Path) -> dict[int, str]:
     out: dict[int, str] = {}
@@ -538,6 +573,7 @@ def load_paramdex_names(path: Path) -> dict[int, str]:
 # ==========================================================================
 # Driver
 # ==========================================================================
+
 
 def find_regulation(game_root: Path) -> Path:
     for cand in ("regulation.bin", "Game/regulation.bin", "sekiro/regulation.bin"):
@@ -560,13 +596,18 @@ def find_msg_dir(game_root: Path, lang: str) -> Path | None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--game-root", required=True, type=Path)
-    ap.add_argument("--paramdex", required=True, type=Path,
-                    help="Paramdex checkout root (SDT/ must exist under it)")
+    ap.add_argument(
+        "--paramdex",
+        required=True,
+        type=Path,
+        help="Paramdex checkout root (SDT/ must exist under it)",
+    )
     ap.add_argument("--out", default="db_sdt", type=Path)
     ap.add_argument("--report", default=None, type=Path)
     ap.add_argument("--lang", default="engus")
-    ap.add_argument("--strict", action="store_true",
-                    help="exit 4 if any acceptance gate fails")
+    ap.add_argument(
+        "--strict", action="store_true", help="exit 4 if any acceptance gate fails"
+    )
     args = ap.parse_args()
 
     sdt = args.paramdex / "SDT"
@@ -581,9 +622,11 @@ def main() -> int:
         binder = read_bnd4(reg_path.read_bytes())
     except Exception as exc:  # noqa: BLE001
         print(f"error: regulation unreadable: {exc}", file=sys.stderr)
-        print("  Sekiro's regulation.bin should be a plain DCX-wrapped BND4 — "
-              "if this fails, check whether the repack shipped a modified file.",
-              file=sys.stderr)
+        print(
+            "  Sekiro's regulation.bin should be a plain DCX-wrapped BND4 — "
+            "if this fails, check whether the repack shipped a modified file.",
+            file=sys.stderr,
+        )
         return 3
 
     params: dict[str, bytes] = {}
@@ -604,11 +647,15 @@ def main() -> int:
         print(f"msg dir:    {msg_dir}")
         report.append(f"- msg dir: `{msg_dir}`")
     else:
-        print(f"warning: no msg/{args.lang} found — falling back to Paramdex names",
-              file=sys.stderr)
+        print(
+            f"warning: no msg/{args.lang} found — falling back to Paramdex names",
+            file=sys.stderr,
+        )
         report.append(f"- msg dir: **not found** (`msg/{args.lang}`)")
     report.append("")
-    report.append("| param | rows | def size | detected size | named ids | resolved | gate |")
+    report.append(
+        "| param | rows | def size | detected size | named ids | resolved | gate |"
+    )
     report.append("|---|---|---|---|---|---|---|")
 
     failures = 0
@@ -631,7 +678,9 @@ def main() -> int:
 
         # Gate 1 — the paramdef must describe the same row size the regulation
         # actually uses. A mismatch means every field offset is wrong.
-        size_ok = (param.detected_row_size == pdef.row_size) or param.detected_row_size < 0
+        size_ok = (
+            param.detected_row_size == pdef.row_size
+        ) or param.detected_row_size < 0
 
         # Gate 2 — every id Paramdex annotates must exist in the regulation.
         names = load_paramdex_names(sdt / "Names" / f"{pname}.txt")
@@ -696,16 +745,20 @@ def main() -> int:
             lines.append("\t".join([str(r.id), disp, src] + vals))
 
         (args.out / spec["out"]).write_text("\n".join(lines) + "\n", encoding="utf-8")
-        print(f"  {pname:22s} -> {spec['out']:16s} "
-              f"{len(param.rows):5d} rows  {resolved:5d} named  [{gate}]")
+        print(
+            f"  {pname:22s} -> {spec['out']:16s} "
+            f"{len(param.rows):5d} rows  {resolved:5d} named  [{gate}]"
+        )
 
         report.append(
             f"| {pname} | {len(param.rows)} | {pdef.row_size} | "
             f"{param.detected_row_size} | {len(names)} | {resolved} | {gate} |"
         )
         if missing:
-            report.append(f"|  ↳ ids in Paramdex but not in regulation: "
-                          f"{sorted(missing)[:12]}{'…' if len(missing) > 12 else ''} ||||||")
+            report.append(
+                f"|  ↳ ids in Paramdex but not in regulation: "
+                f"{sorted(missing)[:12]}{'…' if len(missing) > 12 else ''} ||||||"
+            )
 
     report.append("")
     report.append(f"**{failures} gate failure(s).**")

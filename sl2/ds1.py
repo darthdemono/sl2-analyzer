@@ -1,11 +1,12 @@
-"""Dark Souls 1 family: Remastered and Prepare to Die Edition.
-"""
+"""Dark Souls 1 family: Remastered and Prepare to Die Edition."""
+
 import json
 import os
-from collections import defaultdict, OrderedDict
-from .reader import is_valid_name, read_utf16, u16, u32, u8
+from collections import OrderedDict, defaultdict
+
 from .itemdb import merge_qty
 from .progress import attach_defeated_bosses, find_boss_souls, find_key_goods
+from .reader import is_valid_name, read_utf16, u8, u16, u32
 
 
 ##
@@ -18,8 +19,10 @@ from .progress import attach_defeated_bosses, find_boss_souls, find_key_goods
 def ds1_derived_stats(stats):
     end = stats.get("Endurance", 0) or 0
     atn = stats.get("Attunement", 0) or 0
-    return {"slots": sum(1 for b in DS1_SLOT_BREAKS if atn >= b),
-            "equip_load": float(DS1_EQUIP_BASE + end)}
+    return {
+        "slots": sum(1 for b in DS1_SLOT_BREAKS if atn >= b),
+        "equip_load": float(DS1_EQUIP_BASE + end),
+    }
 
 
 ## @brief Load the DS1 bonfire table (db_ds1/bonfires.json, NetBonfireDb id → [name,
@@ -32,8 +35,9 @@ def load_ds1_bonfires(base_dir):
         path = os.path.join(base_dir, "db_ds1", "bonfires.json")
         try:
             with open(path, encoding="utf-8") as f:
-                _DS1_BONFIRE_CACHE[base_dir] = {int(k): tuple(v)
-                                                for k, v in json.load(f).items()}
+                _DS1_BONFIRE_CACHE[base_dir] = {
+                    int(k): tuple(v) for k, v in json.load(f).items()
+                }
         except (OSError, ValueError):
             _DS1_BONFIRE_CACHE[base_dir] = {}
     return _DS1_BONFIRE_CACHE[base_dir]
@@ -85,7 +89,7 @@ def ds1_attach_flags(ch, buf, base_dir, game):
     table = load_ds1_boss_flags(base_dir)
     if base is None or not table or base + DS1_FLAG_SPAN > len(buf):
         return
-    region = buf[base:base + DS1_FLAG_SPAN]
+    region = buf[base : base + DS1_FLAG_SPAN]
     if sum(bin(b).count("1") for b in region) > len(region) * 8 * DS1_FLAG_MAX_DENSITY:
         return
     bosses = {b: set(s) for b, s in (ch.get("bosses") or {}).items()}
@@ -136,8 +140,13 @@ DS1_BONFIRE_REC, DS1_BONFIRE_STATE_D = 20, 4
 
 ## @brief The state values a real record can hold, and what each means. Anything else
 #  ends the walk, which is what keeps a misaligned start from inventing bonfires.
-DS1_BONFIRE_STATE = {0: "discovered", 10: "lit", 20: "kindled +1",
-                     30: "kindled +2", 40: "kindled +3"}
+DS1_BONFIRE_STATE = {
+    0: "discovered",
+    10: "lit",
+    20: "kindled +1",
+    30: "kindled +2",
+    40: "kindled +3",
+}
 
 
 ## @brief Shortest believable run, so a stray id in unrelated data cannot pass.
@@ -182,8 +191,10 @@ def ds1_bonfires(buf, db):
             got.append(f"{name} ({DS1_BONFIRE_STATE[found[bid]]})")
         else:
             miss.append(name)
-    return [(a, len(got), got, len(got) + len(miss), miss)
-            for a, (got, miss) in areas.items()]
+    return [
+        (a, len(got), got, len(got) + len(miss), miss)
+        for a, (got, miss) in areas.items()
+    ]
 
 
 ## @brief DS1-only augment: attach the bonfire list, which needs the db folder the
@@ -193,12 +204,12 @@ def ds1_bonfires(buf, db):
 def ds1_augment(ch, data, entries, i, base_dir, dec):
     if i >= len(entries):
         return
-    buf = dec(data[entries[i].offset:entries[i].offset + entries[i].size])
+    buf = dec(data[entries[i].offset : entries[i].offset + entries[i].size])
     if buf is None:
         return
     if DS1_MENU_ENTRY < len(entries):
         e = entries[DS1_MENU_ENTRY]
-        ds1_attach_playtime(ch, dec(data[e.offset:e.offset + e.size]))
+        ds1_attach_playtime(ch, dec(data[e.offset : e.offset + e.size]))
     areas = ds1_bonfires(buf, load_ds1_bonfires(base_dir))
     if areas:
         ch["bonfire_areas"] = areas
@@ -216,7 +227,14 @@ DSR_MAGIC = bytes.fromhex("00FFFFFFFF000000000000000000000000FFFFFFFF")
 
 
 ## @brief DSR field distances from the anchor.
-DSR_SOULS_D, DSR_HP_D, DSR_STAM_D, DSR_LEVEL_D, DSR_CLASS_D, DSR_HUM_D = -291, -419, -391, -295, -233, -307
+DSR_SOULS_D, DSR_HP_D, DSR_STAM_D, DSR_LEVEL_D, DSR_CLASS_D, DSR_HUM_D = (
+    -291,
+    -419,
+    -391,
+    -295,
+    -233,
+    -307,
+)
 
 
 DSR_NG_D, DSR_NAME_D = 0x1E3A7, -271
@@ -277,20 +295,42 @@ DS1_SLOT_BREAKS = (10, 12, 14, 16, 19, 23, 28, 34, 41, 50)
 
 
 ## @brief DSR attribute distances from the anchor (uint8 each), in display order.
-DSR_STAT_D = OrderedDict([
-    ("Vitality", -375), ("Attunement", -367), ("Endurance", -359),
-    ("Strength", -351), ("Dexterity", -343), ("Resistance", -303),
-    ("Intelligence", -335), ("Faith", -327)])
+DSR_STAT_D = OrderedDict(
+    [
+        ("Vitality", -375),
+        ("Attunement", -367),
+        ("Endurance", -359),
+        ("Strength", -351),
+        ("Dexterity", -343),
+        ("Resistance", -303),
+        ("Intelligence", -335),
+        ("Faith", -327),
+    ]
+)
 
 
 ## @brief DS1 class ids to names.
-DS1_CLASS = {0: "Warrior", 1: "Knight", 2: "Wanderer", 3: "Thief", 4: "Bandit",
-             5: "Hunter", 6: "Sorcerer", 7: "Pyromancer", 8: "Cleric", 9: "Deprived"}
+DS1_CLASS = {
+    0: "Warrior",
+    1: "Knight",
+    2: "Wanderer",
+    3: "Thief",
+    4: "Bandit",
+    5: "Hunter",
+    6: "Sorcerer",
+    7: "Pyromancer",
+    8: "Cleric",
+    9: "Deprived",
+}
 
 
 ## @brief DS1 inventory slot type (top nibble) to category.
-DS1_CAT = {0x00000000: "weapons", 0x10000000: "armors",
-           0x20000000: "rings", 0x40000000: "goods"}
+DS1_CAT = {
+    0x00000000: "weapons",
+    0x10000000: "armors",
+    0x20000000: "rings",
+    0x40000000: "goods",
+}
 
 
 ## @brief Where the DS1 inventory scan begins, and the anchor that marks the first
@@ -304,8 +344,17 @@ DS1_INV_END = bytes.fromhex("00000000FFFFFFFFFFFFFFFF")
 
 ## @brief DS1 weapon infusion paths, keyed by the hundreds digit of the id's
 #  upgrade suffix (id = base + path*100 + level). Path 0 is plain reinforcement.
-DS1_INFUSION = {1: "Crystal", 2: "Lightning", 3: "Raw", 4: "Magic", 5: "Enchanted",
-                6: "Divine", 7: "Occult", 8: "Fire", 9: "Chaos"}
+DS1_INFUSION = {
+    1: "Crystal",
+    2: "Lightning",
+    3: "Raw",
+    4: "Magic",
+    5: "Enchanted",
+    6: "Divine",
+    7: "Occult",
+    8: "Fire",
+    9: "Chaos",
+}
 
 
 ##
@@ -350,8 +399,11 @@ def dsr_find_anchor(buf):
             return None
         lvl = u16(buf, m + DSR_LEVEL_D)
         stats = [u8(buf, m + d) for d in DSR_STAT_D.values()]
-        if (lvl is not None and 1 <= lvl <= 838
-                and all(v is not None and 0 <= v <= 99 for v in stats)):
+        if (
+            lvl is not None
+            and 1 <= lvl <= 838
+            and all(v is not None and 0 <= v <= 99 for v in stats)
+        ):
             return m
         o = m + 1
 
@@ -438,18 +490,24 @@ def ds1_character(buf, item_db, m, game, ng):
     inv = {c: merge_qty(v) for c, v in buckets.items()}
     name = read_utf16(buf, m + DSR_NAME_D, 13)
     return {
-        "tier": "full", "game": game,
+        "tier": "full",
+        "game": game,
         "name": name if is_valid_name(name) else "(unnamed slot)",
         "klass": DS1_CLASS.get(u8(buf, m + DSR_CLASS_D)),
         "gender": DS1_GENDER.get(u8(buf, m + DSR_GENDER_D)),
         "deaths": ds1_deaths(buf, game),
-        "level": u16(buf, m + DSR_LEVEL_D), "stats": stats,
-        "souls": u32(buf, m + DSR_SOULS_D), "soul_memory": None,
-        "humanity": u8(buf, m + DSR_HUM_D), "stamina": u32(buf, m + DSR_STAM_D),
-        "hp": u32(buf, m + DSR_HP_D), "ng_plus": ng,
+        "level": u16(buf, m + DSR_LEVEL_D),
+        "stats": stats,
+        "souls": u32(buf, m + DSR_SOULS_D),
+        "soul_memory": None,
+        "humanity": u8(buf, m + DSR_HUM_D),
+        "stamina": u32(buf, m + DSR_STAM_D),
+        "hp": u32(buf, m + DSR_HP_D),
+        "ng_plus": ng,
         "boss_souls": find_boss_souls(inv.get("goods", [])),
         "key_items": find_key_goods(inv.get("goods", [])),
-        "inv": inv, "unknown_count": unknown,
+        "inv": inv,
+        "unknown_count": unknown,
     }
 
 
@@ -480,8 +538,11 @@ def ptde_find_anchor(buf):
             m = o - DSR_NAME_D
             lvl = u16(buf, m + DSR_LEVEL_D)
             stats = [u8(buf, m + d) for d in DSR_STAT_D.values()]
-            if (lvl is not None and 1 <= lvl <= 838
-                    and all(v is not None and 0 <= v <= 99 for v in stats)):
+            if (
+                lvl is not None
+                and 1 <= lvl <= 838
+                and all(v is not None and 0 <= v <= 99 for v in stats)
+            ):
                 return m
         o += 1
     return None

@@ -34,6 +34,7 @@ Run from the repo root:
 
     python3 tools/gen_ds1_known_flags.py
 """
+
 import argparse
 import collections
 import csv
@@ -42,14 +43,25 @@ import os
 import sys
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ADDRESSING = os.path.join(BASE, "test", "flag_data", "files2", "ds1_flag_addressing.csv")
+ADDRESSING = os.path.join(
+    BASE, "test", "flag_data", "files2", "ds1_flag_addressing.csv"
+)
 KNOWN = os.path.join(BASE, "test", "flag_data", "files2", "ds1_known_event_flags.csv")
 OUT = os.path.join(BASE, "db_ds1", "known_flags.json")
 
 ## @brief The order categories are printed in — roughly the order they matter to a
 #  reader, rather than alphabetical. Anything not listed sorts to the end by name.
-CATEGORY_ORDER = ["Bells of Awakening", "Lordvessel", "Non-Boss Fog Gates",
-                  "Doors", "Levers", "Elevators", "Join Covenants", "NPC", "Other"]
+CATEGORY_ORDER = [
+    "Bells of Awakening",
+    "Lordvessel",
+    "Non-Boss Fog Gates",
+    "Doors",
+    "Levers",
+    "Elevators",
+    "Join Covenants",
+    "NPC",
+    "Other",
+]
 
 
 ##
@@ -69,7 +81,10 @@ def addressing():
     with open(ADDRESSING, encoding="utf-8-sig") as f:
         for row in csv.DictReader(f):
             table = (row.get("table") or "").strip()
-            key, value = (row.get("key") or "").strip(), (row.get("value") or "").strip()
+            key, value = (
+                (row.get("key") or "").strip(),
+                (row.get("value") or "").strip(),
+            )
             if table.startswith("group"):
                 groups[int(key)] = int(value, 16)
             elif table.startswith("area"):
@@ -92,7 +107,12 @@ def address(fid, groups, areas):
     group, area, section, number = int(text[0]), text[1:4], int(text[4]), int(text[5:8])
     if group not in groups or area not in areas:
         return None
-    off = groups[group] + areas[area] * 0x500 + section * 128 + (number - number % 32) // 8
+    off = (
+        groups[group]
+        + areas[area] * 0x500
+        + section * 128
+        + (number - number % 32) // 8
+    )
     return off, 0x80000000 >> (number % 32)
 
 
@@ -120,13 +140,14 @@ def clean(name, fid, category):
         name = name[: -len(str(fid))].strip()
     lead = PREFIX_STRIP.get(category)
     if lead and name.startswith(lead):
-        name = name[len(lead):].strip()
+        name = name[len(lead) :].strip()
     return name or "(unnamed)"
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("-o", "--out", default=OUT)
     args = ap.parse_args()
 
@@ -168,8 +189,10 @@ def main():
     for cat, rows in out.items():
         print(f"   {len(rows):3}  {cat}")
     if excluded:
-        print(f"   dropped {excluded} in {', '.join(sorted(EXCLUDE_CATEGORIES))} "
-              f"(transient — see EXCLUDE_CATEGORIES)")
+        print(
+            f"   dropped {excluded} in {', '.join(sorted(EXCLUDE_CATEGORIES))} "
+            f"(transient — see EXCLUDE_CATEGORIES)"
+        )
     if skipped_index:
         print(f"   skipped {skipped_index} enum indices (not event flags)")
     if skipped_area:

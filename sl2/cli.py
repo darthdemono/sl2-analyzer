@@ -1,10 +1,11 @@
-"""Command line: argument parsing, save auto-detection, and main().
-"""
+"""Command line: argument parsing, save auto-detection, and main()."""
+
 import argparse
 import glob
 import json
 import os
 import sys
+
 from .combine import build_combined, find_saves
 from .convert import parse_save, render_markdown
 from .jsonout import build_json, parse_meta
@@ -15,26 +16,34 @@ from .jsonout import build_json, parse_meta
 #  and plain Wine all mirror the Windows `%APPDATA%` tree inside a prefix, so the
 #  tail of every glob is the same `.../AppData/Roaming/<game>/*.sl2`.
 def _save_globs():
-    globs = ["*.sl2", os.path.join("*", "*.sl2")]      # cwd and one level down
+    globs = ["*.sl2", os.path.join("*", "*.sl2")]  # cwd and one level down
     home = os.path.expanduser("~")
     appdata = os.environ.get("APPDATA")
-    if appdata:                                        # native Windows
+    if appdata:  # native Windows
         globs.append(os.path.join(appdata, "*", "*.sl2"))
         globs.append(os.path.join(appdata, "*", "*", "*.sl2"))
     # Most games write %APPDATA%/<game>/<file>.sl2; Sekiro puts a Steam-id folder in
     # between, so every prefix is searched at both depths.
-    roaming = ["drive_c/users/steamuser/AppData/Roaming/*/*.sl2",
-               "drive_c/users/steamuser/AppData/Roaming/*/*/*.sl2"]
-    user_roaming = ["drive_c/users/*/AppData/Roaming/*/*.sl2",
-                    "drive_c/users/*/AppData/Roaming/*/*/*.sl2"]
+    roaming = [
+        "drive_c/users/steamuser/AppData/Roaming/*/*.sl2",
+        "drive_c/users/steamuser/AppData/Roaming/*/*/*.sl2",
+    ]
+    user_roaming = [
+        "drive_c/users/*/AppData/Roaming/*/*.sl2",
+        "drive_c/users/*/AppData/Roaming/*/*/*.sl2",
+    ]
     # Steam through Proton.
     for steam in (".local/share/Steam", ".steam/steam", ".steam/root"):
         for tail in roaming:
             globs.append(os.path.join(home, steam, "steamapps/compatdata/*/pfx", tail))
     # Heroic (Epic / GOG) Wine prefixes. Heroic names a prefix after the game, so the
     # per-game folder is a wildcard too.
-    for heroic in ("Games/Heroic/Prefixes/default/*/pfx", "Games/Heroic/Prefixes/*/pfx",
-                   ".config/heroic/prefixes/default/*/pfx", "Games/Heroic/*/pfx"):
+    for heroic in (
+        "Games/Heroic/Prefixes/default/*/pfx",
+        "Games/Heroic/Prefixes/*/pfx",
+        ".config/heroic/prefixes/default/*/pfx",
+        "Games/Heroic/*/pfx",
+    ):
         for tail in roaming:
             globs.append(os.path.join(home, heroic, tail))
     # Lutris and a plain ~/.wine prefix (user-named, not always "steamuser").
@@ -56,8 +65,10 @@ def auto_find_save():
         found += glob.glob(pat)
     found = sorted(set(found), key=lambda p: os.path.getmtime(p), reverse=True)
     if not found:
-        sys.exit("No .sl2 found in the current folder or the usual save locations. "
-                 "Pass the path explicitly: sl2_to_md.py <save.sl2>")
+        sys.exit(
+            "No .sl2 found in the current folder or the usual save locations. "
+            "Pass the path explicitly: sl2_to_md.py <save.sl2>"
+        )
     if len(found) > 1:
         print(f"Auto-detected {len(found)} saves; using the newest: {found[0]}")
         print("  (pass a path to pick another)")
@@ -74,29 +85,55 @@ def auto_find_save():
 def main():
     ap = argparse.ArgumentParser(
         description="FromSoftware .sl2 save -> Markdown or JSON playthrough summary "
-                    "(DS PtDE/Remastered, DS2 vanilla/SOTFS, DS3, Sekiro, Elden Ring)",
+        "(DS PtDE/Remastered, DS2 vanilla/SOTFS, DS3, Sekiro, Elden Ring)",
         epilog="Metadata example: --meta source=Steam --meta os='Nobara 43' "
-               "--meta launcher=Heroic --meta proton='GE-Proton 9-20' "
-               "--meta dlc='Ashes of Ariandel' --meta dlc='The Ringed City'. "
-               "A key repeated becomes a list. Any key is accepted.")
-    ap.add_argument("sl2", nargs="*",
-                    help="path to a .sl2 save, or a FOLDER of them (auto-detected if "
-                         "omitted). Several paths, or one folder, produce a combined "
-                         "playthrough document covering every character found.")
-    ap.add_argument("-o", "--out", default="playthrough.md",
-                    help="output path; a .json extension selects JSON")
-    ap.add_argument("--format", choices=("auto", "md", "json"), default="auto",
-                    help="output format (default: from the -o extension)")
-    ap.add_argument("--meta", action="append", metavar="KEY=VALUE",
-                    help="record how the game was run: store, version, DLC, OS, "
-                         "launcher, Proton build, anything. Repeatable; a repeated "
-                         "key becomes a list. None of it is read from the save.")
-    ap.add_argument("--meta-json", metavar="PATH",
-                    help="JSON object of the same metadata, merged underneath --meta")
-    ap.add_argument("--indent", type=int, default=2,
-                    help="JSON indent; 0 for one dense line (default: 2)")
-    ap.add_argument("--combined", action="store_true",
-                    help="force the combined document even for a single save")
+        "--meta launcher=Heroic --meta proton='GE-Proton 9-20' "
+        "--meta dlc='Ashes of Ariandel' --meta dlc='The Ringed City'. "
+        "A key repeated becomes a list. Any key is accepted.",
+    )
+    ap.add_argument(
+        "sl2",
+        nargs="*",
+        help="path to a .sl2 save, or a FOLDER of them (auto-detected if "
+        "omitted). Several paths, or one folder, produce a combined "
+        "playthrough document covering every character found.",
+    )
+    ap.add_argument(
+        "-o",
+        "--out",
+        default="playthrough.md",
+        help="output path; a .json extension selects JSON",
+    )
+    ap.add_argument(
+        "--format",
+        choices=("auto", "md", "json"),
+        default="auto",
+        help="output format (default: from the -o extension)",
+    )
+    ap.add_argument(
+        "--meta",
+        action="append",
+        metavar="KEY=VALUE",
+        help="record how the game was run: store, version, DLC, OS, "
+        "launcher, Proton build, anything. Repeatable; a repeated "
+        "key becomes a list. None of it is read from the save.",
+    )
+    ap.add_argument(
+        "--meta-json",
+        metavar="PATH",
+        help="JSON object of the same metadata, merged underneath --meta",
+    )
+    ap.add_argument(
+        "--indent",
+        type=int,
+        default=2,
+        help="JSON indent; 0 for one dense line (default: 2)",
+    )
+    ap.add_argument(
+        "--combined",
+        action="store_true",
+        help="force the combined document even for a single save",
+    )
     args = ap.parse_args()
 
     try:
@@ -143,8 +180,9 @@ def main():
     save = parse_save(data, base_dir)
     warn_foreign_folder(sl2, save)
     if fmt == "json":
-        text = json.dumps(build_json(save, name, meta), ensure_ascii=False,
-                          indent=args.indent or None)
+        text = json.dumps(
+            build_json(save, name, meta), ensure_ascii=False, indent=args.indent or None
+        )
         text += "\n"
     else:
         text = render_markdown(save, name, meta)
@@ -175,10 +213,12 @@ def warn_foreign_folder(path, save):
         return
     if not all(c in "0123456789abcdefABCDEF" for c in here):
         return
-    print(f"Warning: this save was written by Steam account {save.owner[0]} and the "
-          f"game will only load it from a folder named '{save.folder}', but it is in "
-          f"'{here}'. Under the account that owns '{here}' the game will not see it.",
-          file=sys.stderr)
+    print(
+        f"Warning: this save was written by Steam account {save.owner[0]} and the "
+        f"game will only load it from a folder named '{save.folder}', but it is in "
+        f"'{here}'. Under the account that owns '{here}' the game will not see it.",
+        file=sys.stderr,
+    )
 
 
 ## @brief Write the document, making the output folder if it does not exist yet.

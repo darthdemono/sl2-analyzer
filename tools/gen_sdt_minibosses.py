@@ -36,9 +36,9 @@ Run from the repo root:
 
     python3 tools/gen_sdt_minibosses.py test/sekiro_flag_data.json
 """
+
 import argparse
 import json
-import os
 import sys
 
 ## @brief Map id → the area name the report prints. Deliberately the same vocabulary as
@@ -71,16 +71,19 @@ def build(rows):
     for row in sorted(rows, key=lambda r: r["entity_id"]):
         area = SDT_MAP_AREA.get(row["map"])
         if area is None:
-            sys.exit(f"unknown map {row['map']!r} — add it to SDT_MAP_AREA before "
-                     f"regenerating, or entity {row['entity_id']} is silently dropped")
+            sys.exit(
+                f"unknown map {row['map']!r} — add it to SDT_MAP_AREA before "
+                f"regenerating, or entity {row['entity_id']} is silently dropped"
+            )
         out[area].append([row["entity_id"], row["type"]])
     # An area with no miniboss would render as a permanent 0/0 row, which says nothing.
     return {area: rows for area, rows in out.items() if rows}
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("source", help="the sourced flag dump (test/sekiro_flag_data.json)")
     ap.add_argument("-o", "--out", default="db_sdt/minibosses.json")
     args = ap.parse_args()
@@ -97,9 +100,11 @@ def main():
     # generator needs rewriting rather than rerunning.
     named = [r for r in rows if r.get("defeat_event_flag") is not None]
     if named:
-        sys.exit(f"{len(named)} row(s) carry a defeat_event_flag. The source has gained "
-                 f"real flag ids — use them instead of the entity id, and update the "
-                 f"reasoning in this docstring and in CLAUDE.md before regenerating.")
+        sys.exit(
+            f"{len(named)} row(s) carry a defeat_event_flag. The source has gained "
+            f"real flag ids — use them instead of the entity id, and update the "
+            f"reasoning in this docstring and in CLAUDE.md before regenerating."
+        )
 
     table = build(rows)
     with open(args.out, "w", encoding="utf-8") as f:

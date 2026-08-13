@@ -1,10 +1,10 @@
-"""Which game a save belongs to, from its header signature and entry count.
-"""
-import sys
-from .reader import u32
-from .keys import DS2_KEY, DS2_VANILLA_KEY
-from .crypto import _aes_cbc
+"""Which game a save belongs to, from its header signature and entry count."""
 
+import sys
+
+from .crypto import _aes_cbc
+from .keys import DS2_KEY, DS2_VANILLA_KEY
+from .reader import u32
 
 ## @brief The BND4 signature DS2 stamps into its header.
 DS2_SIGNATURE = b"14e503cb"
@@ -34,14 +34,16 @@ def detect_game(data, entries):
         # Both DS2 variants share the signature, so they are told apart by which key
         # decrypts: the length prefix at plaintext +0 must fit the block. A wrong key
         # yields noise, which fails that test essentially always.
-        blob = data[entries[1].offset:entries[1].offset + entries[1].size]
+        blob = data[entries[1].offset : entries[1].offset + entries[1].size]
         for key, game in ((DS2_KEY, "ds2sotfs"), (DS2_VANILLA_KEY, "ds2vanilla")):
             pt = _aes_cbc(key, blob[16:32], blob[32:])
             dlen = u32(pt, 0)
             if dlen is not None and 0 < dlen <= len(pt) - 4:
                 return game
-        sys.exit("Dark Souls II save found, but neither the Scholar nor the vanilla "
-                 "key decrypts it.")
+        sys.exit(
+            "Dark Souls II save found, but neither the Scholar nor the vanilla "
+            "key decrypts it."
+        )
     # Sekiro's entry count is shared with DS1 and with DS3/ER, so the slot SIZE is
     # what settles it, and it is unambiguous: DSR 0x60030, PtDE 0x60014, DS3 0xC0030,
     # ER 0x280010, Sekiro 0x100010.

@@ -1,6 +1,4 @@
-"""Encryption keys. All of these ship inside the games; none is a secret.
-"""
-
+"""Encryption keys. All of these ship inside the games; none is a secret."""
 
 ## @brief AES-128 key for Dark Souls II: Scholar of the First Sin.
 DS2_KEY = bytes.fromhex("599F9B699640A55236EE2D70835EC744")

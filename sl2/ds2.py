@@ -1,12 +1,12 @@
-"""Dark Souls II, vanilla and Scholar of the First Sin.
-"""
+"""Dark Souls II, vanilla and Scholar of the First Sin."""
+
 import json
 import os
-from collections import defaultdict, OrderedDict
-from .reader import is_valid_name, read_utf16, u16, u32, u8
+from collections import OrderedDict, defaultdict
+
 from .crypto import decrypt_ds2
 from .itemdb import merge_qty
-
+from .reader import is_valid_name, read_utf16, u8, u16, u32
 
 ## @brief The two DS2 releases. Vanilla (the DX9 original) and Scholar of the First
 #  Sin share the ENTIRE save layout — only the AES key differs. Verified field by
@@ -24,7 +24,13 @@ DS2_FAMILY = {"dsr": "ds1", "ptde": "ds1", "ds2vanilla": "ds2sotfs"}
 
 
 ## @brief DS2 character-slot offsets (absolute, into decrypted game data).
-DS2_NAME_OFF, DS2_SOULS_OFF, DS2_SOULMEM_OFF, DS2_HP_OFF, DS2_NG_OFF = 960, 60, 64, 72, 1028
+DS2_NAME_OFF, DS2_SOULS_OFF, DS2_SOULMEM_OFF, DS2_HP_OFF, DS2_NG_OFF = (
+    960,
+    60,
+    64,
+    72,
+    1028,
+)
 
 
 ## @brief DS2 header (BND4 entry 0) title-list layout: each menu slot's name sits at
@@ -51,13 +57,29 @@ DS2_CLASS_OFF, DS2_COVENANT_OFF = 1024, 189
 ## @brief DS2 starting-class and covenant id→name (from the SOTFS Cheat Engine table
 #  dropdowns). Id 0 / unknown is absent, so `.get` yields None and the field is
 #  omitted rather than shown wrong. Covenant 0 = not in a covenant (omitted).
-DS2_CLASS = {1: "Warrior", 2: "Knight", 4: "Bandit", 6: "Cleric", 7: "Sorcerer",
-             8: "Explorer", 9: "Swordsman", 10: "Deprived"}
+DS2_CLASS = {
+    1: "Warrior",
+    2: "Knight",
+    4: "Bandit",
+    6: "Cleric",
+    7: "Sorcerer",
+    8: "Explorer",
+    9: "Swordsman",
+    10: "Deprived",
+}
 
 
-DS2_COVENANT = {1: "Heirs of the Sun", 2: "Blue Sentinels", 3: "Brotherhood of Blood",
-                4: "Way of Blue", 5: "Rat King", 6: "Bell Keepers",
-                7: "Dragon Remnants", 8: "Company of Champions", 9: "Pilgrims of Dark"}
+DS2_COVENANT = {
+    1: "Heirs of the Sun",
+    2: "Blue Sentinels",
+    3: "Brotherhood of Blood",
+    4: "Way of Blue",
+    5: "Rat King",
+    6: "Bell Keepers",
+    7: "Dragon Remnants",
+    8: "Company of Champions",
+    9: "Pilgrims of Dark",
+}
 
 
 ## @brief Per-covenant discovered flag and rank, as two dense byte runs in covenant-id
@@ -111,10 +133,20 @@ DS2_WORLD_ENTRY_DELTA, DS2_BONFIRE_FLAG_DELTA, DS2_BONFIRE_MIN_RUN = 10, 0x200, 
 #  SL88 character whose real ADP/INT/FTH were 15/3/6 but read out as 3/6/15 under
 #  the naive contiguous mapping). The dict below lists them in display order with
 #  their true offsets, so the table reads ADP, INT, FTH while pointing at 48/44/46.
-DS2_STAT_OFF = OrderedDict([
-    ("Vigor", 32), ("Endurance", 34), ("Vitality", 36), ("Attunement", 38),
-    ("Strength", 40), ("Dexterity", 42), ("Adaptability", 48),
-    ("Intelligence", 44), ("Faith", 46), ("Level", 0x38)])
+DS2_STAT_OFF = OrderedDict(
+    [
+        ("Vigor", 32),
+        ("Endurance", 34),
+        ("Vitality", 36),
+        ("Attunement", 38),
+        ("Strength", 40),
+        ("Dexterity", 42),
+        ("Adaptability", 48),
+        ("Intelligence", 44),
+        ("Faith", 46),
+        ("Level", 0x38),
+    ]
+)
 
 
 ## @brief DS2 derived-stat bases (values BEFORE rings/equipment). Each derived stat is
@@ -130,8 +162,20 @@ DS2_STAMINA_BASE, DS2_EQUIP_BASE, DS2_AGL_BASE = 80, 38.5, 80
 
 ## @brief Roll i-frames by Agility value (fextralife/community breakpoints). Look up the
 #  highest key <= AGL; below 85 the count is undocumented, so i-frames are omitted there.
-DS2_IFRAMES = OrderedDict([(85, 5), (86, 8), (88, 9), (92, 10), (96, 11),
-                           (99, 12), (105, 13), (111, 14), (114, 15), (116, 16)])
+DS2_IFRAMES = OrderedDict(
+    [
+        (85, 5),
+        (86, 8),
+        (88, 9),
+        (92, 10),
+        (96, 11),
+        (99, 12),
+        (105, 13),
+        (111, 14),
+        (114, 15),
+        (116, 16),
+    ]
+)
 
 
 ## @brief Attunement values at which a spell slot is unlocked (fextralife Attunement).
@@ -144,9 +188,21 @@ DS2_SLOT_BREAKS = (10, 13, 16, 20, 25, 30, 40, 50, 60, 75, 94)
 #  on top). Base 50 at 0, soft caps 40/50/80. From the DS2 wikidot/fextralife scaling
 #  table; verified STR 50 -> 155 and DEX 16 -> 70 (interpolated) against a real save.
 #  ATK: Str and ATK: Dex share this identical curve.
-DS2_PHYS_ATK_BP = OrderedDict([(0, 50), (10, 57), (20, 80), (30, 102), (40, 140),
-                               (50, 155), (60, 162), (70, 170), (80, 185),
-                               (90, 192), (99, 200)])
+DS2_PHYS_ATK_BP = OrderedDict(
+    [
+        (0, 50),
+        (10, 57),
+        (20, 80),
+        (30, 102),
+        (40, 140),
+        (50, 155),
+        (60, 162),
+        (70, 170),
+        (80, 185),
+        (90, 192),
+        (99, 200),
+    ]
+)
 
 
 ## @brief Shared elemental-defence curve breakpoint rates (per stat point): +6 (1-10),
@@ -160,8 +216,15 @@ DS2_INV_RANGE, DS2_KEY_RANGE = (0x1E2C, 0x10E1C), (0x10E30, 0x11DF0)
 
 ## @brief DS2 categories whose slot +8 field is a real count (float durability
 #         elsewhere). Weapons/armour/rings/emotes are one instance per slot.
-DS2_STACKABLE = {"consumables", "online", "bolts", "spells", "upgrade", "keys",
-                 "bosssouls"}
+DS2_STACKABLE = {
+    "consumables",
+    "online",
+    "bolts",
+    "spells",
+    "upgrade",
+    "keys",
+    "bosssouls",
+}
 
 
 ## @brief Categories whose slot +12 field carries a reinforcement level. Only
@@ -177,15 +240,28 @@ DS2_REINF_OFF, DS2_INFUSE_OFF = 12, 13
 
 ## @brief DS2 infusion ids to names. From Atvaark's DS2 SOTFS Cheat Engine guide
 #  attachments (the "Infusion IDs" list). 0 (None) carries no prefix.
-DS2_INFUSION = {1: "Fire", 2: "Magic", 3: "Lightning", 4: "Dark", 5: "Poison",
-                6: "Bleed", 7: "Raw", 8: "Enchanted", 9: "Mundane"}
+DS2_INFUSION = {
+    1: "Fire",
+    2: "Magic",
+    3: "Lightning",
+    4: "Dark",
+    5: "Poison",
+    6: "Bleed",
+    7: "Raw",
+    8: "Enchanted",
+    9: "Mundane",
+}
 
 
 ## @brief The four DS2 "Old" great souls (from the Lost Sinner, the Rotten, the
 #  Old Iron King, and the Duke's Dear Freja). The game treats these apart from the
 #  ordinary boss souls, so the output does too.
-DS2_GREAT_SOULS = {"Old Witch Soul", "Old Dead One Soul", "Old King Soul",
-                   "Old Paledrake Soul"}
+DS2_GREAT_SOULS = {
+    "Old Witch Soul",
+    "Old Dead One Soul",
+    "Old King Soul",
+    "Old Paledrake Soul",
+}
 
 
 ## @brief Read a DS2 name, or None for an empty slot.
@@ -300,11 +376,20 @@ def ds2_derived_stats(stats):
         poise += 0.1 * (min(n, 98) - 50)
     if n >= 99:
         poise += 0.2
-    return {"stamina": stamina, "equip_load": load, "agility": agl,
-            "iframes": iframes, "slots": slots, "poise": poise,
-            "atk_str": ds2_phys_atk(stg), "atk_dex": ds2_phys_atk(dex),
-            "magic_def": ds2_elem_def(intel), "fire_def": ds2_elem_def((intel + fth) // 2),
-            "lightning_def": ds2_elem_def(fth), "dark_def": ds2_elem_def(min(intel, fth))}
+    return {
+        "stamina": stamina,
+        "equip_load": load,
+        "agility": agl,
+        "iframes": iframes,
+        "slots": slots,
+        "poise": poise,
+        "atk_str": ds2_phys_atk(stg),
+        "atk_dex": ds2_phys_atk(dex),
+        "magic_def": ds2_elem_def(intel),
+        "fire_def": ds2_elem_def((intel + fth) // 2),
+        "lightning_def": ds2_elem_def(fth),
+        "dark_def": ds2_elem_def(min(intel, fth)),
+    }
 
 
 ##
@@ -340,21 +425,29 @@ def ds2_parse(buf, item_db, game="ds2sotfs"):
     buckets, unknown = ds2_inventory(buf, item_db)
     inv = {c: merge_qty(v) for c, v in buckets.items()}
     return {
-        "tier": "full", "game": game, "name": ds2_name(buf),
+        "tier": "full",
+        "game": game,
+        "name": ds2_name(buf),
         "klass": DS2_CLASS.get(u8(buf, DS2_CLASS_OFF)),
         "covenant": DS2_COVENANT.get(u8(buf, DS2_COVENANT_OFF)),
         "covenants": ds2_covenants(buf),
         "gender": DS2_GENDER.get(u8(buf, DS2_GENDER_OFF)),
-        "level": stats.pop("Level"), "stats": stats,
-        "souls": u32(buf, DS2_SOULS_OFF), "soul_memory": u32(buf, DS2_SOULMEM_OFF),
-        "humanity": None, "stamina": None, "hp": u32(buf, DS2_HP_OFF),
+        "level": stats.pop("Level"),
+        "stats": stats,
+        "souls": u32(buf, DS2_SOULS_OFF),
+        "soul_memory": u32(buf, DS2_SOULMEM_OFF),
+        "humanity": None,
+        "stamina": None,
+        "hp": u32(buf, DS2_HP_OFF),
         "ng_plus": max(0, (u16(buf, DS2_NG_OFF) or 1) - 1),
         "hollow_lvl": u8(buf, DS2_HOLLOW_OFF),
         "deaths": u32(buf, DS2_DEATHS_OFF),
         # DS2 boss souls are a real inventory category (bosssouls), rendered and
         # graded there, so the top boss-souls section is left empty for DS2.
-        "boss_souls": [], "key_items": inv.pop("keys", []),
-        "inv": inv, "unknown_count": unknown,
+        "boss_souls": [],
+        "key_items": inv.pop("keys", []),
+        "inv": inv,
+        "unknown_count": unknown,
     }
 
 
@@ -443,7 +536,11 @@ DS2_BOSS_GATE = {
     # largely skippable paths, which is why the others below are all endgame.
     "Unseen Path to Heide": ("Dragonrider",),
     "Undead Crypt Entrance": ("Looking Glass Knight", "Demon of Song"),
-    "Throne Floor": ("Looking Glass Knight", "Demon of Song", "Velstadt, the Royal Aegis"),
+    "Throne Floor": (
+        "Looking Glass Knight",
+        "Demon of Song",
+        "Velstadt, the Royal Aegis",
+    ),
 }
 
 
@@ -465,10 +562,23 @@ DS2_ITEM_GATE = {
 #  full transitive set, so a single pass closes it). Endgame only, where the order is
 #  forced.
 DS2_BOSS_PREREQ = {
-    "Nashandra": ("Throne Watcher", "Throne Defender", "Velstadt, the Royal Aegis",
-                  "Demon of Song", "Looking Glass Knight"),
-    "Throne Watcher": ("Velstadt, the Royal Aegis", "Demon of Song", "Looking Glass Knight"),
-    "Throne Defender": ("Velstadt, the Royal Aegis", "Demon of Song", "Looking Glass Knight"),
+    "Nashandra": (
+        "Throne Watcher",
+        "Throne Defender",
+        "Velstadt, the Royal Aegis",
+        "Demon of Song",
+        "Looking Glass Knight",
+    ),
+    "Throne Watcher": (
+        "Velstadt, the Royal Aegis",
+        "Demon of Song",
+        "Looking Glass Knight",
+    ),
+    "Throne Defender": (
+        "Velstadt, the Royal Aegis",
+        "Demon of Song",
+        "Looking Glass Knight",
+    ),
     "Velstadt, the Royal Aegis": ("Demon of Song", "Looking Glass Knight"),
     "Demon of Song": ("Looking Glass Knight",),
 }
@@ -506,7 +616,7 @@ def ds2_infer_bosses(world, ch, base_dir):
         boss = soul_db.get(name)
         if boss:
             out[boss].add("soul")
-    for bonfire in (ch.get("bonfires") or []):
+    for bonfire in ch.get("bonfires") or []:
         for boss in DS2_BOSS_GATE.get(bonfire, ()):
             out[boss].add("gate")
     # Armour and weapons render with a " +N" reinforcement suffix, so strip it before
@@ -591,8 +701,10 @@ def ds2_bonfire_areas(visited, area_db, bf_db):
         if name is None:
             continue
         (got if bid in seen else miss).append(name)
-    out = [(a, len(got), got, len(got) + len(miss), miss)
-           for a, (got, miss) in areas.items()]
+    out = [
+        (a, len(got), got, len(got) + len(miss), miss)
+        for a, (got, miss) in areas.items()
+    ]
     return out if any(c for _a, c, _n, _t, _m in out) else None
 
 
@@ -604,20 +716,21 @@ def ds2_augment(ch, data, entries, i, base_dir, dec=decrypt_ds2):
     # Play time lives in the header title record (one per slot), not the character
     # block. Title index for block entry i is i - slots.start, and DS2 starts at 1.
     if entries:
-        hdr = dec(data[entries[0].offset:entries[0].offset + entries[0].size])
+        hdr = dec(data[entries[0].offset : entries[0].offset + entries[0].size])
         if hdr is not None:
             base = DS2_TITLE_NAME_OFF + DS2_TITLE_STRIDE * (i - 1)
             ch["play_time"] = u32(hdr, base + DS2_TITLE_PLAYTIME_OFF)
     w = i + DS2_WORLD_ENTRY_DELTA
     if w >= len(entries):
         return
-    world = dec(data[entries[w].offset:entries[w].offset + entries[w].size])
+    world = dec(data[entries[w].offset : entries[w].offset + entries[w].size])
     visited = ds2_visited_bonfires(world, load_ds2_bonfires(base_dir))
     # The flat name list stays: DS2_BOSS_GATE is keyed by bonfire name, so the boss
     # inference below reads it. The grouped view is what gets rendered.
     ch["bonfires"] = [name for _, name in visited] if visited else visited
-    areas = ds2_bonfire_areas(visited, load_ds2_bonfire_areas(base_dir),
-                              load_ds2_bonfires(base_dir))
+    areas = ds2_bonfire_areas(
+        visited, load_ds2_bonfire_areas(base_dir), load_ds2_bonfires(base_dir)
+    )
     if areas:
         ch["bonfire_areas"] = areas
     ch["bosses"] = ds2_infer_bosses(world, ch, base_dir)
@@ -639,7 +752,7 @@ def ds2_augment(ch, data, entries, i, base_dir, dec=decrypt_ds2):
 def ds2_active_slots(data, entries, slots, dec=decrypt_ds2):
     if not entries:
         return None
-    hdr = dec(data[entries[0].offset:entries[0].offset + entries[0].size])
+    hdr = dec(data[entries[0].offset : entries[0].offset + entries[0].size])
     if hdr is None:
         return None
     active = set()

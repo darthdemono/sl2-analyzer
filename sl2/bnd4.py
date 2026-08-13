@@ -1,9 +1,9 @@
-"""The BND4 archive every .sl2 is, and its entry table.
-"""
+"""The BND4 archive every .sl2 is, and its entry table."""
+
 import hashlib
 import sys
-from .reader import u32, u64
 
+from .reader import u32, u64
 
 ## @brief Size of the fixed BND4 file header, in bytes.
 BND4_HEADER_LEN = 64
@@ -48,7 +48,9 @@ def parse_bnd4(data):
         size = u64(data, base + 8)
         offset = u32(data, base + 16)
         if size is None or offset is None or offset + size > len(data) or size <= 0:
-            sys.exit(f"Entry #{i} points outside the file (offset={offset}, size={size}).")
+            sys.exit(
+                f"Entry #{i} points outside the file (offset={offset}, size={size})."
+            )
         entries.append(Bnd4Entry(i, offset, size))
     return entries
 
@@ -61,5 +63,5 @@ def parse_bnd4(data):
 # @param entry The entry to check.
 # @return True if @c blob[0:16] equals the MD5 of the remaining blob bytes.
 def checksum_ok(data, entry):
-    blob = data[entry.offset:entry.offset + entry.size]
+    blob = data[entry.offset : entry.offset + entry.size]
     return len(blob) >= 16 and hashlib.md5(blob[16:]).digest() == blob[:16]

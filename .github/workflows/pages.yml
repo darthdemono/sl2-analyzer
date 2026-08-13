@@ -50,5 +50,15 @@ jobs:
       - name: Syntax-check the Python CLI
         run: python3 -m py_compile sl2_to_md.py
 
+      # Formatting is checked, never applied, on a deploy: a workflow that rewrites the
+      # tree it is publishing is a workflow nobody can reason about. `ruff format
+      # --check` and `prettier --check` both exit non-zero on a difference, so an
+      # unformatted push fails here rather than landing.
+      - name: Check formatting and lint
+        run: |
+          pipx run ruff format --check .
+          pipx run ruff check .
+          npx --yes prettier@3 --check "**/*.{js,html,json,yml}"
+
       - id: deployment
         uses: actions/deploy-pages@v4

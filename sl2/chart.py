@@ -9,9 +9,11 @@ arrow meaning "later that month" in one place and "reloaded and forked" in anoth
 Every node is one .sl2 file, referred to by its number in the document's reference
 list rather than its name — a filename in a box makes the box wider than the chart.
 """
+
 from datetime import datetime
 
 from .timeline import achievements, children
+
 
 ## @brief Mermaid takes the label between double quotes, so the label may not contain
 #  one; `#quot;` is its own escape. Line breaks inside a node are `<br/>`.
@@ -22,7 +24,7 @@ def mm(text):
 
 
 def label(lines):
-    return mm("<br/>".join(l for l in lines if l))
+    return mm("<br/>".join(line for line in lines if line))
 
 
 ## @brief "1 boss" / "2 bosses". A fresh save really does hold one of things, and a
@@ -57,8 +59,11 @@ def rank(r):
 
 ## @brief The same value bare, for a table cell whose column is already labelled.
 def rank_cell(r):
-    return "—" if r["game"] == "sdt" and r["attack"] is None else str(
-        r["attack"] if r["game"] == "sdt" else r["level"])
+    return (
+        "—"
+        if r["game"] == "sdt" and r["attack"] is None
+        else str(r["attack"] if r["game"] == "sdt" else r["level"])
+    )
 
 
 ## @brief Header for that column, given the run's game.
@@ -89,18 +94,23 @@ def run_chart(rows, parents, restarts, refs, theme=None):
         if i in restarts:
             lines.insert(1, "SEPARATE LINE")
         body = label(lines + achievements(r, prev))
-        L.append('  n%d["%s"]' % (i, body))
+        L.append(f'  n{i}["{body}"]')
     for i, p in enumerate(parents):
         if p is not None:
             L.append(f"  n{p} --> n{i}")
     # A leaf is where a line stopped; an ending is where it FINISHED. Both are worth
     # seeing at a glance, and an ending outranks a leaf when a node is both.
-    ends = [i for i, r in enumerate(rows)
-            if set(r["endings"]) - (set(rows[parents[i]]["endings"])
-                                    if parents[i] is not None else set())]
+    ends = [
+        i
+        for i, r in enumerate(rows)
+        if set(r["endings"])
+        - (set(rows[parents[i]]["endings"]) if parents[i] is not None else set())
+    ]
     leaves = [i for i in range(len(rows)) if i not in kids and i not in ends]
     if ends:
-        L.append("  classDef ending fill:#3a2a12,stroke:#c9a227,color:#f0e6d2,stroke-width:2px;")
+        L.append(
+            "  classDef ending fill:#3a2a12,stroke:#c9a227,color:#f0e6d2,stroke-width:2px;"
+        )
         L.append("  class " + ",".join(f"n{i}" for i in ends) + " ending;")
     if leaves:
         L.append("  classDef leaf stroke-dasharray:4 3;")
@@ -126,8 +136,10 @@ def journey_chart(runs, refs):
         last = rows[-1]
         nums = sorted({refs.get(r["path"], 0) for r in rows})
         span = f"^{nums[0]}" if len(nums) == 1 else f"^{nums[0]}–^{nums[-1]}"
-        got = [f"{len(rows)} save{'' if len(rows) == 1 else 's'} · {span}",
-               f"{rank(last)} · {hms(last['play_time'])}"]
+        got = [
+            f"{len(rows)} save{'' if len(rows) == 1 else 's'} · {span}",
+            f"{rank(last)} · {hms(last['play_time'])}",
+        ]
         # The carried set when the run section worked one out — a boss whose soul was
         # spent is still a boss killed, and the journey chart should say so.
         known = last.get("carried_bosses") or last["bosses"]
@@ -135,8 +147,8 @@ def journey_chart(runs, refs):
             got.append(plural(len(known), "boss"))
         if last["endings"]:
             got.append("FINISHED: " + " · ".join(sorted(last["endings"])))
-        body = label(["%s — %s" % (last["title"], name)] + got)
-        L.append('  r%d["%s"]' % (n, body))
+        body = label(["{} — {}".format(last["title"], name)] + got)
+        L.append(f'  r{n}["{body}"]')
     for n in range(1, len(items)):
         L.append(f"  r{n - 1} --> r{n}")
     L.append("```")
@@ -148,9 +160,12 @@ def journey_chart(runs, refs):
 # @details Wiki-style [[links]] because that is what the owner reads these in, and
 # ordered earliest to latest by file date so the numbering itself carries the history.
 def reference_list(order):
-    L = ["## References", "",
-         "_Every node above is one save file. Numbered earliest to latest by file date._",
-         ""]
+    L = [
+        "## References",
+        "",
+        "_Every node above is one save file. Numbered earliest to latest by file date._",
+        "",
+    ]
     for num, name, mtime, _path in order:
         when = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
         L.append(f"^{num}: [[{name}]] — _{when}_")

@@ -49,22 +49,22 @@
 # Re-exported for anything that imports this module by name (the parity harnesses and
 # the scratch tools do). The star imports are deliberate: this file's whole job is to
 # be the flat surface the package used to have.
-from sl2.reader import *          # noqa: F401,F403
-from sl2.keys import *            # noqa: F401,F403
-from sl2.bnd4 import *            # noqa: F401,F403
-from sl2.crypto import *          # noqa: F401,F403
-from sl2.detect import *          # noqa: F401,F403
-from sl2.itemdb import *          # noqa: F401,F403
-from sl2.progress import *        # noqa: F401,F403
-from sl2.roster import *          # noqa: F401,F403
-from sl2.ds1 import *             # noqa: F401,F403
-from sl2.ds2 import *             # noqa: F401,F403
-from sl2.ds3 import *             # noqa: F401,F403
-from sl2.er import *              # noqa: F401,F403
-from sl2.totals import *          # noqa: F401,F403
-from sl2.render import *          # noqa: F401,F403
-from sl2.convert import *         # noqa: F401,F403
-from sl2.jsonout import *         # noqa: F401,F403
+from sl2.reader import *  # noqa: F401,F403
+from sl2.keys import *  # noqa: F401,F403
+from sl2.bnd4 import *  # noqa: F401,F403
+from sl2.crypto import *  # noqa: F401,F403
+from sl2.detect import *  # noqa: F401,F403
+from sl2.itemdb import *  # noqa: F401,F403
+from sl2.progress import *  # noqa: F401,F403
+from sl2.roster import *  # noqa: F401,F403
+from sl2.ds1 import *  # noqa: F401,F403
+from sl2.ds2 import *  # noqa: F401,F403
+from sl2.ds3 import *  # noqa: F401,F403
+from sl2.er import *  # noqa: F401,F403
+from sl2.totals import *  # noqa: F401,F403
+from sl2.render import *  # noqa: F401,F403
+from sl2.convert import *  # noqa: F401,F403
+from sl2.jsonout import *  # noqa: F401,F403
 from sl2.cli import main
 
 if __name__ == "__main__":

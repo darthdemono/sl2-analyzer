@@ -13,6 +13,7 @@ Nothing here renders. It reads parsed characters and returns data; sl2.chart dra
 and sl2.combine writes the document, so the inference can be tested without a document
 and the document can change without touching the inference.
 """
+
 import os
 import re
 from collections import OrderedDict
@@ -104,7 +105,9 @@ def group_runs(snaps):
         runs.setdefault((s["game"], s["name"], s["slot"]), []).append(s)
     for key in runs:
         runs[key].sort(key=lambda s: (s["play_time"], s["mtime"], s["file"], s["slot"]))
-    return OrderedDict(sorted(runs.items(), key=lambda kv: min(s["mtime"] for s in kv[1])))
+    return OrderedDict(
+        sorted(runs.items(), key=lambda kv: min(s["mtime"] for s in kv[1]))
+    )
 
 
 ## @brief Boss kills that came from a FLAG, which is the only boss evidence that
@@ -229,8 +232,10 @@ def carry_bosses(rows, parents):
 # @brief The bosses a snapshot can only prove through an ancestor, newest first.
 # @return [(boss, evidence, index of the snapshot that proved it)].
 def carried_only(row, carried):
-    return sorted(((b, ev, at) for b, (ev, at) in carried.items() if b not in row["bosses"]),
-                  key=lambda t: (t[2], t[0]))
+    return sorted(
+        ((b, ev, at) for b, (ev, at) in carried.items() if b not in row["bosses"]),
+        key=lambda t: (t[2], t[0]),
+    )
 
 
 ##
@@ -259,11 +264,23 @@ def fork_count(parents):
 # @param cap Most lines to return.
 # @return A list of short strings.
 def achievements(cur, prev, cap=3):
-    was = progress(prev) if prev else {"bonfires": set(), "bosses": set(), "endings": set(),
-                                       "cinders": set(), "covenants": set(), "pickups": {},
-                                       "level": 0, "attack": -1, "vitality": -1,
-                                       "estus": -1,
-                                       "ng_plus": -1}
+    was = (
+        progress(prev)
+        if prev
+        else {
+            "bonfires": set(),
+            "bosses": set(),
+            "endings": set(),
+            "cinders": set(),
+            "covenants": set(),
+            "pickups": {},
+            "level": 0,
+            "attack": -1,
+            "vitality": -1,
+            "estus": -1,
+            "ng_plus": -1,
+        }
+    )
     out = []
     for end in sorted(set(cur["endings"]) - was["endings"]):
         out.append(f"ENDING: {end}")
@@ -276,8 +293,11 @@ def achievements(cur, prev, cap=3):
     had = set(prev["bosses"]) if prev else set()
     new_bosses = sorted(set(cur["bosses"]) - had)
     if new_bosses:
-        out.append("BOSS: " + " · ".join(new_bosses[:2])
-                   + (f" +{len(new_bosses) - 2} more" if len(new_bosses) > 2 else ""))
+        out.append(
+            "BOSS: "
+            + " · ".join(new_bosses[:2])
+            + (f" +{len(new_bosses) - 2} more" if len(new_bosses) > 2 else "")
+        )
     # Sekiro's version of the same news, and the only one it can give: Attack Power
     # goes up by one per Memory consumed, so a step here IS a boss whose token has
     # already been spent — the kill the boss list can no longer see.
@@ -293,8 +313,11 @@ def achievements(cur, prev, cap=3):
     # consumed on use, so a run can legitimately hold fewer than an ancestor did.
     new_keys = sorted(set(cur["key_items"]) - set(prev["key_items"] if prev else []))
     if new_keys:
-        out.append("KEY ITEM: " + " · ".join(new_keys[:2])
-                   + (f" +{len(new_keys) - 2} more" if len(new_keys) > 2 else ""))
+        out.append(
+            "KEY ITEM: "
+            + " · ".join(new_keys[:2])
+            + (f" +{len(new_keys) - 2} more" if len(new_keys) > 2 else "")
+        )
     new_cinders = sorted(set(cur["cinders"]) - was["cinders"])
     if new_cinders:
         out.append("CINDERS: " + " · ".join(new_cinders))
@@ -304,15 +327,22 @@ def achievements(cur, prev, cap=3):
     new_fires = sorted(progress(cur)["bonfires"] - was["bonfires"])
     if new_fires:
         named = " · ".join(n for _a, n in new_fires[:2])
-        out.append(f"+{len(new_fires)} bonfire{'' if len(new_fires) == 1 else 's'}: {named}"
-                   if len(new_fires) <= 2 else f"+{len(new_fires)} bonfires")
+        out.append(
+            f"+{len(new_fires)} bonfire{'' if len(new_fires) == 1 else 's'}: {named}"
+            if len(new_fires) <= 2
+            else f"+{len(new_fires)} bonfires"
+        )
     if cur["estus"] is not None and cur["estus"] > was["estus"] >= 0:
         out.append(f"Estus +{was['estus']} → +{cur['estus']}")
-    gained = sum(max(0, n - was["pickups"].get(a, 0)) for a, n in cur["pickups"].items())
+    gained = sum(
+        max(0, n - was["pickups"].get(a, 0)) for a, n in cur["pickups"].items()
+    )
     if gained:
         out.append(f"+{gained} world item{'' if gained == 1 else 's'}")
     if cur["level"] > was["level"]:
-        out.append(f"lv{was['level']} → lv{cur['level']}" if prev else f"lv{cur['level']}")
+        out.append(
+            f"lv{was['level']} → lv{cur['level']}" if prev else f"lv{cur['level']}"
+        )
     return out[:cap]
 
 
@@ -351,8 +381,11 @@ def reference_index(snaps):
     out = []
     for p, t in order:
         base = os.path.basename(p)
-        label = base if dupes.get(base, 0) < 2 else (os.path.relpath(p, root)
-                                                    if root else p)
+        label = (
+            base
+            if dupes.get(base, 0) < 2
+            else (os.path.relpath(p, root) if root else p)
+        )
         out.append((refs[p], label, t, p))
     return refs, out
 

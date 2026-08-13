@@ -1,36 +1,57 @@
 """Progress inference shared by every game: boss souls held, key items, the
 NG+ mandatory-clear floor, and the denominators each progress section prints.
 """
+
 import json
 import os
 from collections import OrderedDict
-
 
 ## @brief Ordinary soul consumables that are NOT boss souls. A boss soul in your
 #         pack means the boss is dead; a "Soul of a Lost Undead" just means you
 #         killed something ordinary.
 GENERIC_SOULS = {
-    "Fading Soul", "Soul of a Lost Undead", "Large Soul of a Lost Undead",
-    "Soul of a Nameless Soldier", "Large Soul of a Nameless Soldier",
-    "Soul of a Proud Knight", "Large Soul of a Proud Knight",
-    "Soul of a Brave Warrior", "Large Soul of a Brave Warrior",
-    "Soul of a Hero", "Soul of a Great Hero", "Soul of a Old Hero",
-    "Wandering Soul", "Old Soul",
+    "Fading Soul",
+    "Soul of a Lost Undead",
+    "Large Soul of a Lost Undead",
+    "Soul of a Nameless Soldier",
+    "Large Soul of a Nameless Soldier",
+    "Soul of a Proud Knight",
+    "Large Soul of a Proud Knight",
+    "Soul of a Brave Warrior",
+    "Large Soul of a Brave Warrior",
+    "Soul of a Hero",
+    "Soul of a Great Hero",
+    "Soul of a Old Hero",
+    "Wandering Soul",
+    "Old Soul",
     # Dark Souls III generic farm souls — not bosses.
-    "Soul of a Deserted Corpse", "Large Soul of a Deserted Corpse",
-    "Soul of an Unknown Traveler", "Large Soul of an Unknown Traveler",
-    "Soul of a Weary Warrior", "Large Soul of a Weary Warrior",
-    "Soul of a Crestfallen Knight", "Large Soul of a Crestfallen Knight",
-    "Soul of a Venerable Old Hand", "Soul of a Champion", "Soul of a Great Champion",
-    "Soul of a Seasoned Warrior", "Large Soul of a Seasoned Warrior",
-    "Soul of an Intrepid Hero", "Large Soul of an Intrepid Hero",
+    "Soul of a Deserted Corpse",
+    "Large Soul of a Deserted Corpse",
+    "Soul of an Unknown Traveler",
+    "Large Soul of an Unknown Traveler",
+    "Soul of a Weary Warrior",
+    "Large Soul of a Weary Warrior",
+    "Soul of a Crestfallen Knight",
+    "Large Soul of a Crestfallen Knight",
+    "Soul of a Venerable Old Hand",
+    "Soul of a Champion",
+    "Soul of a Great Champion",
+    "Soul of a Seasoned Warrior",
+    "Large Soul of a Seasoned Warrior",
+    "Soul of an Intrepid Hero",
+    "Large Soul of an Intrepid Hero",
 }
 
 
 ## @brief DS1 progression goods that gate the world but do not read as "keys".
 #  Crest of Artorias opens the sealed Darkroot door, so it gates as hard as a key.
-DS1_PROGRESSION = {"Lordvessel", "Peculiar Doll", "Broken Pendant", "Rite of Kindling",
-                   "Crest of Artorias"}
+DS1_PROGRESSION = {
+    "Lordvessel",
+    "Peculiar Doll",
+    "Broken Pendant",
+    "Rite of Kindling",
+    "Crest of Artorias",
+}
 
 
 ## @brief Pull the likely boss / lord souls out of a goods list.
@@ -39,8 +60,11 @@ def find_boss_souls(goods):
     for n, q in goods:
         if n in GENERIC_SOULS:
             continue
-        if ("Soul of " in n or "Lord Soul" in n
-                or n in ("Core of an Iron Golem", "Guardian Soul")):
+        if (
+            "Soul of " in n
+            or "Lord Soul" in n
+            or n in ("Core of an Iron Golem", "Guardian Soul")
+        ):
             out.append((n, q))
     return out
 
@@ -50,8 +74,13 @@ def find_boss_souls(goods):
 #  proof-of-kill floor is the boss souls / remembrances the character still holds.
 #  Sekiro's table maps its Memory items, which are the same kind of token — and the
 #  only one in the series whose spending leaves a trace (see sdt_memories_spent).
-BOSS_SOUL_DB_DIR = {"dsr": "db_ds1", "ptde": "db_ds1", "ds3": "db_ds3", "er": "db_er",
-                    "sdt": "db_sdt"}
+BOSS_SOUL_DB_DIR = {
+    "dsr": "db_ds1",
+    "ptde": "db_ds1",
+    "ds3": "db_ds3",
+    "er": "db_er",
+    "sdt": "db_sdt",
+}
 
 
 ## @brief Load a game's boss-soul → boss-name table. Cached per (base_dir, subdir).
@@ -108,22 +137,35 @@ def load_boss_route(base_dir, subdir):
 #  gates nothing specific.
 BOSS_PREREQ = {
     "ds3": {
-        "Soul of Cinder": ["Iudex Gundyr", "Vordt of the Boreal Valley",
-                           "Dancer of the Boreal Valley", "Abyss Watchers",
-                           "Aldrich, Devourer of Gods", "Yhorm the Giant",
-                           "Lothric, Younger Prince"],
-        "Lothric, Younger Prince": ["Dancer of the Boreal Valley",
-                                    "Vordt of the Boreal Valley", "Iudex Gundyr"],
-        "Aldrich, Devourer of Gods": ["Pontiff Sulyvahn",
-                                      "Vordt of the Boreal Valley", "Iudex Gundyr"],
+        "Soul of Cinder": [
+            "Iudex Gundyr",
+            "Vordt of the Boreal Valley",
+            "Dancer of the Boreal Valley",
+            "Abyss Watchers",
+            "Aldrich, Devourer of Gods",
+            "Yhorm the Giant",
+            "Lothric, Younger Prince",
+        ],
+        "Lothric, Younger Prince": [
+            "Dancer of the Boreal Valley",
+            "Vordt of the Boreal Valley",
+            "Iudex Gundyr",
+        ],
+        "Aldrich, Devourer of Gods": [
+            "Pontiff Sulyvahn",
+            "Vordt of the Boreal Valley",
+            "Iudex Gundyr",
+        ],
         "Dancer of the Boreal Valley": ["Vordt of the Boreal Valley", "Iudex Gundyr"],
         "Pontiff Sulyvahn": ["Vordt of the Boreal Valley", "Iudex Gundyr"],
         "Vordt of the Boreal Valley": ["Iudex Gundyr"],
     },
     "er": {
-        "Godfrey, First Elden Lord (Hoarah Loux)": ["Maliketh, the Black Blade",
-                                                    "Fire Giant",
-                                                    "Morgott, the Omen King"],
+        "Godfrey, First Elden Lord (Hoarah Loux)": [
+            "Maliketh, the Black Blade",
+            "Fire Giant",
+            "Morgott, the Omen King",
+        ],
         "Maliketh, the Black Blade": ["Fire Giant", "Morgott, the Omen King"],
         "Fire Giant": ["Morgott, the Omen King"],
     },
@@ -139,10 +181,19 @@ BOSS_PREREQ = {
 #  this itself in ds2_infer_bosses, seeding only its final boss Nashandra, because DS2's
 #  mid-game is skippable — Shrine of Winter opens on Soul Memory alone.)
 MANDATORY_BOSSES = {
-    "dsr": ["Bell Gargoyles", "Chaos Witch Quelaag", "Iron Golem",
-            "Dragon Slayer Ornstein", "Executioner Smough", "Great Grey Wolf Sif",
-            "The Four Kings", "Seath the Scaleless", "Gravelord Nito", "Bed of Chaos",
-            "Gwyn, Lord of Cinder"],
+    "dsr": [
+        "Bell Gargoyles",
+        "Chaos Witch Quelaag",
+        "Iron Golem",
+        "Dragon Slayer Ornstein",
+        "Executioner Smough",
+        "Great Grey Wolf Sif",
+        "The Four Kings",
+        "Seath the Scaleless",
+        "Gravelord Nito",
+        "Bed of Chaos",
+        "Gwyn, Lord of Cinder",
+    ],
 }
 
 
@@ -154,10 +205,17 @@ MANDATORY_BOSSES["ptde"] = MANDATORY_BOSSES["dsr"]
 ## NG+ proves all of these dead even if their souls were spent. Optional bosses
 ## (Greatwood, Crystal Sage, Wolnir, Nameless King…) are deliberately excluded.
 MANDATORY_BOSSES["ds3"] = [
-    "Iudex Gundyr", "Vordt of the Boreal Valley", "Dancer of the Boreal Valley",
-    "Abyss Watchers", "Pontiff Sulyvahn", "Aldrich, Devourer of Gods",
-    "Yhorm the Giant", "Dragonslayer Armour", "Lothric, Younger Prince",
-    "Soul of Cinder"]
+    "Iudex Gundyr",
+    "Vordt of the Boreal Valley",
+    "Dancer of the Boreal Valley",
+    "Abyss Watchers",
+    "Pontiff Sulyvahn",
+    "Aldrich, Devourer of Gods",
+    "Yhorm the Giant",
+    "Dragonslayer Armour",
+    "Lothric, Younger Prince",
+    "Soul of Cinder",
+]
 
 
 ## @brief Attach a `bosses` defeat floor to a non-DS2 character from the boss souls
@@ -195,9 +253,14 @@ def attach_defeated_bosses(ch, base_dir):
 ## @brief The four Lords of Cinder, boss name → the name on the Firelink throne.
 #  A closed set: all four must be placed before the Kiln opens, so "N of 4" is a real
 #  denominator rather than an open-ended list.
-DS3_LORDS = OrderedDict([
-    ("Abyss Watchers", "Abyss Watchers"), ("Yhorm the Giant", "Yhorm the Giant"),
-    ("Aldrich, Devourer of Gods", "Aldrich"), ("Lothric, Younger Prince", "Twin Princes")])
+DS3_LORDS = OrderedDict(
+    [
+        ("Abyss Watchers", "Abyss Watchers"),
+        ("Yhorm the Giant", "Yhorm the Giant"),
+        ("Aldrich, Devourer of Gods", "Aldrich"),
+        ("Lothric, Younger Prince", "Twin Princes"),
+    ]
+)
 
 
 ## @brief The one item id (any lord's) that sits in the inventory between killing a
