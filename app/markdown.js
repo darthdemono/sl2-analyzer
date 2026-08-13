@@ -18,6 +18,7 @@ const DS2_BONFIRE_NOTE = "each bonfire the save records as discovered, by area �
 const SDT_BONFIRE_NOTE = "each idol's own flag bit, by area — a floor, and one that starts again on a new journey";
 // Sekiro files a miniboss defeat under the enemy's own entity id, so these are exact
 // rather than inferred. Verbatim from SDT_MINIBOSS_NOTE in sl2/render.py.
+const DS1_WORLD_NOTE = "one-off world events, each read from its own flag — exact, but only the flags that have been named are counted";
 const SDT_MINIBOSS_NOTE = "each miniboss's own defeat flag — exact, not inferred, but it resets on a new journey; names are enemy types, so repeats in an area are different enemies";
 // Only six areas have a derived flag-group base, so this counts what is TRACKED, not
 // what the game ships. An area absent from the list is unmapped, not empty.
@@ -199,6 +200,20 @@ export function mdCharacter(ch, slot) {
     L.push("");
     const note = missingNote("Not found yet", ch.covenants_missing);
     if (note) L.push(note, "");
+  }
+  if (ch.world_flags && ch.world_flags.length) {
+    const got = ch.world_flags.reduce((s2, [, c]) => s2 + c, 0);
+    const total = ch.world_flags.reduce((s2, [, , , t]) => s2 + t, 0);
+    L.push(`### World State (${got} of ${total} tracked)  _(${DS1_WORLD_NOTE})_`, "",
+      ...ch.world_flags.map(([cat, c, names, tot, missing]) => {
+        let row = `- ${cat}: ${c}/${tot}`;
+        // Mid-dot: half these names carry a comma of their own.
+        if (names.length) {
+          row += ` — ${names.join(" · ")}`;
+          if (missing.length) row += `  _(not yet: ${missing.join(" · ")})_`;
+        }
+        return row;
+      }), "");
   }
   if (ch.minibosses && ch.minibosses.length) {
     const dead = ch.minibosses.reduce((s2, [, c]) => s2 + c, 0);

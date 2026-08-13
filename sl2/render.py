@@ -251,6 +251,14 @@ SDT_BONFIRE_NOTE = ("each idol's own flag bit, by area — a floor, and one that
 # these are exact rather than inferred. The names are enemy TYPES from the only published
 # table that lists them, which is why four of them are "Shura Samurai" — those are four
 # different enemies, not one printed four times.
+# DS1's event-flag region carries far more than boss kills: the bells, the Lordvessel,
+# every shortcut door and lever, the non-boss fog gates, NPC states and the covenant
+# joined. Each is exact — a flag is set or it is not — but the SET is only what has been
+# named, so the denominator is "tracked", not "in the game".
+DS1_WORLD_NOTE = ("one-off world events, each read from its own flag — exact, but only "
+                  "the flags that have been named are counted")
+
+
 SDT_MINIBOSS_NOTE = ("each miniboss's own defeat flag — exact, not inferred, but it "
                      "resets on a new journey; names are enemy types, so repeats in an "
                      "area are different enemies")
@@ -492,6 +500,20 @@ def md_for_character(ch, slot_no):
         note = missing_note("Not found yet", ch.get("covenants_missing"))
         if note:
             L += [note, ""]
+    if ch.get("world_flags"):
+        got = sum(c for _a, c, _n, _t, _m in ch["world_flags"])
+        total = sum(t for _a, _c, _n, t, _m in ch["world_flags"])
+        L += [f"### World State ({got} of {total} tracked)  _({DS1_WORLD_NOTE})_", ""]
+        for cat, c, names, tot, missing in ch["world_flags"]:
+            row = f"- {cat}: {c}/{tot}"
+            # Mid-dot, not comma: half these names contain a comma of their own
+            # ("Sen's Fortress, Fog Gate 1"), so a comma-joined list is unreadable.
+            if names:
+                row += f" — {' · '.join(names)}"
+                if missing:
+                    row += f"  _(not yet: {' · '.join(missing)})_"
+            L.append(row)
+        L.append("")
     if ch.get("minibosses"):
         dead = sum(c for _a, c, _t, _m in ch["minibosses"])
         total = sum(t for _a, _c, t, _m in ch["minibosses"])

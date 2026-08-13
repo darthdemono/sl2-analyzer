@@ -32,6 +32,44 @@ function itemLi(name, qty) {
 }
 const itemList = (items) => el("ul", { class: "items" }, ...items.map(([n, q]) => itemLi(n, q)));
 
+/**
+ * One progress area as a readable block: the area on its own line with a dotted
+ * leader to its tally, then the names under it.
+ *
+ * The old shape put the area label INLINE with the name list inside a two-column
+ * `ul.items.cols`, which is what made these sections unreadable — a long label wraps
+ * mid-way and the names then start on the same line, so nothing lines up and there is
+ * no visual break between one area and the next. Splitting the head from the body and
+ * giving each row a rule fixes it without changing a single number.
+ * @param name Area name. @param got How many found. @param tot How many it holds.
+ * @param names The ones found, or null to print no body line.
+ * @param missing The ones left, or null.
+ * @param missingLabel What to call them ("missing", "still alive").
+ */
+function areaRow(name, got, tot, names, missing, missingLabel = "missing") {
+  const head = el("div", { class: "area-head" },
+    el("span", { class: "area", text: name }),
+    el("span", { class: "lead" }),
+    el("span", { class: "tally", text: `${got}/${tot}` }));
+  const li = el("li", null, head);
+  if (names && names.length) li.append(el("div", { class: "area-names", text: names.join(", ") }));
+  // Only a started area lists what is left; an untouched one would print the whole
+  // game back at you.
+  if (got && missing && missing.length) {
+    li.append(el("div", { class: "area-missing", text: `${missingLabel}: ${missing.join(" · ")}` }));
+  }
+  return li;
+}
+
+/** A progress bar, or null when there is no usable denominator. */
+function progressBar(got, total, label) {
+  if (!(total > 0 && got <= total)) return null;
+  const pct = Math.round((got / total) * 100);
+  return el("div", { class: "pbar", role: "progressbar", "aria-valuenow": String(got),
+    "aria-valuemin": "0", "aria-valuemax": String(total), "aria-label": label },
+    el("span", { class: "pbar-f", style: `width:${pct}%` }));
+}
+
 // ── Level-Up screen building blocks ─────────────────────────────────────────
 
 /** A boxed sub-panel with a header label sitting on its top rule (the in-game box). */
@@ -288,20 +326,44 @@ function characterCard(slot, ch, bonfireTotal) {
   if (ch.bonfire_areas && ch.bonfire_areas.length) {
     const lit = ch.bonfire_areas.reduce((s, [, c]) => s + c, 0);
     const n = ch.bonfire_areas.filter(([, c]) => c).length, areas = ch.bonfire_areas.length;
-    const [title, bar] = bonfireProgress(lit, bonfireTotal, `, in ${n} of ${areas} areas`);
-    card.append(section(title, [
-      el("p", { class: "hint", text: ch.game === "dsr" || ch.game === "ptde" ? "Each bonfire's own record, with how far it is kindled. A floor on how far you got." : DS2_GAMES.has(ch.game) ? "Every bonfire the save records as discovered, by area. A floor on how far you got." : "Bonfires lit, inferred from each area's flag bits. A floor on how far you got." }),
-      bar,
-      el("ul", { class: "items cols" }, ...ch.bonfire_areas.map(([name, c, named, tot, missing]) => {
-        const li = el("li", null, el("span", { class: "slot", text: `${name}: ${c}/${tot} ` }));
-        if (named && named.length) {
-          li.append(named.join(", "));
-          // Only a started area lists what is left; an untouched one would print
-          // the whole game back at you.
-          if (missing && missing.length) li.append(el("span", { class: "hint", text: ` missing: ${missing.join(" · ")}` }));
-        }
-        return li;
-      }))]));
+    // The denominator comes from the ROWS, not the db-wide bonfire count. They agree
+    // for every Dark Souls game, and for Sekiro only the rows have one — which is why
+    // the web used to print "(55, in 8 of 8 areas)" where the Markdown said "55 of 55".
+    const total = ch.bonfire_areas.reduce((s, [, , , t]) => s + t, 0) || bonfireTotal;
+    // Sekiro has no bonfires. Calling its idols one is the same kind of wrong as
+    // printing a soul level for a game that has none.
+    const what = ch.game === "sdt" ? "Sculptor's Idols Lit" : "Bonfires Discovered";
+    const count = total > 0 && lit <= total ? `${lit} of ${total}` : `${lit}`;
+    const note = ch.game === "dsr" || ch.game === "ptde"
+      ? "Each bonfire's own record, with how far it is kindled. A floor on how far you got."
+      : DS2_GAMES.has(ch.game)
+        ? "Every bonfire the save records as discovered, by area. A floor on how far you got."
+        : ch.game === "sdt"
+          ? "Each idol's own flag bit, by area. A floor — and one that starts again on a new journey."
+          : "Bonfires lit, inferred from each area's flag bits. A floor on how far you got.";
+    card.append(section(`${what} (${count}, in ${n} of ${areas} areas)`, [
+      el("p", { class: "hint", text: note }),
+      progressBar(lit, total, `${lit} of ${total} ${ch.game === "sdt" ? "idols lit" : "bonfires discovered"}`),
+      el("ul", { class: "areas" }, ...ch.bonfire_areas.map(
+        ([name, c, named, tot, missing]) => areaRow(name, c, tot, named, missing)))]));
+  }
+  if (ch.world_flags && ch.world_flags.length) {
+    const got = ch.world_flags.reduce((s2, [, c]) => s2 + c, 0);
+    const total = ch.world_flags.reduce((s2, [, , , t]) => s2 + t, 0);
+    card.append(section(`World State (${got} of ${total} tracked)`, [
+      el("p", { class: "hint", text: "One-off world events — the bells, the Lordvessel, shortcut doors and levers, fog gates, NPCs and the covenant joined. Each is exact; only the flags that have been named are counted." }),
+      progressBar(got, total, `${got} of ${total} world flags set`),
+      el("ul", { class: "areas" }, ...ch.world_flags.map(
+        ([cat, c, names, tot, missing]) => areaRow(cat, c, tot, names, missing, "not yet")))]));
+  }
+  if (ch.minibosses && ch.minibosses.length) {
+    const dead = ch.minibosses.reduce((s2, [, c]) => s2 + c, 0);
+    const total = ch.minibosses.reduce((s2, [, , t]) => s2 + t, 0);
+    card.append(section(`Minibosses Defeated (${dead} of ${total} tracked)`, [
+      el("p", { class: "hint", text: "Each miniboss's own defeat flag — exact, not inferred, but it resets on a new journey. Names are enemy types, so repeats in an area are different enemies." }),
+      progressBar(dead, total, `${dead} of ${total} minibosses defeated`),
+      el("ul", { class: "areas two" }, ...ch.minibosses.map(
+        ([area, c, tot, alive]) => areaRow(area, c, tot, null, countDupes(alive), "still alive")))]));
   }
   if (ch.covenants && Object.keys(ch.covenants).length) {
     const list = el("ul", { class: "items" });
@@ -323,14 +385,8 @@ function characterCard(slot, ch, bonfireTotal) {
       "aria-valuemin": "0", "aria-valuemax": String(total),
       "aria-label": `${got} of ${total} tracked world items picked up` },
       el("span", { class: "pbar-f", style: `width:${pct}%` }));
-    const list = el("ul", { class: "items cols" }, ...ch.pickups.map(([area, c, tot, missing]) => {
-      const li = el("li", null, el("span", { class: "slot", text: `${area}: ${c}/${tot} ` }));
-      // Same rule as bonfires — a started area lists what is left in it.
-      if (c && missing && missing.length) {
-        li.append(el("span", { class: "hint", text: ` missing: ${countDupes(missing).join(" · ")}` }));
-      }
-      return li;
-    }));
+    const list = el("ul", { class: "areas" }, ...ch.pickups.map(
+      ([area, c, tot, missing]) => areaRow(area, c, tot, null, countDupes(missing))));
     card.append(section(`Items Collected (${got} of ${total} tracked)`, [
       el("p", { class: "hint", text: "One-off world items picked up, from each area's pickup flags. Only the areas whose flag group is mapped are counted — an area not listed is untracked, not empty." }),
       bar, list]));

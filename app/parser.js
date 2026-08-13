@@ -675,7 +675,7 @@ function ds1Bonfires(buf, db) {
 // against ~32% for ordinary save data, so a moved region turns the feature off.
 const DS1_FLAG_BASE = { dsr: 127721, ptde: 127273 };
 const DS1_FLAG_MAX_DENSITY = 0.05, DS1_FLAG_SPAN = 23156;
-function ds1AttachFlags(ch, buf, table, game) {
+function ds1AttachFlags(ch, buf, table, game, known) {
   const base = DS1_FLAG_BASE[game];
   if (base == null || !table || !Object.keys(table).length) return;
   if (base + DS1_FLAG_SPAN > buf.length) return;
@@ -695,6 +695,18 @@ function ds1AttachFlags(ch, buf, table, game) {
     }
   }
   if (bosses.size) ch.bosses = mapToSortedEvidence(bosses, false);
+  // World state out of the same region: bells, Lordvessel, doors, levers, fog gates,
+  // NPCs, covenant joined. See ds1_attach_flags in sl2/ds1.py.
+  const world = [];
+  for (const [cat, rows] of Object.entries(known || {})) {
+    const got = [], missing = [];
+    for (const [off, mask, name] of rows) {
+      const v = u32(buf, base + off);
+      ((v != null && (v & mask) >>> 0) ? got : missing).push(name);
+    }
+    world.push([cat, got.length, got, rows.length, missing]);
+  }
+  if (world.some(([, c]) => c)) ch.world_flags = world;
 }
 function dsrParse(buf, itemDb) {
   const m = dsrFindAnchor(buf);
@@ -1661,7 +1673,7 @@ export function parseSave(data, dbs) {
         // Soul/NG+ floor first: attachDefeatedBosses refuses to run once `bosses`
         // exists, so the flags must be merged on top of it, not before it.
         attachDefeatedBosses(ch, dbs);
-        if (!isDs2) ds1AttachFlags(ch, slot, dbs.ds1.bossFlags, game);
+        if (!isDs2) ds1AttachFlags(ch, slot, dbs.ds1.bossFlags, game, dbs.ds1.knownFlags);
         attachProgressTotals(ch, dbs);
         characters.push({ slot: label(i), ch });
       }

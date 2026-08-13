@@ -590,6 +590,43 @@
       ]
      }
     },
+    "world_flags": {
+     "type": "array",
+     "description": "Dark Souls 1 only: one-off world events by category — the Bells of Awakening, the Lordvessel, shortcut doors and levers, non-boss fog gates, NPC states and the covenant joined. Each is read from its own event flag, so it is exact rather than inferred; the denominator is only the flags that have been NAMED, not every flag the game sets.",
+     "items": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "prefixItems": [
+       {
+        "type": "string",
+        "description": "Category name."
+       },
+       {
+        "type": "integer",
+        "description": "How many are set."
+       },
+       {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "The ones set, by name."
+       },
+       {
+        "type": "integer",
+        "description": "How many the category tracks."
+       },
+       {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "The ones not set yet, by name."
+       }
+      ]
+     }
+    },
     "covenants": {
      "type": "object",
      "description": "Covenants discovered, keyed by name; the value says what proves it. Distinct from the worn `covenant`.",

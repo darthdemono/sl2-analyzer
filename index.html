@@ -306,6 +306,27 @@
   ul.items li.noimg::before { content: "◆"; position: absolute; left: 0; top: 0; color: var(--accent-2); font-size: 9px; line-height: 2.1; }
   ul.items.cols { columns: 2; } @media (max-width: 560px) { ul.items.cols { columns: 1; } }
   ul.items.cols li { break-inside: avoid; }
+
+  /* Progress areas (bonfires / idols / minibosses / world pickups). One block per
+     area: the name on its own line with a dotted leader out to its tally, then the
+     names underneath. The old shape ran the label inline with the name list inside a
+     two-column list, which wrapped mid-label and left nothing to scan down. */
+  ul.areas { list-style: none; margin: 10px 0 0; padding: 0; }
+  ul.areas > li { padding: 7px 0; border-bottom: 1px solid var(--rule-soft); break-inside: avoid; }
+  ul.areas > li:last-child { border-bottom: 0; }
+  .area-head { display: flex; align-items: baseline; gap: 10px; }
+  .area-head .area { font-family: var(--font-title); color: var(--val);
+    letter-spacing: .04em; white-space: nowrap; }
+  /* The leader is what lets the eye run from a long area name to its number. */
+  .area-head .lead { flex: 1 1 auto; border-bottom: 1px dotted var(--rule); }
+  .area-head .tally { color: var(--accent); font-variant-numeric: tabular-nums;
+    white-space: nowrap; }
+  .area-names { margin-top: 3px; font-size: 15px; line-height: 1.5; }
+  .area-missing { margin-top: 3px; font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+  /* Rows with no name line are short enough to pair up. */
+  ul.areas.two { columns: 2; column-gap: 30px; }
+  ul.areas.two > li { break-inside: avoid; }
+  @media (max-width: 700px) { ul.areas.two { columns: 1; } }
   .tag { font-family: var(--font-title); font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em;
     padding: 2px 8px; border-radius: 2px; margin-left: 6px; vertical-align: middle; }
   .tag.flag { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); }

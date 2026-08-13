@@ -1,0 +1,240 @@
+{
+ "Bells of Awakening": [
+  [
+   3924,
+   8,
+   "Undead Parish"
+  ],
+  [
+   14104,
+   8388608,
+   "Blighttown"
+  ]
+ ],
+ "Lordvessel": [
+  [
+   17968,
+   32768,
+   "Dark Anor Londo"
+  ],
+  [
+   17992,
+   32768,
+   "Receive Lordvessel With Gwynevere Still Alive"
+  ],
+  [
+   24328,
+   32,
+   "Receive Lordvessel (Gwynevere Alive or Dead)"
+  ]
+ ],
+ "Non-Boss Fog Gates": [
+  [
+   16648,
+   32,
+   "Sen's Fortress, Fog Gate 1"
+  ],
+  [
+   16648,
+   16,
+   "Sen's Fortress, Fog Gate 2"
+  ],
+  [
+   17928,
+   32,
+   "Anor Londo, Fog Gate Rafters"
+  ],
+  [
+   17928,
+   16,
+   "Anor Londo, Fog Gate Archers"
+  ],
+  [
+   20488,
+   4096,
+   "Duke's Archives, Fog Gate"
+  ],
+  [
+   23048,
+   32,
+   "Northern Undead Asylum, Fog Gate"
+  ]
+ ],
+ "Doors": [
+  [
+   15400,
+   2048,
+   "Demon Ruins, Shortcut Door to Lost Izalith"
+  ],
+  [
+   17932,
+   131072,
+   "Anor Londo, Door to Gwynevere"
+  ],
+  [
+   23052,
+   16777216,
+   "Northern Undead Asylum, Cell Door"
+  ],
+  [
+   23052,
+   131072,
+   "Northern Undead Asylum, Big Pilgrim Door"
+  ],
+  [
+   23052,
+   32768,
+   "Northern Undead Asylum, Asylum Demon Door"
+  ],
+  [
+   53820,
+   2048,
+   "Darkroot Garden, Crest of Artorias Door"
+  ],
+  [
+   53820,
+   1024,
+   "Darkroot Garden, Sif Door"
+  ]
+ ],
+ "Levers": [
+  [
+   10352,
+   134217728,
+   "Catacombs, Entrance Lever"
+  ],
+  [
+   19224,
+   8388608,
+   "New Londo Ruins, Seal Opened"
+  ],
+  [
+   21128,
+   32,
+   "Duke's Archives, Second Lever"
+  ],
+  [
+   21128,
+   16,
+   "Duke's Archives, First Lever"
+  ]
+ ],
+ "Elevators": [
+  [
+   17944,
+   8,
+   "Anor Londo, Elevator Active"
+  ]
+ ],
+ "Join Covenants": [
+  [
+   104,
+   4096,
+   "Way of White"
+  ],
+  [
+   104,
+   2048,
+   "Princess Guard"
+  ],
+  [
+   104,
+   1024,
+   "Warrior of Sunlight"
+  ],
+  [
+   104,
+   512,
+   "Darkwraith"
+  ],
+  [
+   104,
+   256,
+   "Path of the Dragon"
+  ],
+  [
+   104,
+   128,
+   "Gravelord Servant"
+  ],
+  [
+   104,
+   64,
+   "Forest Hunter"
+  ],
+  [
+   104,
+   32,
+   "Darkmoon Blade"
+  ],
+  [
+   104,
+   16,
+   "Chaos Servant"
+  ]
+ ],
+ "NPC": [
+  [
+   140,
+   64,
+   "Dusk, Rescued From Golem"
+  ],
+  [
+   140,
+   32,
+   "Dusk, Available for Summon (Said Yes After Rescue)"
+  ],
+  [
+   140,
+   4,
+   "Dusk, Dead"
+  ],
+  [
+   192,
+   1073741824,
+   "Siegmeyer, Dead"
+  ],
+  [
+   196,
+   1,
+   "Lautrec, Dead"
+  ],
+  [
+   212,
+   2,
+   "Oswald, Dead"
+  ],
+  [
+   220,
+   8,
+   "Shiva Bodyguard, Dead"
+  ],
+  [
+   72960,
+   2147483648,
+   "Andre, Talk To For First Time"
+  ],
+  [
+   85760,
+   1073741824,
+   "Crestfallen Merchant, Talk To For First Time"
+  ],
+  [
+   87040,
+   2147483648,
+   "Blacksmith Giant, Talk To For First Time"
+  ]
+ ],
+ "Other": [
+  [
+   8964,
+   1,
+   "Goughless Kalameeth Death Animation"
+  ],
+  [
+   16664,
+   8192,
+   "Cutscene Skipped, Warp to Anor Londo"
+  ]
+ ]
+}

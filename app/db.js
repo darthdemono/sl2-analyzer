@@ -70,7 +70,7 @@ async function loadDs1(getJSON) {
   const [items, extra] = await Promise.all([
     jgetAll(getJSON, stems.map((s) => `db_ds1/${s}.json`)),
     jgetAll(getJSON, ["db_ds1/boss_souls.json", "db_ds1/bonfires.json", "db_ds1/boss_flags.json",
-                      "db_ds1/boss_route.json"]),
+                      "db_ds1/boss_route.json", "db_ds1/known_flags.json"]),
   ]);
   // name-keyed decimal, per-category, last-wins.
   const table = {};
@@ -82,6 +82,7 @@ async function loadDs1(getJSON) {
   });
   const bonfires = extra[1] || {};
   return { items: table, bossSouls: extra[0] || {}, bonfires, bossFlags: extra[2] || {},
+    knownFlags: extra[4] || {},
            bossRoute: extra[3] || {}, bonfireTotal: Object.keys(bonfires).length };
 }
 
@@ -156,6 +157,7 @@ async function loadDs3(getJSON) {
   });
   const bonfires = extra[1] || {};
   return { items: table, bossSouls: extra[0] || {}, bonfires, bossFlags: extra[2] || {},
+    knownFlags: extra[4] || {},
            questlines: extra[3] || {}, covenants: extra[4] || {},
            bossVictory: extra[5] || {}, lordCinders: extra[6] || {},
            bossRoute: extra[7] || {}, pickups: extra[8] || {},
@@ -206,7 +208,8 @@ const LOADERS = { ds1: loadDs1, ds2: loadDs2, ds3: loadDs3, er: loadEr, sdt: loa
  * game can never turn a lookup into a TypeError.
  */
 const EMPTY = {
-  ds1: () => ({ items: {}, bossSouls: {}, bonfires: {}, bossFlags: {}, bossRoute: {}, bonfireTotal: 0 }),
+  ds1: () => ({ items: {}, bossSouls: {}, bonfires: {}, bossFlags: {}, bossRoute: {},
+                knownFlags: {}, bonfireTotal: 0 }),
   ds2: () => ({ items: new Map(), bonfires: new Map(), bonfireAreas: new Map(),
                 bossFlags: new Map(), bossSouls: {}, bonfireTotal: 0 }),
   ds3: () => ({ items: new Map(), bossSouls: {}, bonfires: {}, bossFlags: {},
