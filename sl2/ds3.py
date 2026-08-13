@@ -935,8 +935,10 @@ def ds3_event_flag_base(buf):
 #        from both the per-map and the group-6 victory tables), @c cinders as the
 #        Lords of Cinder whose ashes are on the throne, and @c endings as the endings
 #        this character has reached (cumulative, so an NG+ save can hold several).
-#        No-op if @p base is None (region not located). @param base The event-flag
-#        base from @ref ds3_event_flag_base. @param base_dir Repo root for the db.
+#        No-op if @p base is None (region not located).
+# @param ch A parsed character. @param buf The decrypted slot.
+# @param base The event-flag base from @ref ds3_event_flag_base.
+# @param base_dir Repo root holding the db_* folders.
 def ds3_attach_flags(ch, buf, base, base_dir):
     if base is None:
         return

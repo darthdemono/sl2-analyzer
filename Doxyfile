@@ -1,0 +1,122 @@
+# Doxygen configuration for SL2 Analyzer.
+#
+# The repo has been written in Doxygen comment style from the start — `##` blocks with
+# @brief/@param/@return on the Python side, /** */ on the JS — so this file mostly just
+# points Doxygen at the code and gets out of the way. Only settings that differ from the
+# defaults, or that are load-bearing, are listed; Doxygen fills in the rest, which keeps
+# this readable instead of the 400-line dump `doxygen -g` produces.
+#
+# Output lands in documentation/ at the repo root, so GitHub Pages serves it at
+# /documentation/ alongside the app. It is NOT committed — the Pages workflow builds it
+# on every deploy, so it can never drift from the code it documents (which a committed
+# copy would, the first time someone edited a docstring and forgot to regenerate).
+#
+# Build locally with:  doxygen Doxyfile     (then open documentation/index.html)
+
+PROJECT_NAME           = "SL2 Analyzer"
+PROJECT_BRIEF          = "Read a FromSoftware .sl2 save and report what is in it"
+PROJECT_LOGO           = icon.svg
+
+# HTML_OUTPUT = . puts the pages directly in documentation/ rather than
+# documentation/html/, so the published URL is /documentation/ and not
+# /documentation/html/.
+OUTPUT_DIRECTORY       = documentation
+HTML_OUTPUT            = .
+CREATE_SUBDIRS         = NO
+
+# The two front ends and the generators. The CLI entry point is included because it is
+# the documented public surface even though the code lives in sl2/.
+INPUT                  = README.md \
+                         THIRD-PARTY-NOTICES.md \
+                         sl2_to_md.py \
+                         sl2 \
+                         app \
+                         tools
+FILE_PATTERNS          = *.py *.js *.md
+RECURSIVE              = YES
+
+# vendor/ is a third-party minified bundle (mermaid) with no docs to extract and a
+# parse cost out of all proportion. scratch/ and test/ are git-ignored dev material.
+EXCLUDE                = vendor scratch test documentation
+EXCLUDE_PATTERNS       = */node_modules/* *.min.js
+
+# The README is the front page — it already explains what the tool is, what each game
+# supports and where every offset came from, which is exactly what a reader landing on
+# the docs wants first.
+USE_MDFILE_AS_MAINPAGE = README.md
+
+# The README links `schema.json` relatively, which is correct on GitHub and 404s once
+# the same page is served from documentation/. Copying it into the output fixes the
+# link without making the README worse for the people reading it on GitHub.
+HTML_EXTRA_FILES       = schema.json
+
+# EXTRACT_ALL keeps undocumented members visible. That matters here: a reader using
+# this to understand the parser needs to see a helper exists even when its name is the
+# whole explanation, and hiding it would make the call graphs lie by omission.
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_METHODS  = YES
+
+# The Python side documents module-level constants heavily — most of the reverse
+# engineering IS a named offset with a paragraph explaining how it was measured — so
+# those must not be dropped.
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+HIDE_SCOPE_NAMES       = NO
+SHOW_INCLUDE_FILES     = NO
+
+# Source browsing is the point for a repo like this: the prose explains why an offset
+# is what it is, and the reader will want the line it is used on.
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+# Doxygen's own Python handling: `##` blocks are read as documentation, and a plain
+# docstring is used as the brief when no @brief is given.
+PYTHON_DOCSTRING       = YES
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = YES
+
+# Sorting by declaration order rather than alphabetically, because these files are
+# written to be read top to bottom — the constants that a function needs sit directly
+# above it with the reasoning in between.
+SORT_MEMBER_DOCS       = NO
+SORT_BRIEF_DOCS        = NO
+
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+HTML_COLORSTYLE        = TOGGLE
+SEARCHENGINE           = YES
+
+# Graphviz is installed in the workflow. Call graphs are worth the build time here:
+# "what calls ds3_attach_flags" is a question this codebase invites.
+HAVE_DOT               = YES
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = YES
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
+DOT_GRAPH_MAX_NODES    = 60
+
+# A warning here means a comment has drifted from the code it describes, which is worth
+# seeing in the build log. Not fatal: EXTRACT_ALL guarantees undocumented-member noise,
+# and failing the deploy over a missing @param would be the wrong trade.
+QUIET                  = NO
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+# Both NO on purpose: this repo documents @param only where the name is not the whole
+# explanation ("no restating-the-obvious comments" is a stated convention), so leaving
+# these on reports the house style as an error 30 times a build and buries the warnings
+# that mean something. Doxygen splits the two — WARN_NO_PARAMDOC is "no @param at all",
+# WARN_IF_INCOMPLETE_DOC is "some parameters documented, others not", and it is the
+# second that fires here.
+WARN_NO_PARAMDOC       = NO
+WARN_IF_INCOMPLETE_DOC = NO

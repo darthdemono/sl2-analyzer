@@ -31,6 +31,15 @@ jobs:
 
       - uses: actions/configure-pages@v5
 
+      # Built here rather than committed, so the docs can never drift from the code
+      # they describe. graphviz is for the call graphs the Doxyfile asks for.
+      - name: Build the API documentation
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq doxygen graphviz
+          doxygen Doxyfile
+          test -f documentation/index.html
+
       - name: Package the repo root
         uses: actions/upload-pages-artifact@v3
         with:

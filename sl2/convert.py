@@ -345,7 +345,7 @@ META_LABEL = {"dlc": "DLC", "os": "OS", "cpu": "CPU", "gpu": "GPU", "ram": "RAM"
 #        how-it-works note.
 # @details These are facts about the TOOL, not about the character, and they are
 # identical in every export — so they sit at the end, out of the way of the save's own
-# numbers, and folded into a @c <details> block so two exports diff cleanly. The save
+# numbers, and folded into a @c \<details\> block so two exports diff cleanly. The save
 # version is the one line here that IS about the file, and it sits here because it is a
 # property of the file rather than of any one character — as is the game patch.
 # @param cfg The GAMES entry. @param n Characters rendered.

@@ -14,7 +14,9 @@ from datetime import datetime
 from .timeline import achievements, children
 
 ## @brief Mermaid takes the label between double quotes, so the label may not contain
-#  one; #quot; is its own escape. Line breaks inside a node are <br/>.
+#  one; `#quot;` is its own escape. Line breaks inside a node are `<br/>`.
+#  (Both are backticked so Doxygen reads them as literals — bare `#quot;` is a link
+#  request to it, and a bare break tag is parsed as HTML.)
 def mm(text):
     return str(text).replace('"', "#quot;")
 

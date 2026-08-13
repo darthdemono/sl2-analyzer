@@ -50,6 +50,7 @@ const isDb = (url) => /\/db_(ds1|ds2|ds3|er)\//.test(url.pathname);
 // The chart library is 3.4 MB and only the combined view ever asks for it, so it is
 // cached the same way as the tables: on first use, not up front.
 const isVendor = (url) => url.pathname.includes("/vendor/");
+const isDocs = (url) => url.pathname.includes("/documentation/");
 
 self.addEventListener("fetch", (e) => {
   const req = e.request;
@@ -76,5 +77,11 @@ self.addEventListener("fetch", (e) => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
       return res;
     })
-    .catch(() => caches.match(req).then((hit) => hit || caches.match("index.html"))));
+    // The index.html fallback is for the APP being opened offline. The generated
+    // documentation is a separate site under /documentation/, so serving it the app
+    // shell would answer "where are the docs" with the analyzer — worse than failing.
+    // Once visited online it is cached by the same network-first path above, so this
+    // only bites on a page never opened.
+    .catch(() => caches.match(req).then((hit) =>
+      hit || (isDocs(url) ? Response.error() : caches.match("index.html")))));
 });

@@ -387,15 +387,6 @@ def ds1_inventory(buf, item_db):
 
 
 ##
-# @brief Build the unified full-tier dict from a located DS1 stat anchor.
-# @details Shared by DSR and PtDE: the two games carry the *same* stat block —
-# same fields at the same signed distances from the same anchor point (proven by
-# reading a real PtDE save byte-for-byte against the DSR distances). Only the way
-# the anchor is *found* differs, and NG+ is DSR-file-specific, so the caller
-# passes it (PtDE has no calibrated NG+ field and passes None).
-# @param m  The stat anchor (a DSR-equivalent anchor position).
-# @param ng New Game+ count, or None to omit the field.
-##
 # @brief Total deaths for a DS1 slot, or None when the struct isn't where expected.
 # @details Guarded by the sentinel that follows the counter in both releases: if the
 # uint32 at +4 isn't 0xFFFFFFFF the struct has moved and the field is dropped rather
@@ -432,6 +423,15 @@ def ds1_attach_playtime(ch, menu):
         pos = menu.find(want, pos + 2)
 
 
+##
+# @brief Build the unified full-tier dict from a located DS1 stat anchor.
+# @details Shared by DSR and PtDE: the two games carry the *same* stat block —
+# same fields at the same signed distances from the same anchor point (proven by
+# reading a real PtDE save byte-for-byte against the DSR distances). Only the way
+# the anchor is *found* differs, and NG+ is DSR-file-specific, so the caller
+# passes it (PtDE has no calibrated NG+ field and passes None).
+# @param m  The stat anchor (a DSR-equivalent anchor position).
+# @param ng New Game+ count, or None to omit the field.
 def ds1_character(buf, item_db, m, game, ng):
     stats = OrderedDict((k, u8(buf, m + d)) for k, d in DSR_STAT_D.items())
     buckets, unknown = ds1_inventory(buf, item_db)
