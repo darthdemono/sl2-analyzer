@@ -247,6 +247,15 @@ SDT_BONFIRE_NOTE = ("each idol's own flag bit, by area — a floor, and one that
                     "again on a new journey")
 
 
+# Sekiro files a miniboss's defeat under its own ENTITY id, so unlike the Memory bosses
+# these are exact rather than inferred. The names are enemy TYPES from the only published
+# table that lists them, which is why four of them are "Shura Samurai" — those are four
+# different enemies, not one printed four times.
+SDT_MINIBOSS_NOTE = ("each miniboss's own defeat flag — exact, not inferred, but it "
+                     "resets on a new journey; names are enemy types, so repeats in an "
+                     "area are different enemies")
+
+
 # Only six areas have a derived flag-group base, so this counts what is TRACKED, not
 # what the game ships. An area absent from the list is unmapped, not empty.
 DS3_PICKUP_NOTE = ("one-off world items picked up, from each area's pickup flags — "
@@ -483,6 +492,19 @@ def md_for_character(ch, slot_no):
         note = missing_note("Not found yet", ch.get("covenants_missing"))
         if note:
             L += [note, ""]
+    if ch.get("minibosses"):
+        dead = sum(c for _a, c, _t, _m in ch["minibosses"])
+        total = sum(t for _a, _c, t, _m in ch["minibosses"])
+        L += [f"### Minibosses Defeated ({dead} of {total} tracked)  _({SDT_MINIBOSS_NOTE})_",
+              ""]
+        for area, c, tot, alive in ch["minibosses"]:
+            row = f"- {area}: {c}/{tot}"
+            # Same rule as every other progress section: an area you have started says
+            # what is left in it, an untouched one would print a walkthrough back.
+            if c and alive:
+                row += f"  _(still alive: {' · '.join(count_dupes(alive))})_"
+            L.append(row)
+        L.append("")
     if ch.get("pickups"):
         got = sum(c for _a, c, _t, _m in ch["pickups"])
         total = sum(t for _a, _c, t, _m in ch["pickups"])

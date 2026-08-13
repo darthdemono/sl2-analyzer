@@ -13,10 +13,10 @@ from .itemdb import DS1_DB_FILES, DS2_DB_FILES, load_item_db, load_scan_db
 from .progress import attach_defeated_bosses
 from .roster import parse_roster
 from .ds1 import ds1_augment, dsr_parse, ptde_parse
-from .ds2 import ds2_active_slots, ds2_augment, ds2_parse
+from .ds2 import DS2_GAMES, ds2_active_slots, ds2_augment, ds2_parse
 from .ds3 import DS3_DB_FILES, ds3_attach_flags, ds3_attach_ring_effects, ds3_event_flag_base, ds3_item_cat, ds3_journey, ds3_parse, ds3_playtime
 from .er import er_parse, er_roster, load_er_db
-from .sdt import SDT_SLOT_COUNT, load_sdt_db, sdt_attach_flags, sdt_parse
+from .sdt import SDT_SLOT_COUNT, load_sdt_db, sdt_active_slots, sdt_attach_flags, sdt_parse
 from .totals import attach_progress_totals
 from .render import md_for_character
 
@@ -187,6 +187,21 @@ STEAM_ID_GAMES = {"ds3": (10, 0x04), "er": (10, 0x04), "sdt": (10, 0x24)}
 
 
 ##
+# @brief Dark Souls II keeps the same account, but as ASCII TEXT — entry 0, offset 53,
+#        sixteen characters of lowercase hex.
+# @details This file used to say DS2 stored no account at all. That was wrong, and the
+# reason it was wrong is worth keeping: the search that "proved" it looked for the
+# SteamID64 as a 64-bit integer and as UTF-16, and DS2 writes the *folder name* — the
+# printable hex string — so neither form was ever going to hit. `mi5hmash/SL2Bonfire`
+# names the offset (`SteamIdOffsetInUserDataFile` 53, `UserDataFileNumber` 0), and it
+# checks out on every DS2 save here: eight backups in `0110000100001337` all read that
+# string, and the vanilla mule reads `011000015ab603ef`, a different account. Two
+# releases, two accounts, and every one matching the folder it was found in.
+DS2_STEAM_ID_OFF = 53
+DS2_STEAM_ID_LEN = 16
+
+
+##
 # @brief High dword of every individual-account SteamID64 (universe 1, type 1,
 #        instance 1). The low dword is the account id proper.
 # @details Reading the field as two halves rather than one @c uint64 is deliberate and
@@ -204,7 +219,7 @@ STEAM_ID64_HIGH = 0x01100001
 #  Sekiro in the decimal `76561199030416229`. DS2 names its folder the same hex way but
 #  is NOT listed, because it stores no account to derive one from. ER is not listed
 #  either: no ER folder was on hand, so its convention is unchecked and unclaimed.
-STEAM_FOLDER_HEX = {"ds3"}
+STEAM_FOLDER_HEX = {"ds3", "ds2sotfs", "ds2vanilla"}
 
 
 ## @brief Games whose save folder is named with the decimal SteamID64.
@@ -218,6 +233,8 @@ STEAM_FOLDER_DEC = {"sdt"}
 # JavaScript double and the two front ends have to agree byte for byte.
 # @param data The full file bytes. @param entries BND4 entries. @param game The game key.
 def steam_owner(data, entries, game):
+    if game in DS2_GAMES:
+        return ds2_steam_owner(data, entries, game)
     where = STEAM_ID_GAMES.get(game)
     if where is None:
         return None
@@ -232,6 +249,33 @@ def steam_owner(data, entries, game):
     if low is None or high != STEAM_ID64_HIGH or low == 0:
         return None
     return low, str((high << 32) | low)
+
+
+##
+# @brief DS2's account, read as text rather than as a number.
+# @details Returns the same @c (account_id, steam_id64_text) pair as @ref steam_owner so
+# everything downstream is unchanged. The string is parsed rather than trusted: it must
+# be sixteen hex digits whose top half is the individual-account constant, which is the
+# same validity gate the numeric games use and is what stops an unrelated run of text
+# being printed as somebody's account.
+# @param data The full file bytes. @param entries BND4 entries. @param game The game key.
+def ds2_steam_owner(data, entries, game):
+    if not entries:
+        return None
+    e = entries[0]
+    buf = GAMES[game]["decrypt"](data[e.offset:e.offset + e.size])
+    if buf is None or len(buf) < DS2_STEAM_ID_OFF + DS2_STEAM_ID_LEN:
+        return None
+    raw = bytes(buf[DS2_STEAM_ID_OFF:DS2_STEAM_ID_OFF + DS2_STEAM_ID_LEN])
+    try:
+        text = raw.decode("ascii")
+        value = int(text, 16)
+    except (UnicodeDecodeError, ValueError):
+        return None
+    account = value & 0xFFFFFFFF
+    if (value >> 32) != STEAM_ID64_HIGH or not account:
+        return None
+    return account, str(value)
 
 
 ##
@@ -410,8 +454,11 @@ def parse_save(data, base_dir):
         iddb = load_sdt_db(db_dir)
         if not any(iddb["names"].values()):
             sys.exit(f"No item database found in {db_dir}")
+        # The game's own occupancy array, where it can be read — it is what tells a live
+        # character from a deleted one, which the slot's content cannot.
+        active = sdt_active_slots(data, entries, cfg["decrypt"])
         for i in cfg["slots"]:
-            if i >= len(entries):
+            if i >= len(entries) or (active is not None and i not in active):
                 continue
             slot = cfg["decrypt"](data[entries[i].offset:entries[i].offset + entries[i].size])
             if slot is None:

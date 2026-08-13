@@ -1,0 +1,148 @@
+{
+ "Ashina Outskirts": [
+  [
+   1100300,
+   "Samurai General"
+  ],
+  [
+   1100301,
+   "Samurai General"
+  ],
+  [
+   1100310,
+   "Chained Ogre"
+  ],
+  [
+   1100480,
+   "Shura Samurai"
+  ]
+ ],
+ "Hirata Estate": [
+  [
+   1000300,
+   "Shura Samurai"
+  ],
+  [
+   1000301,
+   "Shura Samurai"
+  ],
+  [
+   1000330,
+   "Shinobi Hunter"
+  ],
+  [
+   1000353,
+   "Lone Shadow"
+  ]
+ ],
+ "Ashina Castle": [
+  [
+   1110305,
+   "Lone Shadow"
+  ],
+  [
+   1110316,
+   "Lone Shadow"
+  ],
+  [
+   1110410,
+   "Samurai General"
+  ],
+  [
+   1110440,
+   "Blazing Bull"
+  ],
+  [
+   1110504,
+   "Fencer"
+  ],
+  [
+   1110511,
+   "Fencer"
+  ],
+  [
+   1110610,
+   "Chained Ogre"
+  ]
+ ],
+ "Ashina Reservoir": [
+  [
+   1120250,
+   "Samurai General"
+  ],
+  [
+   1120300,
+   "Lone Shadow"
+  ],
+  [
+   1120521,
+   "Seven Ashina Spears"
+  ],
+  [
+   1120530,
+   "Seven Ashina Spears"
+  ]
+ ],
+ "Abandoned Dungeon": [
+  [
+   1300200,
+   "Shichimen Warrior"
+  ]
+ ],
+ "Senpou Temple, Mt. Kongo": [
+  [
+   2000279,
+   "Centipede Boss"
+  ],
+  [
+   2000400,
+   "Armored Warrior"
+  ]
+ ],
+ "Sunken Valley": [
+  [
+   1700200,
+   "Snake Eyes"
+  ],
+  [
+   1700201,
+   "Snake Eyes"
+  ],
+  [
+   1700425,
+   "Centipede Boss"
+  ],
+  [
+   1700520,
+   "Shichimen Warrior"
+  ]
+ ],
+ "Ashina Depths": [
+  [
+   1500200,
+   "Palace Noble"
+  ],
+  [
+   1500490,
+   "Shura Samurai"
+  ],
+  [
+   1500690,
+   "O'Rin"
+  ]
+ ],
+ "Fountainhead Palace": [
+  [
+   2500406,
+   "Okami Warrior"
+  ],
+  [
+   2500570,
+   "Sakura Bull of the Palace"
+  ],
+  [
+   2500580,
+   "Shichimen Warrior"
+  ]
+ ]
+}

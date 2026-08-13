@@ -490,6 +490,64 @@ def sdt_flag_offset(fid):
     return block + (n >> 5) * 4 + 3 - ((n & 31) >> 3), 7 - (n & 7)
 
 
+##
+# @brief Which slots the game itself considers occupied: menu entry, one byte per slot.
+# @details Sekiro DOES publish an occupancy array after all, and this repo spent a long
+# time working around its absence by judging a slot from its own content (play time,
+# Steam id, any item). `mi5hmash/SL2Bonfire` carries the offset in its per-game profile
+# — `UserDataFileNumber` 10, `SlotsOccupancyOffset` 212 — and it is strictly better than
+# the content test, because content cannot tell a live character from a DELETED one.
+#
+# That is not theoretical: a third-party "100% complete" save reads three slots by
+# content and one by the array, and the two extra are ghosts the game does not show.
+# Exactly the DS2 case, where deleting a character clears the menu entry and leaves the
+# block intact — so Sekiro gets the same treatment DS2 already had.
+#
+# Degrades the same way DS2's does: an unreadable array, a byte that is not 0/1, or an
+# array claiming nothing is occupied all return None, which turns the filter OFF rather
+# than hiding real characters behind a moved offset.
+# @param data The full file bytes. @param entries The BND4 entries. @param decrypt The
+#        game's own decrypt callable. @return A set of slot indices, or None.
+SDT_MENU_ENTRY = 10
+SDT_OCCUPANCY_OFF = 212
+
+
+def sdt_active_slots(data, entries, decrypt):
+    if len(entries) <= SDT_MENU_ENTRY:
+        return None
+    e = entries[SDT_MENU_ENTRY]
+    menu = decrypt(data[e.offset:e.offset + e.size])
+    if menu is None:
+        return None
+    active = set()
+    for i in range(SDT_SLOT_COUNT):
+        byte = u8(menu, SDT_OCCUPANCY_OFF + i)
+        if byte is None or byte > 1:
+            return None
+        if byte:
+            active.add(i)
+    return active or None
+
+
+##
+# @brief Load the miniboss table (area → [[entity id, name]]). Cached per dir.
+# @details The entity id IS the defeat flag in Sekiro — not the separate per-map block
+# Dark Souls III uses — which is why this table needs no flag column. Measured, not
+# assumed; see `tools/gen_sdt_minibosses.py` and the change log for the four checks.
+_MINIBOSS_CACHE = {}
+
+
+def load_sdt_minibosses(base_dir):
+    if base_dir not in _MINIBOSS_CACHE:
+        path = os.path.join(base_dir, "db_sdt", "minibosses.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _MINIBOSS_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _MINIBOSS_CACHE[base_dir] = {}
+    return _MINIBOSS_CACHE[base_dir]
+
+
 ## @brief Load the Sculptor's Idol table (area → [[flag id, name]]). Cached per dir.
 _IDOL_CACHE = {}
 
@@ -554,3 +612,16 @@ def sdt_attach_flags(ch, buf, base_dir):
     # minutes from the opening and have not reached an idol.
     if any_lit:
         ch["bonfire_areas"] = areas
+    # Minibosses, in DS3's pickup shape (area, found, total, missing) rather than the
+    # bonfire one — they have no per-area denominator worth naming individually, and the
+    # missing list wants collapsing by name because four of them really are "Shura
+    # Samurai" at four different entity ids.
+    minis, any_dead = [], False
+    for area, enemies in load_sdt_minibosses(base_dir).items():
+        dead, alive = [], []
+        for eid, name in enemies:
+            (dead if sdt_flag(buf, int(eid)) else alive).append(name)
+        any_dead = any_dead or bool(dead)
+        minis.append((area, len(dead), len(enemies), alive))
+    if any_dead:
+        ch["minibosses"] = minis

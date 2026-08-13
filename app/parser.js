@@ -1360,6 +1360,36 @@ function sdtAttachFlags(ch, buf, dbs) {
     areas.push([area, named.length, named, idols.length, missing]);
   }
   if (anyLit) ch.bonfire_areas = areas;
+  // Minibosses, in DS3's pickup shape. Sekiro files a defeat under the enemy's own
+  // ENTITY id — see load_sdt_minibosses in sl2/sdt.py for how that was measured.
+  const minis = [];
+  let anyDead = false;
+  for (const [area, enemies] of Object.entries(dbs.sdt.minibosses || {})) {
+    const dead = [], alive = [];
+    for (const [eid, name] of enemies) (sdtFlag(buf, Number(eid)) ? dead : alive).push(name);
+    anyDead = anyDead || dead.length > 0;
+    minis.push([area, dead.length, enemies.length, alive]);
+  }
+  if (anyDead) ch.minibosses = minis;
+}
+
+// The game's own slot-occupancy array: menu entry 10, one byte per slot. It is what
+// separates a live character from a DELETED one, which slot content cannot — see
+// sdt_active_slots in sl2/sdt.py. Returns null (filter off) rather than hiding real
+// characters when the array cannot be trusted.
+const SDT_MENU_ENTRY = 10, SDT_OCCUPANCY_OFF = 212;
+
+function sdtActiveSlots(data, entries) {
+  if (entries.length <= SDT_MENU_ENTRY) return null;
+  const menu = decryptNone(blobOf(data, entries[SDT_MENU_ENTRY]));
+  if (menu === null) return null;
+  const active = new Set();
+  for (let i = 0; i < SDT_SLOT_COUNT; i++) {
+    const b = u8(menu, SDT_OCCUPANCY_OFF + i);
+    if (b == null || b > 1) return null;
+    if (b) active.add(i);
+  }
+  return active.size ? active : null;
 }
 
 /** Parse one Sekiro slot. No name and no attributes — the game has neither. */
@@ -1491,11 +1521,31 @@ const STEAM_ID_GAMES = { ds3: [10, 0x04], er: [10, 0x04], sdt: [10, 0x24] };
 // bigger than Number.MAX_SAFE_INTEGER, so u64() would round off the last digits and the
 // browser would disagree with the CLI. The decimal form is built with BigInt instead.
 const STEAM_ID64_HIGH = 0x01100001;
-const STEAM_FOLDER_HEX = new Set(["ds3"]);
+const STEAM_FOLDER_HEX = new Set(["ds3", "ds2sotfs", "ds2vanilla"]);
 const STEAM_FOLDER_DEC = new Set(["sdt"]);
+// DS2 stores the same account as ASCII TEXT — entry 0, offset 53, sixteen hex chars.
+// See DS2_STEAM_ID_OFF in sl2/convert.py for why the old "DS2 has no account" claim
+// was wrong: the search looked for a number and DS2 writes the folder name.
+const DS2_STEAM_ID_OFF = 53, DS2_STEAM_ID_LEN = 16;
+
+/** DS2's account, parsed out of text. Same [accountId, steamId64Text] shape. */
+function ds2SteamOwner(data, entries, game) {
+  if (!entries.length) return null;
+  const buf = decryptDs2(blobOf(data, entries[0]),
+    game === "ds2vanilla" ? DS2_VANILLA_KEY : undefined);
+  if (buf === null || buf.length < DS2_STEAM_ID_OFF + DS2_STEAM_ID_LEN) return null;
+  let text = "";
+  for (let i = 0; i < DS2_STEAM_ID_LEN; i++) text += String.fromCharCode(buf[DS2_STEAM_ID_OFF + i]);
+  if (!/^[0-9a-fA-F]{16}$/.test(text)) return null;
+  const value = BigInt("0x" + text);
+  const account = Number(value & 0xFFFFFFFFn);
+  if (Number(value >> 32n) !== STEAM_ID64_HIGH || !account) return null;
+  return [account, value.toString()];
+}
 
 /** The owning Steam account as [accountId, steamId64Text], or null. */
 function steamOwner(data, entries, game) {
+  if (DS2_GAMES.has(game)) return ds2SteamOwner(data, entries, game);
   const where = STEAM_ID_GAMES[game];
   if (!where) return null;
   const [entry, off] = where;
@@ -1550,8 +1600,9 @@ export function parseSave(data, dbs) {
       }
     }
   } else if (game === "sdt") {
+    const active = sdtActiveSlots(data, entries);
     for (let i = meta.slots[0]; i < meta.slots[1]; i++) {
-      if (i >= entries.length) continue;
+      if (i >= entries.length || (active !== null && !active.has(i))) continue;
       const slot = decryptNone(blobOf(data, entries[i]));
       const ch = sdtParse(slot, dbs.sdt);
       if (ch) {

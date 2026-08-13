@@ -16,6 +16,9 @@ const DS2_BONFIRE_NOTE = "each bonfire the save records as discovered, by area �
 // Sekiro's bonfire is a Sculptor's Idol, and unlike every other game's it starts again
 // on a new journey. See SDT_BONFIRE_NOTE in sl2/render.py.
 const SDT_BONFIRE_NOTE = "each idol's own flag bit, by area — a floor, and one that starts again on a new journey";
+// Sekiro files a miniboss defeat under the enemy's own entity id, so these are exact
+// rather than inferred. Verbatim from SDT_MINIBOSS_NOTE in sl2/render.py.
+const SDT_MINIBOSS_NOTE = "each miniboss's own defeat flag — exact, not inferred, but it resets on a new journey; names are enemy types, so repeats in an area are different enemies";
 // Only six areas have a derived flag-group base, so this counts what is TRACKED, not
 // what the game ships. An area absent from the list is unmapped, not empty.
 const DS3_PICKUP_NOTE = "one-off world items picked up, from each area's pickup flags — covers only the areas whose flag group is mapped";
@@ -196,6 +199,16 @@ export function mdCharacter(ch, slot) {
     L.push("");
     const note = missingNote("Not found yet", ch.covenants_missing);
     if (note) L.push(note, "");
+  }
+  if (ch.minibosses && ch.minibosses.length) {
+    const dead = ch.minibosses.reduce((s2, [, c]) => s2 + c, 0);
+    const total = ch.minibosses.reduce((s2, [, , t]) => s2 + t, 0);
+    L.push(`### Minibosses Defeated (${dead} of ${total} tracked)  _(${SDT_MINIBOSS_NOTE})_`, "",
+      ...ch.minibosses.map(([area, c, tot, alive]) => {
+        let row = `- ${area}: ${c}/${tot}`;
+        if (c && alive.length) row += `  _(still alive: ${countDupes(alive).join(" · ")})_`;
+        return row;
+      }), "");
   }
   if (ch.pickups && ch.pickups.length) {
     const got = ch.pickups.reduce((s2, [, c]) => s2 + c, 0);
