@@ -7,6 +7,11 @@ db_er/
 db_sdt/
 schema.json
 
+# A Doxygen HTML TEMPLATE, not an HTML document: it is full of $-markers Doxygen
+# substitutes at build time and it does not stand alone. Prettier reflows it into
+# something Doxygen no longer recognises.
+doc-theme/
+
 # Third-party, generated, or git-ignored working material.
 vendor/
 documentation/

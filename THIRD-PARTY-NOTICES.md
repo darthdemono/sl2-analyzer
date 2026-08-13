@@ -100,3 +100,11 @@ it never writes to it.
 the page stays self-contained, works offline, and makes no cross-origin request. It
 renders the flowcharts in the combined view; the Markdown export carries the same
 charts as plain ```mermaid blocks, which need no library at all.
+
+**doxygen-awesome-css** v2.4.2 (`vendor/doxygen-awesome/`) — MIT, © 2021–2023 jothepro.
+<https://github.com/jothepro/doxygen-awesome-css>. The theme for the generated API
+documentation at `/documentation/`, vendored for the same reason as Mermaid: the docs
+build is then reproducible and needs no network. Four of its optional JavaScript
+extensions ship with it (dark-mode toggle, fragment copy button, paragraph links,
+interactive table of contents), loaded by `doc-theme/header.html`. Its own licence text
+sits beside the files in `vendor/doxygen-awesome/LICENSE`.
