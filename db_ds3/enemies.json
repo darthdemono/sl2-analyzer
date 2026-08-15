@@ -1,0 +1,774 @@
+{
+ "Archdragon Peak": [
+  [
+   9174,
+   7,
+   "Ancient Wyvern Boss"
+  ],
+  [
+   9108,
+   6,
+   "Ancient Wyvern Mob"
+  ],
+  [
+   9109,
+   3,
+   "Ancient Wyvern Mob"
+  ],
+  [
+   9106,
+   4,
+   "Crystal Lizard"
+  ],
+  [
+   9109,
+   4,
+   "Havel Knight"
+  ],
+  [
+   9176,
+   5,
+   "Nameless King"
+  ]
+ ],
+ "Catacombs of Carthus": [
+  [
+   20635,
+   2,
+   "Carthus Sandworm"
+  ],
+  [
+   20641,
+   3,
+   "Crystal Lizard"
+  ],
+  [
+   20641,
+   4,
+   "Crystal Lizard"
+  ],
+  [
+   20641,
+   5,
+   "Crystal Lizard"
+  ],
+  [
+   20641,
+   6,
+   "Crystal Lizard"
+  ],
+  [
+   20641,
+   7,
+   "Crystal Lizard"
+  ],
+  [
+   20635,
+   3,
+   "Demon"
+  ],
+  [
+   20694,
+   7,
+   "High Lord Wolnir"
+  ],
+  [
+   20618,
+   3,
+   "Knight Slayer Tsorig"
+  ],
+  [
+   20641,
+   1,
+   "Knight Slayer Tsorig"
+  ],
+  [
+   20642,
+   1,
+   "Mimic Chest"
+  ],
+  [
+   20691,
+   1,
+   "Old Demon King"
+  ]
+ ],
+ "Cathedral of the Deep": [
+  [
+   15574,
+   7,
+   "Archdeacon of the Deep"
+  ],
+  [
+   15503,
+   2,
+   "Brigand"
+  ],
+  [
+   15510,
+   0,
+   "Corpse-grub"
+  ],
+  [
+   15510,
+   2,
+   "Crystal Lizard"
+  ],
+  [
+   15510,
+   3,
+   "Crystal Lizard"
+  ],
+  [
+   15509,
+   4,
+   "Deep Accursed"
+  ],
+  [
+   15503,
+   1,
+   "Fallen Knight"
+  ],
+  [
+   15509,
+   2,
+   "Giant Slave"
+  ],
+  [
+   15509,
+   3,
+   "Giant Slave"
+  ],
+  [
+   15498,
+   5,
+   "Longfinger Kirk"
+  ],
+  [
+   15509,
+   5,
+   "Mimic Chest"
+  ],
+  [
+   15510,
+   5,
+   "Ravenous Crystal Lizard"
+  ]
+ ],
+ "Filianore's Rest (DLC2)": [
+  [
+   32149,
+   3,
+   "Passive Locust Preacher"
+  ],
+  [
+   32216,
+   5,
+   "Shira"
+  ]
+ ],
+ "Firelink Shrine / Cemetery of Ash": [
+  [
+   23202,
+   1,
+   "Crystal Lizard"
+  ],
+  [
+   23178,
+   2,
+   "Daughter of Crystal Kriemhild"
+  ],
+  [
+   23251,
+   1,
+   "Gundyr"
+  ],
+  [
+   23195,
+   1,
+   "Ravenous Crystal Lizard"
+  ],
+  [
+   23195,
+   2,
+   "Ravenous Crystal Lizard"
+  ],
+  [
+   23195,
+   3,
+   "Ravenous Crystal Lizard"
+  ],
+  [
+   23190,
+   5,
+   "Unnamed enemy (4000250) + Unnamed enemy (4000290)"
+  ]
+ ],
+ "Grand Archives": [
+  [
+   14217,
+   3,
+   "Black Hand Kamui"
+  ],
+  [
+   14217,
+   6,
+   "Boreal Outrider Knight"
+  ],
+  [
+   14216,
+   3,
+   "Crystal Lizard"
+  ],
+  [
+   14216,
+   4,
+   "Crystal Lizard"
+  ],
+  [
+   14216,
+   5,
+   "Crystal Lizard"
+  ],
+  [
+   14216,
+   6,
+   "Crystal Lizard"
+  ],
+  [
+   14216,
+   7,
+   "Crystal Lizard"
+  ],
+  [
+   14217,
+   0,
+   "Crystal Lizard"
+  ],
+  [
+   14217,
+   1,
+   "Crystal Lizard"
+  ],
+  [
+   14217,
+   2,
+   "Crystal Lizard"
+  ],
+  [
+   14217,
+   7,
+   "Crystal Sage in Archives"
+  ],
+  [
+   14217,
+   4,
+   "Daughter of Crystal Kriemhild"
+  ],
+  [
+   14217,
+   5,
+   "Lion Knight Albert"
+  ]
+ ],
+ "High Wall of Lothric": [
+  [
+   4051,
+   1,
+   "Consumed King Oceiros"
+  ],
+  [
+   3998,
+   0,
+   "Crystal Lizard"
+  ],
+  [
+   4059,
+   5,
+   "Dancer of the Boreal Valley"
+  ],
+  [
+   3998,
+   1,
+   "Mimic Chest"
+  ],
+  [
+   3995,
+   2,
+   "Unnamed enemy (3000661)"
+  ],
+  [
+   4054,
+   7,
+   "Vordt of the Boreal Valley"
+  ]
+ ],
+ "Irithyll Dungeon": [
+  [
+   21898,
+   7,
+   "Alva, Seeker of the Spurned"
+  ],
+  [
+   21917,
+   7,
+   "Court Sorcerer"
+  ],
+  [
+   21912,
+   0,
+   "Crystal Lizard"
+  ],
+  [
+   21912,
+   1,
+   "Crystal Lizard"
+  ],
+  [
+   21912,
+   2,
+   "Crystal Lizard"
+  ],
+  [
+   21912,
+   3,
+   "Crystal Lizard"
+  ],
+  [
+   21915,
+   3,
+   "Giant Slave"
+  ],
+  [
+   21911,
+   0,
+   "Mimic Chest"
+  ],
+  [
+   21911,
+   1,
+   "Mimic Chest"
+  ],
+  [
+   21918,
+   3,
+   "Mimic Chest"
+  ],
+  [
+   21918,
+   4,
+   "Mimic Chest"
+  ],
+  [
+   21918,
+   5,
+   "Mimic Chest"
+  ],
+  [
+   21918,
+   6,
+   "Mimic Chest"
+  ],
+  [
+   21918,
+   7,
+   "Mimic Chest"
+  ],
+  [
+   21916,
+   2,
+   "Monstrosity of Sin"
+  ],
+  [
+   21916,
+   3,
+   "Monstrosity of Sin"
+  ],
+  [
+   21916,
+   4,
+   "Monstrosity of Sin"
+  ],
+  [
+   21916,
+   5,
+   "Monstrosity of Sin"
+  ],
+  [
+   21974,
+   7,
+   "Yhorm the Giant"
+  ]
+ ],
+ "Irithyll of the Boreal Valley": [
+  [
+   19414,
+   7,
+   "Aldrich, Devourer of Gods"
+  ],
+  [
+   19338,
+   6,
+   "Creighton the Wanderer"
+  ],
+  [
+   19347,
+   5,
+   "Crystal Lizard"
+  ],
+  [
+   19347,
+   6,
+   "Crystal Lizard"
+  ],
+  [
+   19347,
+   7,
+   "Crystal Lizard"
+  ],
+  [
+   19348,
+   0,
+   "Crystal Lizard"
+  ],
+  [
+   19348,
+   1,
+   "Crystal Lizard"
+  ],
+  [
+   19356,
+   5,
+   "Deep Accursed"
+  ],
+  [
+   19338,
+   1,
+   "Drang Hammers Knight"
+  ],
+  [
+   19338,
+   0,
+   "Drang Twinspears Knight"
+  ],
+  [
+   19338,
+   5,
+   "Londor Pale Shade"
+  ],
+  [
+   19360,
+   7,
+   "Mimic Chest"
+  ],
+  [
+   19416,
+   5,
+   "Pontiff Sulyvahn"
+  ],
+  [
+   19356,
+   2,
+   "Silver Knight"
+  ],
+  [
+   19356,
+   3,
+   "Silver Knight"
+  ],
+  [
+   19356,
+   4,
+   "Silver Knight"
+  ],
+  [
+   19339,
+   3,
+   "Sulyvahn's Beast"
+  ],
+  [
+   19339,
+   4,
+   "Sulyvahn's Beast"
+  ],
+  [
+   19339,
+   5,
+   "Sulyvahn's Beast"
+  ]
+ ],
+ "Kiln of the First Flame": [
+  [
+   24534,
+   7,
+   "Lords of Cinder"
+  ]
+ ],
+ "Lothric Castle": [
+  [
+   5305,
+   1,
+   "Boreal Outrider Knight"
+  ],
+  [
+   5304,
+   6,
+   "Crystal Lizard"
+  ],
+  [
+   5334,
+   7,
+   "Dragonslayer Armour"
+  ],
+  [
+   5304,
+   7,
+   "Mimic Chest"
+  ],
+  [
+   5305,
+   0,
+   "Mimic Chest"
+  ]
+ ],
+ "Painted World of Ariandel (DLC1)": [
+  [
+   25773,
+   0,
+   "Adriandel Greater Crab"
+  ],
+  [
+   25815,
+   3,
+   "Champion's Gravetender + Greatwolf"
+  ],
+  [
+   25773,
+   6,
+   "Crystal Lizard"
+  ],
+  [
+   25773,
+   7,
+   "Crystal Lizard"
+  ],
+  [
+   25774,
+   0,
+   "Crystal Lizard"
+  ],
+  [
+   25774,
+   2,
+   "Crystal Lizard"
+  ],
+  [
+   25774,
+   3,
+   "Crystal Lizard"
+  ],
+  [
+   25774,
+   5,
+   "Crystal Lizard"
+  ],
+  [
+   25774,
+   7,
+   "Crystal Lizard"
+  ]
+ ],
+ "Road of Sacrifices / Farron Keep": [
+  [
+   11734,
+   7,
+   "Abyss Watchers"
+  ],
+  [
+   11682,
+   0,
+   "Crystal Lizard"
+  ],
+  [
+   11682,
+   1,
+   "Crystal Lizard"
+  ],
+  [
+   11682,
+   2,
+   "Crystal Lizard"
+  ],
+  [
+   11682,
+   3,
+   "Crystal Lizard"
+  ],
+  [
+   11682,
+   4,
+   "Crystal Lizard"
+  ],
+  [
+   11682,
+   5,
+   "Crystal Lizard"
+  ],
+  [
+   11682,
+   6,
+   "Crystal Lizard"
+  ],
+  [
+   11736,
+   5,
+   "Crystal Sage in Farron"
+  ],
+  [
+   11681,
+   2,
+   "Great Club Exile Knight"
+  ],
+  [
+   11681,
+   3,
+   "Greatsword Exile Knight"
+  ],
+  [
+   11651,
+   7,
+   "Londor Pale Shade"
+  ],
+  [
+   11681,
+   4,
+   "Madwoman"
+  ],
+  [
+   11682,
+   7,
+   "Ravenous Crystal Lizard"
+  ],
+  [
+   11700,
+   7,
+   "Stray Demon"
+  ],
+  [
+   11652,
+   1,
+   "Yellowfinger Heysel"
+  ],
+  [
+   11652,
+   3,
+   "Yellowfinger Heysel"
+  ]
+ ],
+ "The Dreg Heap (DLC2)": [
+  [
+   29572,
+   3,
+   "Desert Pyromancer Zoey"
+  ]
+ ],
+ "The Ringed City (DLC2)": [
+  [
+   30853,
+   3,
+   "Alva, Seeker of the Spurned"
+  ],
+  [
+   30869,
+   7,
+   "Crystal Lizard"
+  ],
+  [
+   30870,
+   1,
+   "Crystal Lizard"
+  ],
+  [
+   30870,
+   4,
+   "Crystal Lizard"
+  ],
+  [
+   30870,
+   5,
+   "Crystal Lizard"
+  ],
+  [
+   30863,
+   2,
+   "Dragonslayer Armour"
+  ],
+  [
+   30869,
+   5,
+   "Mimic Chest"
+  ],
+  [
+   30853,
+   1,
+   "Moaning Knight"
+  ],
+  [
+   30853,
+   5,
+   "Silver Knight Ledo"
+  ],
+  [
+   30870,
+   3,
+   "Unnamed enemy (5100292)"
+  ],
+  [
+   30870,
+   2,
+   "Unnamed enemy (5100293)"
+  ],
+  [
+   30870,
+   0,
+   "Unnamed enemy (5100295)"
+  ]
+ ],
+ "Undead Settlement": [
+  [
+   6572,
+   2,
+   "Boreal Outrider Knight"
+  ],
+  [
+   6572,
+   0,
+   "Crystal Lizard"
+  ],
+  [
+   6572,
+   1,
+   "Crystal Lizard"
+  ],
+  [
+   6572,
+   3,
+   "Demon"
+  ],
+  [
+   6543,
+   7,
+   "Peasant Hollow"
+  ],
+  [
+   6614,
+   7,
+   "Rotted Greatwood"
+  ],
+  [
+   6626,
+   3,
+   "Unnamed enemy (3100900)"
+  ]
+ ]
+}

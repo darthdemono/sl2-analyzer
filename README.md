@@ -405,6 +405,8 @@ Bosses and areas are not printed from a "bosses beaten" counter, because no such
 
 Every game gets the baseline: **boss souls and remembrances still held.** You cannot own a boss's soul without killing it, so a held soul is a certain kill. The web app and the Markdown both name the boss, not just the soul item. Spend the soul and the kill goes invisible, which is exactly why this is a floor.
 
+On top of that sit the event flags, which are the exact half of the picture. [Every event flag this tool reads](#every-event-flag-this-tool-reads) is listed further down, by game and family, along with the ones whose IDs are known and still unread and what each is waiting on.
+
 **Dark Souls III goes deepest,** because its event flags turned out to be in the save after all:
 
 - **Bonfires, all 77 named.** Not counted, named. Every base-game and DLC bonfire resolves to its own name, grouped by area. A real early save reads Cleansing Chapel, Deacons of the Deep and Cathedral of the Deep under Cathedral, Firelink Shrine, Cemetery of Ash and Iudex Gundyr under Cemetery, and so on.
@@ -593,6 +595,11 @@ These are the interesting ones, and they took a lot more work than the item list
 | `db_ds3/covenants.json` | `{covenant: [[dist, bit, what it proves]]}` | 9 / 19 flags | Join and rank-reward flags per covenant |
 | `db_ds3/questlines.json` | `{npc: [[dist, bit, reward]]}` | 56 / 100 flags | NPC quest reward flags |
 | `db_ds3/item_pickups.json` | `{area: [[dist, bit, item, where]]}` | 14 areas / 937 items | Every one-off world item, as a save byte-offset and bit, with the place it lies for the three quarters of them the annotations cover. An area is absent when its flag-group base is unknown, never guessed |
+| `db_ds3/enemies.json` | `{area: [[dist, bit, enemy type]]}` | 14 areas / 125 enemies | Every enemy that does not respawn, as a save byte-offset and bit. The enemy's own DEATH flag, out of the game's committed event scripts — not the pickup flag its drop sets, which matters: on a finished run one of the fourteen Symbol of Avarice pickups is set and all fourteen mimics are accounted for here |
+| `db_ds3/npcs.json` | `{family: [[dist, bit, label]]}` | 7 families / 85 flags | NPC deaths, hostility and questline milestones |
+| `db_ds1/world_events.json` | `{family: [[offset, mask, JP name]]}` | 15 families / 275 flags | DS1 world flags by kind, names verbatim Japanese and not rendered |
+| `db_er/event_flags.json` | `{family: [[id, name, area]]}` | 22 families / 4,199 flags | Every Elden Ring flag family a public source names. **Not read** — ER's flag region base is unsolved |
+| `db_sdt/item_flags.json` | `{family: [[id, name, area]]}` | 2 families / 927 flags | Sekiro item-lot flags, `50000000 + lot id`. **Not read** — that family needs its own addressing, not just a category index |
 | `db_ds3/boss_route.json` | `{boss: [gate_area, [predecessors]]}` | 26 | The hard route gates, for working out which missing boss is reachable now |
 | `db_er/boss_souls.json` | `{remembrance: boss}` | 14 | Remembrance to the boss that drops it |
 | `db_er/graces.json` | `{area: [[id, name]]}` | 419 in 54 areas | Every Site of Grace, Shadow of the Erdtree included. Shipped for the **names**: which are lit needs Elden Ring's event-flag region base, which nobody has published. Same situation as `db_sdt/idols.json` |
@@ -700,6 +707,45 @@ Sekiro needs none of this. Its fields do not move between patches, so they are r
 
 **The trap this cannot catch:** the identity is order-independent, so a permuted label mapping passes it silently. DS3 shipped with a wrong storage order that the sum check happily accepted, and it was only caught against a real lopsided build. Memory order is not screen order. In DS3, Vitality is stored **last, alone, at +40**, after the other eight. In DS2, Intelligence is `+44`, Faith `+46`, and Adaptability `+48`, not contiguous and not in display order. Verify against a character with visibly uneven stats, never a maxed or fresh one.
 
+### Every event flag this tool reads
+
+**1,704 flags across four games, plus 5,126 more held as data for the day they can be read.** Elden Ring is not one of them, and that is the shape of the whole table: a family is readable only where the game's flag region has been located in the *save*, which is a different problem from knowing the flag IDs. Sekiro shipped its IDs for months before a single one could be read.
+
+| Game | Family | Flags | Denominator it prints | Where the IDs came from |
+|---|---|---:|---|---|
+| **DS1** | Boss defeats | 12 | "of N tracked", N being the union of the flag and soul tables, so it moves a little per save. The bosses with no flag fall back to held souls and the NG+ clear floor | `ds1_boss_flags.csv`; the other 15 rows in that file are enum indices, not flags, and are unusable |
+| DS1 | World events | 275 in 15 families | per family | Extracted from the committed `.emevd` plus FromSoft's own `.emeld` event names. **Sourced, not verified here**: it decodes and it discriminates, and that is all that is claimed. Counts only — the names are Japanese and are not translated. Two families do not mean what they say; the section note says so |
+| DS1 | World state | 44 in 9 categories | per category — Bells 2, Lordvessel 3, Doors 7, Non-Boss Fog Gates 6, Levers 4, Elevators 1, Join Covenants 9, NPC 10, Other 2 | `ds1_known_event_flags.csv`, minus its "Boss Fight" category, dropped on evidence: every row of it reads clear on a finished run, so those are transient arena flags |
+| **DS2** | Boss defeats | 6 | same union rule, up to 39 tracked | Differential saves only. DS2 has no published flag mapping and no addressing, so these are raw world-block byte offsets, each isolated by a save pair |
+| **DS3** | Bonfires | 77 in 14 areas | of 77 — the complete set | SoulSplitter `Bonfire.cs`, cross-checked 60/60 against the TGA Cheat Engine table |
+| DS3 | Boss defeats, per map | 25 | of 26 tracked | The `13xxxx8xx` family. Resets on a new journey |
+| DS3 | Boss victories, cumulative | 26 | same denominator, second signal | The `63xx` family. Survives NG+, which is why an all-items NG+ mule reads a full boss set with no map flags at all |
+| DS3 | Covenants | 19 flags / 9 covenants | of 9 | Ladder-derived off group base 879 |
+| DS3 | NPC and landmark rewards | 100 flags / 56 NPCs | none — a floor by nature | Group `50006`, base derived from one Hawkwood differential |
+| DS3 | World item pickups | 937 in 14 areas | of 937 tracked | Six group bases by windowed timing, eight more predicted off the `k_map + 66` grid and each tested against that area's own bonfires |
+| DS3 | Lord's Cinders placed | 4 | of 4 | One save pair per lord, either side of the offering |
+| DS3 | Endings reached | 4 | of 4 | Three pinned by finishing one save three ways; the fourth by elimination within a closed byte, and labelled as such |
+| DS3 | NPC states | 85 in 7 families | per family | NPC deaths, hostility, questline milestones. On the common-group base `111 + 128g` derived below. Labels are the source's own English where it has one, with an entity ID beside it — one of those labels is known to sit on the wrong flag |
+| DS3 | One-time enemies | 148 in 16 areas | of 148 tracked | Extracted from the committed `.emevd`, where each is a `common_func` template call taking a death flag and an entity id, plus map-local events deduped by entity. Mimics, Crystal Lizards, Black Knights, the Boreal Outrider Knights |
+| **Sekiro** | Sculptor's Idols | 55 in 8 areas | of 55 | `db_sdt/idols.json`, corroborated id-for-id against SoulSplitter `Idol.cs` |
+| Sekiro | Boss defeats | 15 | of 18 tracked | `Boss.cs`. The only thing that can name a Sekiro boss, since a held Memory resolves as a bare "Memory" |
+| Sekiro | Minibosses | 32 in 9 areas | of 32 tracked | The enemy's **entity ID used directly as the flag** — Sekiro's own convention, confirmed by a two-save window either side of the Blazing Bull |
+| **Elden Ring** | — | **0** | — | Reads no flags at all. See below |
+
+Held as data and **not read**, because their games' flag regions are unsolved: `db_er/event_flags.json` (4,199 rows in 22 families — Great Runes, map fragments, remembrances, crystal tears, whetblades, endings, item pickups) and `db_sdt/item_flags.json` (927 Sekiro item-lot flags). Both ship so the research survives a clone; neither is loaded by either front end.
+
+Two things that look like flags here and are not, because the games do not store them that way: **DS1 bonfires** are a `NetBonfireDb` record list carrying a kindle level, and **DS2 bonfires** are a `uint16` ID array with a parallel unlock byte per ID. Both are richer than a bit — DS1 is the only game here that can say "discovered but never lit" — and neither needs the flag region.
+
+**What is known and still unread**, in the order of how close each is:
+
+- **Elden Ring, everything.** The region base is unsolved, so 419 Sites of Grace with IDs sit in `db_er/graces.json` unread, and so does a sourced table of 174 one-time enemies whose defeat flag is the entity ID, Sekiro-style. The unlock is one save pair: save, light **one** Site of Grace, save. `scratch/er_flagbase.py` is written and waiting.
+- **DS1 one-time enemies**, 206 rows that decode and discriminate but whose mechanism is the *event ID + slot* rule on spawn-control templates, which may fire on area entry rather than on a kill. Needs one window: save, kill a single Black Knight, save.
+- **Sekiro world item pickups.** The relation `flag = 50000000 + item lot ID` holds for 596 of 743 annotated slots, but the lot table itself is behind the archive unpack.
+- **Per-row meaning for what shipped this pass.** DS1's world events are counts of families whose names came from a source rather than from a save here — `Levers` reads 0 on a finished run and `Boss-fight flags` counts flags, not bosses. DS3's NPC labels have one known-wrong row (`1158`, "after killing Leonhard", on a run where he demonstrably died). Both are shipped with the caveat in the section note; fixing them means splitting the families per row against the event-script text.
+- **DS3 flag groups `53400`, `53600`, `54004`** — twelve pickup flags with no map row to offset from. Absent from the table rather than guessed.
+- **DS3 groups `70000` and `73xxx`–`74xxx`**, roughly 250 shop-availability and handover flags. Two orders of magnitude past the single-digit grid, so the `111 + 128g` shortcut does not reach them and each needs its own anchor.
+- **DS2, structurally.** DS2 keeps world logic in ESD rather than EMEVD, so the technique that produced every other game's table has no DS2 equivalent, and the six-flag ceiling stands until somebody decompiles the ESD.
+
 ### DS3 event flags: ID to save byte
 
 This is the single most reusable thing in the repo. For flag `f`:
@@ -722,12 +768,21 @@ save_distance = ce_byte_addr + 111
 
 Verified across all sixteen map groups. Read it at `ds3_event_flag_base(slot) + save_distance`, where the region base is found by walking the variable-length blocks in front of it: GaItem array, then inventory / storage / gesture blocks, then the NG+ header, then `new_game_plus + 0xBCC`, base at `-0x12`.
 
-**Common groups** are not in any base table and each one has to be derived. The method: take a differential that flips one known common flag, find the **persistent** 0 to 1 bit (0 to 1 across the pair *and* still set in a much later save, the persistence filter killing map-flag movement noise), then `base = flip_offset - byte_in_group(flag)`. Two are pinned this way:
+**Common groups** are not in any base table and each one has to be derived. The method: take a differential that flips one known common flag, find the **persistent** 0 to 1 bit (0 to 1 across the pair *and* still set in a much later save, the persistence filter killing map-flag movement noise), then `base = flip_offset - byte_in_group(flag)`. Three are pinned this way:
 
 | Group | Base | Anchor |
 |---|---:|---|
 | `50006` (NPC rewards) | 86639 | Hawkwood's Heavy Gem, flag `50006070` |
-| `6` (covenants) | 879 | Rosaria's Fingers emblem, flag `6760` |
+| `6` (covenants, area entry) | 879 | Rosaria's Fingers emblem, flag `6760` |
+| `9` (endings, boss-victory mirror) | 1263 | Three endings, one save finished three ways |
+
+**Single-digit groups need no derivation at all**, which took three separate ones to notice. A group holds `n < 1000`, so it occupies 128 bytes, and groups `0` to `9` are packed 128 apart inside the `k = 0` category:
+
+```
+base(g) = 111 + 128 * g          # for g < 10
+```
+
+That reproduces both bases above and predicts `1 → 239`, which then checks out against a dated event: the flag for Ringfinger Leonhard's death first reads set in exactly the snapshot his Red Eye Orb pickup flag does, 33:31:38 on a 79-save ladder, with all 161 group-1 flags monotone at that base and none monotone at any rival candidate. Groups `70000` and up are a different matter and still need their own anchors.
 
 Six of the bulk world-pickup groups (`530xx` to `555xx`) came from a harder version of the same idea, **windowed timing**. Scoring a candidate base on "how many flagged items does this character own" fails, and failed three separate ways. The question that works is temporal. An item whose first-held snapshot the backup ladder knows must have its flag read 0 in *every* earlier save and 1 in *every* later one, and exactly one base per group survives that.
 

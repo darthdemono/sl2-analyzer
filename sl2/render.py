@@ -379,6 +379,38 @@ DS3_PICKUP_NOTE = (
 )
 
 
+# Enemies that do not respawn, so the game has to remember each one dead. These are the
+# enemy's own DEATH flag, not the pickup flag its loot sets, which matters: on a finished
+# run one of the fourteen Symbol of Avarice pickups is set and all fourteen mimics are
+# accounted for here. Names are types, so the count beside a repeated name is real.
+# Every row here is DERIVED from the committed event scripts and none is verified against
+# a save, which is why it prints counts and not names: the names are FromSoft's own
+# Japanese and translating them would be inventing a label. Two families are known not to
+# mean what they say — see tools/gen_ds1_world_events.py — and the note says so out loud
+# rather than quietly printing a number a reader would take for a boss count.
+DS1_EVENT_NOTE = (
+    "world events from the game's own event scripts, counted by kind — sourced, "
+    "not verified here; some are transient (set while the event runs), so a "
+    "finished run can honestly read 0 in a family"
+)
+
+
+# The labels come from FromSoft's own descriptions where there is one, and the ladder has
+# already caught one sitting on the wrong flag, so the entity id rides along for checking.
+DS3_NPC_NOTE = (
+    "NPC deaths, hostility and questline milestones, each its own flag — the "
+    "descriptions are the source's and one is known to be on the wrong flag, so "
+    "an entity id is printed beside them where there is one"
+)
+
+
+DS3_ENEMY_NOTE = (
+    "each enemy's own defeat flag — exact, not inferred, and it carries "
+    "across a new journey; names are enemy types, so repeats in an area "
+    "are different enemies"
+)
+
+
 ##
 # @brief The Lords-of-Cinder line: how many of the four are on the throne, which ones
 #        the mapped flags name, and the two counts the number came from.
@@ -686,18 +718,71 @@ def md_for_character(ch, slot_no):
             L.append(row)
         L.append("")
     if ch.get("minibosses"):
-        dead = sum(c for _a, c, _t, _m in ch["minibosses"])
-        total = sum(t for _a, _c, t, _m in ch["minibosses"])
+        dead = sum(c for _a, c, _n, _t, _m in ch["minibosses"])
+        total = sum(t for _a, _c, _n, t, _m in ch["minibosses"])
         L += [
             f"### Minibosses Defeated ({dead} of {total} tracked)  _({SDT_MINIBOSS_NOTE})_",
             "",
         ]
-        for area, c, tot, alive in ch["minibosses"]:
+        for area, c, names, tot, alive in ch["minibosses"]:
             row = f"- {area}: {c}/{tot}"
-            # Same rule as every other progress section: an area you have started says
-            # what is left in it, an untouched one would print a walkthrough back.
-            if c and alive:
-                row += f"  _(still alive: {' · '.join(count_dupes(alive))})_"
+            # Who is dead leads, the same way the boss section names its kills — the
+            # count alone cannot tell you whether the Blazing Bull is behind you.
+            if names:
+                row += f" — {' · '.join(count_dupes(names))}"
+                # Same rule as every other progress section: an area you have started
+                # says what is left in it, an untouched one would print a walkthrough
+                # back at you.
+                if alive:
+                    row += f"  _(still alive: {' · '.join(count_dupes(alive))})_"
+            L.append(row)
+        L.append("")
+    if ch.get("npc_states"):
+        got = sum(c for _f, c, _g, _t in ch["npc_states"])
+        total = sum(t for _f, _c, _g, t in ch["npc_states"])
+        L += [
+            f"### NPC States ({got} of {total} tracked)  _({DS3_NPC_NOTE})_",
+            "",
+        ]
+        for family, c, names, tot in ch["npc_states"]:
+            row = f"- {family}: {c}/{tot}"
+            # Only what FIRED is listed, and of that only what has a real description.
+            # Two reasons: half of these are mutually exclusive outcomes of one questline,
+            # so a "missing" list would read as a to-do list of things a player cannot all
+            # do; and a bare entity id teaches a reader nothing, so those are counted
+            # instead of printed.
+            said = [n for n in names if not n.startswith("character ")]
+            rest = len(names) - len(said)
+            if said:
+                row += f" — {' · '.join(count_dupes(said))}"
+            if rest:
+                row += f"  _(+{rest} more, known only by entity id)_"
+            L.append(row)
+        L.append("")
+    if ch.get("world_events"):
+        got = sum(c for _f, c, _t in ch["world_events"])
+        total = sum(t for _f, _c, t in ch["world_events"])
+        L += [
+            f"### World Events ({got} of {total} tracked)  _({DS1_EVENT_NOTE})_",
+            "",
+        ]
+        for family, c, tot in ch["world_events"]:
+            L.append(f"- {family}: {c}/{tot}")
+        L.append("")
+    if ch.get("enemies"):
+        dead = sum(c for _a, c, _n, _t, _m in ch["enemies"])
+        total = sum(t for _a, _c, _n, t, _m in ch["enemies"])
+        L += [
+            f"### One-Time Enemies Defeated ({dead} of {total} tracked)"
+            f"  _({DS3_ENEMY_NOTE})_",
+            "",
+        ]
+        for area, c, names, tot, alive in ch["enemies"]:
+            row = f"- {area}: {c}/{tot}"
+            if names:
+                row += f" — {' · '.join(count_dupes(names))}"
+                if alive:
+                    row += f"  _(still alive: {' · '.join(count_dupes(alive))})_"
             L.append(row)
         L.append("")
     if ch.get("pickups"):

@@ -560,13 +560,13 @@
       ]
      }
     },
-    "minibosses": {
+    "enemies": {
      "type": "array",
-     "description": "Sekiro only: minibosses defeated, by area. Each is read from the enemy's OWN entity id used as an event flag, so a kill here is exact rather than inferred. Resets on a new journey, like every other Sekiro flag family. Names are enemy types from the only published table that lists them, so repeats within an area are different enemies at different entity ids.",
+     "description": "Dark Souls III only: one-time enemies defeated, by area. Each is read from the enemy's own DEATH event flag, extracted from the game's committed event scripts, so a kill here is exact rather than inferred -- and distinct from the pickup flag the same enemy's drop sets. Unlike the per-map boss flags these survive a new journey. Only enemies whose flag group has a derived base are in the table, so an area absent here is untracked, never empty. Names are enemy types, so repeats within an area are different enemies.",
      "items": {
       "type": "array",
-      "minItems": 4,
-      "maxItems": 4,
+      "minItems": 5,
+      "maxItems": 5,
       "prefixItems": [
        {
         "type": "string",
@@ -575,6 +575,103 @@
        {
         "type": "integer",
         "description": "How many are dead."
+       },
+       {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "The ones killed, by name."
+       },
+       {
+        "type": "integer",
+        "description": "How many the area holds."
+       },
+       {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "The ones still alive, by name."
+       }
+      ]
+     }
+    },
+    "npc_states": {
+     "type": "array",
+     "description": "Dark Souls III only: NPC deaths, hostility and questline milestones, by family. Each is its own event flag, read on the common-group base 111 + 128*g. ONLY WHAT FIRED is listed: half of these are mutually exclusive outcomes of one questline, so a missing list would read as a to-do list of things a player cannot all do. Labels are the source's own English where it has one -- and one of those is known to sit on the wrong flag, so an entity id is appended for checking -- otherwise the label is a bare entity id, because inventing a name would be worse.",
+     "items": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+       {
+        "type": "string",
+        "description": "Family name (NPCs killed, Questline states, …)."
+       },
+       {
+        "type": "integer",
+        "description": "How many of the family's flags are set."
+       },
+       {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "The labels of the flags that are set."
+       },
+       {
+        "type": "integer",
+        "description": "How many flags the family holds."
+       }
+      ]
+     }
+    },
+    "world_events": {
+     "type": "array",
+     "description": "Dark Souls 1 only: world events from the game's own event scripts, counted by kind. SOURCED, NOT VERIFIED against a save here -- it decodes and it discriminates, which is all that is claimed. Some families are transient (the flag is set while the event runs and cleared after), so a finished run can honestly read 0 in one, and 'Boss-fight flags' counts flags rather than bosses. No names: they are FromSoft's own Japanese event names and translating them would be inventing a label.",
+     "items": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+       {
+        "type": "string",
+        "description": "Family name."
+       },
+       {
+        "type": "integer",
+        "description": "How many of the family's flags are set."
+       },
+       {
+        "type": "integer",
+        "description": "How many flags the family holds."
+       }
+      ]
+     }
+    },
+    "minibosses": {
+     "type": "array",
+     "description": "Sekiro only: minibosses defeated, by area. Each is read from the enemy's OWN entity id used as an event flag, so a kill here is exact rather than inferred. Resets on a new journey, like every other Sekiro flag family. Names are enemy types from the only published table that lists them, so repeats within an area are different enemies at different entity ids.",
+     "items": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "prefixItems": [
+       {
+        "type": "string",
+        "description": "Area name."
+       },
+       {
+        "type": "integer",
+        "description": "How many are dead."
+       },
+       {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "The ones killed, by name."
        },
        {
         "type": "integer",

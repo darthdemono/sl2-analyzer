@@ -165,9 +165,9 @@ GAMES = {
         # `coverage` says what the tier does NOT cover, so a reader who sees
         # "full" does not fairly infer that everything the other games report is
         # here. Moving the tier would redefine what the word means for every game.
-        "coverage": "minibosses and world item pickups are not read — Sekiro "
-        "publishes no id table for either, so there is nothing to look "
-        "up even though the flag region itself is read",
+        "coverage": "world item pickups are not read — Sekiro publishes no id "
+        "table for them, so there is nothing to look up even though the "
+        "flag region itself is read",
         "how": "the save is not encrypted and, unlike every other game here, its "
         "fields do not move between patches — so play time, journey (New "
         "Game+) count, Attack Power and Sen are read straight from fixed "

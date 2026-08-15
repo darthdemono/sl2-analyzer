@@ -1,0 +1,441 @@
+{
+ "Areas entered": [
+  [
+   921,
+   4,
+   "after entering Road of Sacrifices"
+  ],
+  [
+   921,
+   5,
+   "after entering Undead Settlement"
+  ]
+ ],
+ "DLC owned": [
+  [
+   995,
+   7,
+   "DLC2 ownership flag"
+  ],
+  [
+   996,
+   0,
+   "DLC1 ownership flag"
+  ]
+ ],
+ "Items handed over": [
+  [
+   243,
+   5,
+   "after giving Yuria's Ashes and reloading"
+  ],
+  [
+   269,
+   1,
+   "after giving Orbeck's Ashes and reloading"
+  ]
+ ],
+ "NPCs killed": [
+  [
+   240,
+   5,
+   "character 4000700 killed"
+  ],
+  [
+   243,
+   5,
+   "character 4000750 killed"
+  ],
+  [
+   246,
+   1,
+   "character 4000705 killed"
+  ],
+  [
+   249,
+   1,
+   "character 3100705 killed / character 4000730 killed"
+  ],
+  [
+   252,
+   1,
+   "character 3300720 killed / character 4000760 killed / character 4000761 killed"
+  ],
+  [
+   254,
+   5,
+   "character 3700700 killed"
+  ],
+  [
+   255,
+   1,
+   "after killing Leonhard (entity 3500715, 4000785)"
+  ],
+  [
+   257,
+   5,
+   "character 3100725 killed / character 4000780 killed"
+  ],
+  [
+   260,
+   5,
+   "character 4000710 killed"
+  ],
+  [
+   263,
+   5,
+   "character 3000700 killed / character 4000720 killed"
+  ],
+  [
+   269,
+   1,
+   "character 3300700 killed / character 4000745 killed"
+  ],
+  [
+   272,
+   1,
+   "character 3900700 killed / character 4000740 killed"
+  ],
+  [
+   274,
+   5,
+   "character 3100710 killed / character 4000735 killed"
+  ],
+  [
+   275,
+   1,
+   "after killing Eygon of Carim or defeating Dragonslayer Armour (entity 3100720, 4000755, 4000756)"
+  ],
+  [
+   277,
+   5,
+   "character 3100700 killed / character 4000725 killed / character 4000726 killed / character 4000727 killed"
+  ],
+  [
+   283,
+   5,
+   "character 3500720 killed / character 3500721 killed / character 4000791 killed"
+  ],
+  [
+   286,
+   1,
+   "character 3300705 killed / character 3300710 killed / character 3500700 killed / character 3500701 killed / character 3700705 killed / character 3700710 killed / character 3800700 killed / character 3800701 killed / character 3800703 killed / character 3800705 killed / character 3800706 killed / character 3800708 killed / character 4000765 killed / character 4000770 killed"
+  ],
+  [
+   289,
+   1,
+   "character 3100730 killed / character 3100731 killed / character 3700715 killed / character 3900705 killed / character 3900706 killed"
+  ],
+  [
+   292,
+   1,
+   "character 3000705 killed"
+  ],
+  [
+   295,
+   1,
+   "character 3100715 killed"
+  ],
+  [
+   300,
+   5,
+   "after killing Horace the Hushed (entity 3300715, 3800710, 4000775)"
+  ],
+  [
+   312,
+   1,
+   "character 3100740 killed"
+  ],
+  [
+   314,
+   5,
+   "character 3700720 killed / character 3700721 killed"
+  ],
+  [
+   315,
+   1,
+   "character 3500725 killed"
+  ],
+  [
+   317,
+   5,
+   "character 4000716 killed"
+  ],
+  [
+   320,
+   5,
+   "character 4500701 killed"
+  ],
+  [
+   323,
+   5,
+   "character 4500715 killed / character 4500716 killed"
+  ],
+  [
+   326,
+   1,
+   "character 4500705 killed / character 4500706 killed"
+  ],
+  [
+   335,
+   1,
+   "character 4500720 killed"
+  ],
+  [
+   340,
+   5,
+   "character 5000700 killed / character 5000701 killed / character 5000702 killed / character 5100705 killed / character 5100706 killed / character 5100707 killed"
+  ],
+  [
+   344,
+   2,
+   "character 5100722 killed"
+  ],
+  [
+   344,
+   7,
+   "character 5100721 killed"
+  ],
+  [
+   345,
+   4,
+   "character 5100720 killed"
+  ],
+  [
+   346,
+   1,
+   "character 5100710 killed / character 5110850 killed"
+  ],
+  [
+   349,
+   1,
+   "character 5000705 killed"
+  ],
+  [
+   352,
+   1,
+   "character 5100810 killed"
+  ],
+  [
+   354,
+   5,
+   "character 5100715 killed"
+  ],
+  [
+   355,
+   6,
+   "character 3100735 killed"
+  ],
+  [
+   915,
+   7,
+   "after killing Leonhard"
+  ]
+ ],
+ "NPCs turned hostile": [
+  [
+   252,
+   2,
+   "character 4000760 turned hostile / character 4000761 turned hostile"
+  ],
+  [
+   252,
+   3,
+   "character 4000760 turned hostile / character 4000761 turned hostile"
+  ],
+  [
+   255,
+   2,
+   "character 3500715 turned hostile / character 4000785 turned hostile"
+  ],
+  [
+   255,
+   3,
+   "character 3500715 turned hostile / character 4000785 turned hostile"
+  ],
+  [
+   257,
+   6,
+   "character 4000780 turned hostile"
+  ],
+  [
+   257,
+   7,
+   "character 4000780 turned hostile"
+  ],
+  [
+   263,
+   6,
+   "character 3000700 turned hostile / character 4000720 turned hostile"
+  ],
+  [
+   263,
+   7,
+   "character 3000700 turned hostile / character 4000720 turned hostile"
+  ],
+  [
+   269,
+   2,
+   "character 3300700 turned hostile / character 4000745 turned hostile"
+  ],
+  [
+   269,
+   3,
+   "character 3300700 turned hostile / character 4000745 turned hostile"
+  ],
+  [
+   274,
+   6,
+   "character 4000735 turned hostile"
+  ],
+  [
+   274,
+   7,
+   "character 4000735 turned hostile"
+  ],
+  [
+   275,
+   2,
+   "character 3100720 turned hostile / character 4000755 turned hostile"
+  ],
+  [
+   275,
+   3,
+   "character 3100720 turned hostile / character 4000755 turned hostile"
+  ],
+  [
+   283,
+   6,
+   "character 3500720 turned hostile / character 3500721 turned hostile / character 4000791 turned hostile"
+  ],
+  [
+   283,
+   7,
+   "character 3500720 turned hostile / character 3500721 turned hostile / character 4000791 turned hostile"
+  ],
+  [
+   286,
+   2,
+   "character 3700705 turned hostile / character 3700710 turned hostile / character 3800700 turned hostile / character 3800701 turned hostile / character 3800705 turned hostile / character 3800706 turned hostile"
+  ],
+  [
+   286,
+   3,
+   "character 3700705 turned hostile / character 3700710 turned hostile / character 3800700 turned hostile / character 3800701 turned hostile / character 3800705 turned hostile / character 3800706 turned hostile"
+  ],
+  [
+   289,
+   2,
+   "character 3100730 turned hostile / character 3700715 turned hostile / character 3900705 turned hostile"
+  ],
+  [
+   289,
+   3,
+   "character 3100730 turned hostile / character 3700715 turned hostile / character 3900705 turned hostile"
+  ],
+  [
+   312,
+   2,
+   "character 3100740 turned hostile"
+  ],
+  [
+   312,
+   3,
+   "character 3100740 turned hostile"
+  ],
+  [
+   340,
+   6,
+   "character 5000700 turned hostile / character 5000701 turned hostile / character 5000702 turned hostile / character 5100705 turned hostile / character 5100706 turned hostile / character 5100707 turned hostile"
+  ],
+  [
+   340,
+   7,
+   "character 5000700 turned hostile / character 5000701 turned hostile / character 5000702 turned hostile / character 5100705 turned hostile / character 5100706 turned hostile / character 5100707 turned hostile"
+  ],
+  [
+   344,
+   3,
+   "character 5100722 turned hostile"
+  ],
+  [
+   344,
+   4,
+   "character 5100722 turned hostile"
+  ],
+  [
+   345,
+   0,
+   "character 5100721 turned hostile"
+  ],
+  [
+   345,
+   1,
+   "character 5100721 turned hostile"
+  ],
+  [
+   345,
+   5,
+   "character 5100720 turned hostile"
+  ],
+  [
+   345,
+   6,
+   "character 5100720 turned hostile"
+  ],
+  [
+   355,
+   7,
+   "character 3100735 turned hostile"
+  ],
+  [
+   356,
+   0,
+   "character 3100735 turned hostile"
+  ]
+ ],
+ "Questline states": [
+  [
+   142,
+   1,
+   "Blood Moon Appears"
+  ],
+  [
+   257,
+   5,
+   "after completing Sirris' questline"
+  ],
+  [
+   271,
+   6,
+   "Irina - Normal Placement"
+  ],
+  [
+   286,
+   1,
+   "after completing Anri's questline or killing Anri"
+  ],
+  [
+   340,
+   5,
+   "after completing Lapp's questline or killing Lapp"
+  ],
+  [
+   980,
+   3,
+   "[Shrine Handmaid] Dried Finger"
+  ],
+  [
+   982,
+   7,
+   "[Shrine Handmaid] White Sign Soapstone"
+  ]
+ ],
+ "World state": [
+  [
+   1288,
+   5,
+   "after placing all Cinders of a Lord on their thrones"
+  ]
+ ]
+}

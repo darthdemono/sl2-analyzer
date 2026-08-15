@@ -562,7 +562,7 @@ function characterCard(slot, ch, bonfireTotal) {
   }
   if (ch.minibosses && ch.minibosses.length) {
     const dead = ch.minibosses.reduce((s2, [, c]) => s2 + c, 0);
-    const total = ch.minibosses.reduce((s2, [, , t]) => s2 + t, 0);
+    const total = ch.minibosses.reduce((s2, [, , , t]) => s2 + t, 0);
     card.append(
       section(`Minibosses Defeated (${dead} of ${total} tracked)`, [
         el("p", {
@@ -572,9 +572,9 @@ function characterCard(slot, ch, bonfireTotal) {
         progressBar(dead, total, `${dead} of ${total} minibosses defeated`),
         el(
           "ul",
-          { class: "areas two" },
-          ...ch.minibosses.map(([area, c, tot, alive]) =>
-            areaRow(area, c, tot, null, countDupes(alive), "still alive"),
+          { class: "areas" },
+          ...ch.minibosses.map(([area, c, names, tot, alive]) =>
+            areaRow(area, c, tot, countDupes(names), countDupes(alive), "still alive"),
           ),
         ),
       ]),
@@ -603,6 +603,72 @@ function characterCard(slot, ch, bonfireTotal) {
         `Covenants Found (${ch.covenant_total ? `${covN} of ${ch.covenant_total}` : covN})`,
         covBits,
       ),
+    );
+  }
+  if (ch.npc_states && ch.npc_states.length) {
+    const got = ch.npc_states.reduce((s2, [, c]) => s2 + c, 0);
+    const total = ch.npc_states.reduce((s2, [, , , t]) => s2 + t, 0);
+    card.append(
+      section(`NPC States (${got} of ${total} tracked)`, [
+        el("p", {
+          class: "hint",
+          text: "NPC deaths, hostility and questline milestones, each its own flag. The descriptions come from the source and one is known to sit on the wrong flag, so an entity id is printed beside them where there is one.",
+        }),
+        progressBar(got, total, `${got} of ${total} tracked NPC flags set`),
+        el(
+          "ul",
+          { class: "areas" },
+          ...ch.npc_states.map(([family, c, names, tot]) => {
+            const said = names.filter((n) => !n.startsWith("character "));
+            const rest = names.length - said.length;
+            return areaRow(
+              family,
+              c,
+              tot,
+              rest ? [...countDupes(said), `+${rest} known only by entity id`] : countDupes(said),
+              null,
+            );
+          }),
+        ),
+      ]),
+    );
+  }
+  if (ch.world_events && ch.world_events.length) {
+    const got = ch.world_events.reduce((s2, [, c]) => s2 + c, 0);
+    const total = ch.world_events.reduce((s2, [, , t]) => s2 + t, 0);
+    card.append(
+      section(`World Events (${got} of ${total} tracked)`, [
+        el("p", {
+          class: "hint",
+          text: "World events from the game's own event scripts, counted by kind — sourced, not verified here. Some are transient (set only while the event runs), so a finished run can honestly read 0 in a family. Names are FromSoft's own Japanese and are not printed.",
+        }),
+        progressBar(got, total, `${got} of ${total} tracked world events`),
+        el(
+          "ul",
+          { class: "areas two" },
+          ...ch.world_events.map(([family, c, tot]) => areaRow(family, c, tot, null, null)),
+        ),
+      ]),
+    );
+  }
+  if (ch.enemies && ch.enemies.length) {
+    const dead = ch.enemies.reduce((s2, [, c]) => s2 + c, 0);
+    const total = ch.enemies.reduce((s2, [, , , t]) => s2 + t, 0);
+    card.append(
+      section(`One-Time Enemies Defeated (${dead} of ${total} tracked)`, [
+        el("p", {
+          class: "hint",
+          text: "Enemies that do not respawn, read from each one's own defeat flag — exact, not inferred, and it carries across a new journey. Names are enemy types, so repeats in an area are different enemies.",
+        }),
+        progressBar(dead, total, `${dead} of ${total} one-time enemies defeated`),
+        el(
+          "ul",
+          { class: "areas" },
+          ...ch.enemies.map(([area, c, names, tot, alive]) =>
+            areaRow(area, c, tot, countDupes(names), countDupes(alive), "still alive"),
+          ),
+        ),
+      ]),
     );
   }
   if (ch.pickups && ch.pickups.length) {

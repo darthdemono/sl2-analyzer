@@ -1,0 +1,4641 @@
+{
+ "item_pickup": [
+  [
+   50002001,
+   "Memory: Gyoubu Oniwa",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   50002002,
+   "Memory",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   50002040,
+   "Lapis Lazuli",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   50002041,
+   "Memory: Hatred Demon",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   50002042,
+   "Memory",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   50003060,
+   "Shinobi Prosthetic",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50003070,
+   "Shinobi Prosthetic (cosmetic)",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50061006,
+   "\"Kuro's Charm",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50051300,
+   "Hidden Tooth",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50051600,
+   "\"Young Lord's Bell Charm",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   50051700,
+   "Flame Barrel Memo",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   50061710,
+   "Oil",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   50061720,
+   "Divine Grass",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   50062402,
+   "Rat Description",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   50062610,
+   "Fistful of Ash",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   50064710,
+   "Fistful of Ash",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100010,
+   "Snap Seed",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   51100020,
+   "Pellet",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100030,
+   "Light Coin Purse",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100040,
+   "Pellet",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100050,
+   "\"Ungo's Sugar",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100060,
+   "Ceramic Shard",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100070,
+   "\"Ungo's Sugar",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100080,
+   "Ceramic Shard",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100090,
+   "Fistful of Ash",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100100,
+   "Pellet",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100110,
+   "Ceramic Shard",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100120,
+   "Mibu Balloon of Wealth",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100130,
+   "\"Gachiin's Sugar",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100140,
+   "Light Coin Purse",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100150,
+   "Light Coin Purse",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100160,
+   "Light Coin Purse",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100170,
+   "Fistful of Ash",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100180,
+   "Pellet",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100190,
+   "Mibu Balloon of Wealth",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100205,
+   "Divine Grass",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   51100210,
+   "Ceramic Shard",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   51100220,
+   "\"Gachiin's Sugar",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   51100230,
+   "Antidote Powder",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   51100240,
+   "Divine Grass",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   51100250,
+   "Pellet",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   51100260,
+   "\"Ungo's Sugar",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   51100270,
+   "Heavy Coin Purse",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   51100280,
+   "Fistful of Ash",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   51100290,
+   "Pellet",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   51100300,
+   "\"Ako's Sugar",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   51100315,
+   "Bundled Jizo Statue",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   51100320,
+   "Fistful of Ash",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   51100330,
+   "Nightjar Monocular",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   51100340,
+   "Scrap Iron",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   51100350,
+   "Bundled Jizo Statue",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100360,
+   "Light Coin Purse",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100370,
+   "Pellet",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100380,
+   "\"Ako's Sugar",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100390,
+   "Pellet",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100400,
+   "Ceramic Shard",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100410,
+   "Scrap Iron",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100430,
+   "Mibu Possession Balloon",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100440,
+   "Mibu Possession Balloon",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100450,
+   "\"Gachiin's Sugar",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   51100460,
+   "Divine Confetti",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   51100470,
+   "\"Gachiin's Sugar",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   51100480,
+   "Ceramic Shard",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   51100490,
+   "Mibu Balloon of Wealth",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   51100500,
+   "Ceramic Shard",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   51100510,
+   "Light Coin Purse",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   51100520,
+   "Pellet",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   51100700,
+   "Adamantite Scrap",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100710,
+   "Adamantite Scrap",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100720,
+   "Adamantite Scrap",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100730,
+   "Fulminated Mercury",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100740,
+   "Fulminated Mercury",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100750,
+   "Lump of Grave Wax",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100760,
+   "Lump of Grave Wax",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100770,
+   "Ministry Dousing Powder",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100780,
+   "\"Gachiin's Sugar",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100790,
+   "Heavy Coin Purse",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100800,
+   "Pellet",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100810,
+   "Fistful of Ash",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100820,
+   "\"Gachiin's Sugar",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100830,
+   "Ministry Dousing Powder",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100840,
+   "Pellet",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100850,
+   "\"Dragon's Blood Droplet",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   60200005,
+   "Heavy Coin Purse",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   60200105,
+   "Heavy Coin Purse",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   100201005,
+   "Heavy Coin Purse",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   63604000,
+   "Herb Catalogue Scrap",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   61902000,
+   "Black Gunpowder",
+   "ashinaoutskirts_gatepath  # More stairway, but goes away in invasion 2"
+  ],
+  [
+   63501000,
+   "\"Ako's Spiritfall",
+   "ashinaoutskirts_courtyard  # xx is this fine"
+  ],
+  [
+   63501005,
+   "Bulging Coin Purse",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   60701005,
+   "Heavy Coin Purse",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100000,
+   "Shuriken Wheel",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   50061000,
+   "Shinobi Esoteric Text",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50061004,
+   "Prosthetic Esoteric Text",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   100201001,
+   "Shinobi Medicine Rank 1",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   60200001,
+   "Gourd Seed",
+   "ashinaoutskirts_gatepath"
+  ],
+  [
+   51100200,
+   "Gourd Seed",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   50002000,
+   "Mechanical Barrel",
+   "ashinaoutskirts_fortress1"
+  ],
+  [
+   60200000,
+   "Prayer Bead",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   100201000,
+   "Prayer Bead",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   60200100,
+   "Prayer Bead",
+   "ashinaoutskirts_courtyard"
+  ],
+  [
+   60701000,
+   "Prayer Bead",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100310,
+   "Prayer Bead",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   50002131,
+   "Memory: Saint Isshin",
+   "ashinareservoir_endfield"
+  ],
+  [
+   50002132,
+   "Memory",
+   "ashinareservoir"
+  ],
+  [
+   50003080,
+   "Shirt after Kurabimaru (cosmetic)",
+   "ashinareservoir_start"
+  ],
+  [
+   50003300,
+   "Kuro's Charm",
+   "ashinareservoir_start"
+  ],
+  [
+   50069900,
+   "\"Dragonrot Blood Sample",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   60212005,
+   "Heavy Coin Purse",
+   "ashinareservoir"
+  ],
+  [
+   60212105,
+   "Heavy Coin Purse",
+   "ashinareservoir_invasion2"
+  ],
+  [
+   60203000,
+   "Pellet",
+   "ashinareservoir_start"
+  ],
+  [
+   64702001,
+   "Scrap Magnetite",
+   "ashinareservoir"
+  ],
+  [
+   64702005,
+   "Heavy Coin Purse",
+   "ashinareservoir"
+  ],
+  [
+   51120000,
+   "Ornamental Letter",
+   "ashinareservoir_start"
+  ],
+  [
+   51120020,
+   "Scrap Iron",
+   "ashinareservoir"
+  ],
+  [
+   51120030,
+   "Scrap Iron",
+   "ashinareservoir"
+  ],
+  [
+   51120040,
+   "Pellet",
+   "ashinareservoir_start  # Available at start, and then unavailable again in invasion2"
+  ],
+  [
+   51120050,
+   "Pellet",
+   "ashinareservoir"
+  ],
+  [
+   51120060,
+   "Ceramic Shard",
+   "ashinareservoir"
+  ],
+  [
+   51120070,
+   "Fistful of Ash",
+   "ashinareservoir"
+  ],
+  [
+   51120080,
+   "Scrap Iron",
+   "ashinareservoir_entrance"
+  ],
+  [
+   51120090,
+   "Fulminated Mercury",
+   "ashinareservoir_invasion2"
+  ],
+  [
+   51120100,
+   "Pellet",
+   "ashinareservoir_invasion2"
+  ],
+  [
+   51120110,
+   "Heavy Coin Purse",
+   "ashinareservoir_gatehouse"
+  ],
+  [
+   51120120,
+   "Bundled Jizo Statue",
+   "ashinareservoir"
+  ],
+  [
+   51120130,
+   "Mibu Balloon of Soul",
+   "ashinareservoir_underwater"
+  ],
+  [
+   51120140,
+   "Pellet",
+   "ashinareservoir_start"
+  ],
+  [
+   51120150,
+   "Fistful of Ash",
+   "ashinareservoir_start"
+  ],
+  [
+   51120160,
+   "Heavy Coin Purse",
+   "ashinareservoir_entrance"
+  ],
+  [
+   51120170,
+   "Bundled Jizo Statue",
+   "ashinareservoir"
+  ],
+  [
+   51120180,
+   "Mibu Balloon of Spirit",
+   "ashinareservoir_entrance"
+  ],
+  [
+   51120190,
+   "Ministry Dousing Powder",
+   "ashinareservoir_invasion2"
+  ],
+  [
+   51120010,
+   "\"Gyoubu's Broken Horn",
+   "ashinareservoir_gatehouse"
+  ],
+  [
+   50002130,
+   "Dragon Flash",
+   "ashinareservoir_endfield"
+  ],
+  [
+   50061100,
+   "Healing Gourd",
+   "ashinareservoir_start"
+  ],
+  [
+   60212000,
+   "Prayer Bead",
+   "ashinareservoir"
+  ],
+  [
+   64702000,
+   "Prayer Bead",
+   "ashinareservoir"
+  ],
+  [
+   60212100,
+   "Prayer Bead",
+   "ashinareservoir_invasion2"
+  ],
+  [
+   50002081,
+   "Memory: Genichiro",
+   "ashinacastle"
+  ],
+  [
+   50002082,
+   "Memory",
+   "ashinacastle"
+  ],
+  [
+   50002090,
+   "Aromatic Branch",
+   "ashinacastle_invasion1"
+  ],
+  [
+   50002091,
+   "Memory: Great Shinobi",
+   "ashinacastle_invasion1"
+  ],
+  [
+   50002092,
+   "Memory",
+   "ashinacastle"
+  ],
+  [
+   50002121,
+   "Memory: Isshin Ashina",
+   "ashinacastle_invasion1"
+  ],
+  [
+   50002122,
+   "Memory",
+   "ashinacastle"
+  ],
+  [
+   50061110,
+   "Fragrant Flower Note",
+   "ashinacastle_kuro1"
+  ],
+  [
+   50061102,
+   "Immortal Severance Text",
+   "ashinacastle_kuro1"
+  ],
+  [
+   50061114,
+   "Sweet Rice Ball",
+   "ashinacastle_kuro2"
+  ],
+  [
+   50061104,
+   "Sweet Rice Ball",
+   "ashinacastle_kuro1"
+  ],
+  [
+   50061106,
+   "\"Page's Diary",
+   "ashinacastle_kuro1"
+  ],
+  [
+   50061108,
+   "\"Okami's Ancient Text",
+   "ashinacastle_kuro1"
+  ],
+  [
+   50061112,
+   "Divine Grass",
+   "ashinacastle_kuro2"
+  ],
+  [
+   50051430,
+   "Mibu Pilgrimage Balloon",
+   "ashinacastle_invasion2"
+  ],
+  [
+   50062310,
+   "Ashina Sake",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50062312,
+   "Immortal Severance Scrap",
+   "ashinacastle_kuro1"
+  ],
+  [
+   50062302,
+   "\"Father's Bell Charm",
+   "ashinacastle_kuro2"
+  ],
+  [
+   50062320,
+   "Recovery Charm",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50062321,
+   "\"Dragon's Blood Droplet",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50062306,
+   "Secret Passage Key",
+   "ashinacastle_invasion2"
+  ],
+  [
+   50062308,
+   "\"Tomoe's Note",
+   "ashinacastle_kuro2"
+  ],
+  [
+   50062400,
+   "Unrefined Sake",
+   "ashinacastle_kuro1"
+  ],
+  [
+   50062404,
+   "Ashina Esoteric Text",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   50062304,
+   "Mushin Esoteric Text",
+   "ashinacastle_kuro1"
+  ],
+  [
+   50062900,
+   "\"Ungo's Sugar",
+   "ashinacastle"
+  ],
+  [
+   50062910,
+   "\"Ako's Sugar",
+   "ashinacastle"
+  ],
+  [
+   50062920,
+   "Divine Confetti",
+   "ashinacastle"
+  ],
+  [
+   50054700,
+   "Nightjar Beacon Memo",
+   "ashinacastle"
+  ],
+  [
+   51110000,
+   "Eel Liver",
+   "ashinacastle"
+  ],
+  [
+   51110030,
+   "Light Coin Purse",
+   "ashinacastle"
+  ],
+  [
+   51110040,
+   "Pellet",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110050,
+   "Ceramic Shard",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110060,
+   "Light Coin Purse",
+   "ashinacastle"
+  ],
+  [
+   51110070,
+   "Eel Liver",
+   "ashinacastle"
+  ],
+  [
+   51110080,
+   "Mibu Possession Balloon",
+   "ashinacastle_underwater"
+  ],
+  [
+   51110090,
+   "Pellet",
+   "ashinacastle_gate"
+  ],
+  [
+   51110100,
+   "Fistful of Ash",
+   "ashinacastle_gate"
+  ],
+  [
+   51110110,
+   "Heavy Coin Purse",
+   "dungeon"
+  ],
+  [
+   51110120,
+   "Pellet",
+   "ashinacastle"
+  ],
+  [
+   51110130,
+   "Fistful of Ash",
+   "ashinacastle"
+  ],
+  [
+   51110140,
+   "Gachiin's Sugar",
+   "ashinacastle"
+  ],
+  [
+   51110150,
+   "Pellet",
+   "ashinacastle"
+  ],
+  [
+   51110160,
+   "Ako's Sugar",
+   "ashinacastle"
+  ],
+  [
+   51110180,
+   "Gokan's Sugar",
+   "ashinacastle"
+  ],
+  [
+   51110190,
+   "Scrap Iron",
+   "ashinacastle"
+  ],
+  [
+   51110200,
+   "Mibu Balloon of Spirit",
+   "ashinacastle"
+  ],
+  [
+   51110210,
+   "Gachiin's Sugar",
+   "ashinacastle"
+  ],
+  [
+   51110220,
+   "Mibu Possession Balloon",
+   "ashinacastle"
+  ],
+  [
+   51110230,
+   "Scrap Magnetite",
+   "ashinacastle_kuro1"
+  ],
+  [
+   51110240,
+   "Eel Liver",
+   "ashinacastle"
+  ],
+  [
+   51110250,
+   "Ceramic Shard",
+   "ashinacastle"
+  ],
+  [
+   51110260,
+   "Ako's Sugar",
+   "ashinacastle_gate"
+  ],
+  [
+   51110270,
+   "Light Coin Purse",
+   "ashinacastle_gate"
+  ],
+  [
+   51110280,
+   "Mibu Balloon of Wealth",
+   "ashinacastle"
+  ],
+  [
+   51110290,
+   "Ceramic Shard",
+   "ashinacastle_gate"
+  ],
+  [
+   51110300,
+   "Black Gunpowder",
+   "ashinacastle"
+  ],
+  [
+   51110310,
+   "Gokan's Sugar",
+   "ashinacastle"
+  ],
+  [
+   51110320,
+   "Scrap Iron",
+   "ashinacastle"
+  ],
+  [
+   51110330,
+   "Gachiin's Sugar",
+   "ashinacastle"
+  ],
+  [
+   51110340,
+   "Pellet",
+   "ashinacastle"
+  ],
+  [
+   51110350,
+   "Gachiin's Sugar",
+   "ashinacastle"
+  ],
+  [
+   51110360,
+   "Scrap Iron",
+   "ashinacastle"
+  ],
+  [
+   51110370,
+   "Light Coin Purse",
+   "ashinacastle"
+  ],
+  [
+   51110380,
+   "Ungo's Sugar",
+   "ashinacastle"
+  ],
+  [
+   51110390,
+   "Scrap Magnetite",
+   "ashinacastle"
+  ],
+  [
+   51110400,
+   "Ceramic Shard",
+   "ashinacastle"
+  ],
+  [
+   51110410,
+   "Pellet",
+   "ashinacastle"
+  ],
+  [
+   51110420,
+   "Ceramic Shard",
+   "ashinacastle"
+  ],
+  [
+   51110430,
+   "Scrap Iron",
+   "ashinacastle_gate"
+  ],
+  [
+   51110440,
+   "Heavy Coin Purse",
+   "ashinacastle"
+  ],
+  [
+   51110450,
+   "Scrap Iron",
+   "ashinacastle_gate"
+  ],
+  [
+   51110460,
+   "Treasure Carp Scale",
+   "ashinacastle_underwater"
+  ],
+  [
+   51110470,
+   "Mibu Possession Balloon",
+   "ashinacastle"
+  ],
+  [
+   51110480,
+   "Heavy Coin Purse",
+   "ashinacastle_underwater"
+  ],
+  [
+   51110490,
+   "Heavy Coin Purse",
+   "ashinacastle_underwater"
+  ],
+  [
+   51110500,
+   "Yashariku's Sugar",
+   "ashinacastle_underwater"
+  ],
+  [
+   51110510,
+   "Mibu Possession Balloon",
+   "ashinacastle"
+  ],
+  [
+   51110520,
+   "Dragon's Blood Droplet",
+   "ashinacastle"
+  ],
+  [
+   51110530,
+   "Adamantite Scrap",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110540,
+   "Pellet",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110550,
+   "Antidote Powder",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110560,
+   "Adamantite Scrap",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110570,
+   "Adamantite Scrap",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110580,
+   "Oil",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110590,
+   "Light Coin Purse",
+   "ashinacastle"
+  ],
+  [
+   51110600,
+   "\"Yashariku's Sugar",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110610,
+   "Fistful of Ash",
+   "ashinacastle_invasion2"
+  ],
+  [
+   51110620,
+   "Ministry Dousing Powder",
+   "ashinacastle_invasion2"
+  ],
+  [
+   51110630,
+   "\"Ako's Sugar",
+   "ashinacastle_invasion2"
+  ],
+  [
+   51110640,
+   "Fulminated Mercury",
+   "ashinacastle_invasion2"
+  ],
+  [
+   51110650,
+   "\"Yashariku's Sugar",
+   "ashinacastle_invasion2"
+  ],
+  [
+   51110660,
+   "Pellet",
+   "ashinacastle_invasion2"
+  ],
+  [
+   51110670,
+   "Ceramic Shard",
+   "ashinacastle"
+  ],
+  [
+   51110680,
+   "Mibu Balloon of Wealth",
+   "ashinacastle"
+  ],
+  [
+   51110690,
+   "Pellet",
+   "ashinacastle"
+  ],
+  [
+   51110700,
+   "Ungo's Sugar",
+   "ashinacastle"
+  ],
+  [
+   51110710,
+   "Ceramic Shard",
+   "ashinacastle"
+  ],
+  [
+   51110720,
+   "Divine Grass",
+   "ashinacastle"
+  ],
+  [
+   51110740,
+   "Black Gunpowder",
+   "ashinacastle"
+  ],
+  [
+   51110750,
+   "\"Gokan's Sugar",
+   "ashinacastle_invasion2"
+  ],
+  [
+   51110760,
+   "\"Isshin's Letter",
+   "ashinacastle"
+  ],
+  [
+   51110770,
+   "Bundled Jizo Statue",
+   "ashinacastle"
+  ],
+  [
+   51110780,
+   "Bundled Jizo Statue",
+   "ashinacastle"
+  ],
+  [
+   51110790,
+   "Divine Grass",
+   "ashinacastle"
+  ],
+  [
+   51110800,
+   "Heavy Coin Purse",
+   "ashinacastle_underwater"
+  ],
+  [
+   51110830,
+   "Scrap Iron",
+   "ashinacastle_gate"
+  ],
+  [
+   51110840,
+   "Gachiin's Sugar",
+   "ashinacastle_gate"
+  ],
+  [
+   51110850,
+   "Fistful of Ash",
+   "ashinacastle"
+  ],
+  [
+   51110860,
+   "Gun Fort Shrine Key",
+   "ashinacastle_kuro1"
+  ],
+  [
+   51110870,
+   "Pellet",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110880,
+   "Black Scroll",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110890,
+   "Fistful of Ash",
+   "ashinacastle"
+  ],
+  [
+   51110900,
+   "Eel Liver",
+   "ashinacastle"
+  ],
+  [
+   51110910,
+   "Pellet",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110920,
+   "Scrap Magnetite",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110930,
+   "\"Yashariku's Sugar",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110940,
+   "\"Dragon's Blood Droplet",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110950,
+   "Oil",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110952,
+   "Oil",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110954,
+   "Black Gunpowder",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110956,
+   "Adamantite Scrap",
+   "ashinacastle_invasion2"
+  ],
+  [
+   51110958,
+   "Adamantite Scrap",
+   "ashinacastle_invasion2"
+  ],
+  [
+   60202005,
+   "Heavy Coin Purse",
+   "ashinacastle"
+  ],
+  [
+   60501100,
+   "Heavy Coin Purse",
+   "ashinacastle"
+  ],
+  [
+   61801000,
+   "Scrap Magnetite",
+   "ashinacastle_gate"
+  ],
+  [
+   63400000,
+   "\"Ungo's Spiritfall",
+   "ashinacastle_underwater"
+  ],
+  [
+   63605100,
+   "Black Gunpowder",
+   "ashinacastle_gate"
+  ],
+  [
+   63700005,
+   "Heavy Coin Purse",
+   "ashinacastle_gate"
+  ],
+  [
+   64000005,
+   "Heavy Coin Purse",
+   "ashinacastle"
+  ],
+  [
+   64001005,
+   "Heavy Coin Purse",
+   "ashinacastle_invasion2"
+  ],
+  [
+   64700001,
+   "Lump of Fat Wax",
+   "ashinacastle_invasion1"
+  ],
+  [
+   64700005,
+   "Heavy Coin Purse",
+   "ashinacastle_invasion1"
+  ],
+  [
+   64701001,
+   "Yellow Gunpowder",
+   "ashinacastle_invasion1"
+  ],
+  [
+   64701005,
+   "Heavy Coin Purse",
+   "ashinacastle_invasion1"
+  ],
+  [
+   100200005,
+   "Heavy Coin Purse",
+   "ashinacastle_invasion1"
+  ],
+  [
+   60101400,
+   "Gatehouse Key",
+   "ashinareservoir_entrance"
+  ],
+  [
+   63605200,
+   "Heavy Coin Purse",
+   "ashinacastle_invasion1"
+  ],
+  [
+   62504000,
+   "Bundled Jizo Statue",
+   "ashinacastle_invasion2"
+  ],
+  [
+   63400005,
+   "Bulging Coin Purse",
+   "ashinacastle_underwater"
+  ],
+  [
+   63200030,
+   "Treasure Carp Scale",
+   "ashinacastle_underwater"
+  ],
+  [
+   51110010,
+   "Sabimaru",
+   "ashinacastle"
+  ],
+  [
+   50002120,
+   "One Mind",
+   "ashinacastle_invasion1"
+  ],
+  [
+   63700001,
+   "Shinobi Medicine Rank 2",
+   "ashinacastle_gate"
+  ],
+  [
+   100200001,
+   "Shinobi Medicine Rank 3",
+   "ashinacastle_invasion1"
+  ],
+  [
+   51110020,
+   "Gourd Seed",
+   "ashinacastle"
+  ],
+  [
+   50002080,
+   "Bloodsmoke Ninjutsu",
+   "ashinacastle"
+  ],
+  [
+   63700000,
+   "Prayer Bead",
+   "ashinacastle_gate"
+  ],
+  [
+   60202000,
+   "Prayer Bead",
+   "ashinacastle"
+  ],
+  [
+   64000000,
+   "Prayer Bead",
+   "ashinacastle"
+  ],
+  [
+   100200000,
+   "Prayer Bead",
+   "ashinacastle_invasion1"
+  ],
+  [
+   64700000,
+   "Prayer Bead",
+   "ashinacastle_invasion1"
+  ],
+  [
+   64701000,
+   "Prayer Bead",
+   "ashinacastle_invasion1"
+  ],
+  [
+   64001000,
+   "Prayer Bead",
+   "ashinacastle_invasion2"
+  ],
+  [
+   51110170,
+   "Prayer Bead",
+   "ashinacastle"
+  ],
+  [
+   50061400,
+   "Iron Fortress",
+   "ashinacastle"
+  ],
+  [
+   51000005,
+   "\"Mask Fragment: Left",
+   "fountainhead"
+  ],
+  [
+   51000007,
+   "Dragon's Blood Droplet",
+   "fountainhead"
+  ],
+  [
+   51000006,
+   "Lapis Lazuli",
+   "fountainhead"
+  ],
+  [
+   50002031,
+   "Memory: Lady Butterfly",
+   "hirata_temple1"
+  ],
+  [
+   50002032,
+   "Memory",
+   "hirata"
+  ],
+  [
+   50002100,
+   "Aromatic Flower",
+   "hirata_temple2"
+  ],
+  [
+   50002101,
+   "Memory: Foster Father",
+   "hirata_temple2"
+  ],
+  [
+   50002102,
+   "Memory",
+   "hirata_temple2"
+  ],
+  [
+   50061200,
+   "Hidden Temple Key",
+   "hirata_courtyard1"
+  ],
+  [
+   50061800,
+   "Snap Seed",
+   "hirata_beforetemple"
+  ],
+  [
+   50062000,
+   "Antidote Powder",
+   "hirata"
+  ],
+  [
+   50063600,
+   "Truly Precious Bait",
+   "hirata"
+  ],
+  [
+   50063610,
+   "Lapis Lazuli",
+   "hirata"
+  ],
+  [
+   51000005,
+   "Fistful of Ash",
+   "hirata"
+  ],
+  [
+   51000015,
+   "Bundled Jizo Statue",
+   "hirata"
+  ],
+  [
+   51000025,
+   "Bundled Jizo Statue",
+   "hirata"
+  ],
+  [
+   51000030,
+   "Pellet",
+   "hirata"
+  ],
+  [
+   51000040,
+   "Dousing Powder",
+   "hirata"
+  ],
+  [
+   51000050,
+   "Mibu Possession Balloon",
+   "hirata"
+  ],
+  [
+   51000060,
+   "Light Coin Purse",
+   "hirata"
+  ],
+  [
+   51000070,
+   "Ungo's Sugar",
+   "hirata"
+  ],
+  [
+   51000080,
+   "Ako's Sugar",
+   "hirata"
+  ],
+  [
+   51000090,
+   "Pellet",
+   "hirata"
+  ],
+  [
+   51000100,
+   "Ceramic Shard",
+   "hirata"
+  ],
+  [
+   51000110,
+   "Fistful of Ash",
+   "hirata"
+  ],
+  [
+   51000120,
+   "Fistful of Ash",
+   "hirata"
+  ],
+  [
+   51000130,
+   "Pellet",
+   "hirata"
+  ],
+  [
+   51000140,
+   "Light Coin Purse",
+   "hirata"
+  ],
+  [
+   51000150,
+   "Ungo's Sugar",
+   "hirata"
+  ],
+  [
+   51000160,
+   "Oil",
+   "hirata_thicketslope"
+  ],
+  [
+   51000170,
+   "Mibu Possession Balloon",
+   "hirata_sidepath"
+  ],
+  [
+   51000180,
+   "Dousing Powder",
+   "hirata_thicketslope"
+  ],
+  [
+   51000190,
+   "Dousing Powder",
+   "hirata_sidepath"
+  ],
+  [
+   51000200,
+   "Divine Confetti",
+   "hirata_sidepath"
+  ],
+  [
+   51000210,
+   "Light Coin Purse",
+   "hirata_sidepath"
+  ],
+  [
+   51000220,
+   "Dousing Powder",
+   "hirata_beforetemple"
+  ],
+  [
+   51000230,
+   "Pellet",
+   "hirata_beforetemple"
+  ],
+  [
+   51000240,
+   "Light Coin Purse",
+   "hirata"
+  ],
+  [
+   51000250,
+   "Pellet",
+   "hirata"
+  ],
+  [
+   51000260,
+   "Fistful of Ash",
+   "hirata"
+  ],
+  [
+   51000270,
+   "Ceramic Shard",
+   "hirata_sidepath"
+  ],
+  [
+   51000280,
+   "Treasure Carp Scale",
+   "hirata"
+  ],
+  [
+   51000290,
+   "Ceramic Shard",
+   "hirata"
+  ],
+  [
+   51000300,
+   "Mibu Balloon of Wealth",
+   "hirata"
+  ],
+  [
+   51000310,
+   "Dousing Powder",
+   "hirata"
+  ],
+  [
+   51000330,
+   "Gokan's Sugar",
+   "hirata"
+  ],
+  [
+   51000340,
+   "Mibu Balloon of Soul",
+   "hirata_sidepath"
+  ],
+  [
+   51000350,
+   "Bundled Jizo Statue",
+   "hirata"
+  ],
+  [
+   51000360,
+   "Pellet",
+   "hirata"
+  ],
+  [
+   51000370,
+   "Mibu Possession Balloon",
+   "hirata"
+  ],
+  [
+   51000380,
+   "Fistful of Ash",
+   "hirata_thicketslope"
+  ],
+  [
+   51000390,
+   "Contact Medicine",
+   "hirata_pagoda"
+  ],
+  [
+   51000400,
+   "Pellet",
+   "hirata_sidepath"
+  ],
+  [
+   51000410,
+   "Oil",
+   "hirata_sidepath"
+  ],
+  [
+   51000420,
+   "Oil",
+   "hirata_beforetemple"
+  ],
+  [
+   51000430,
+   "Divine Confetti",
+   "hirata_beforetemple"
+  ],
+  [
+   51000440,
+   "Light Coin Purse",
+   "hirata_beforetemple"
+  ],
+  [
+   51000450,
+   "Mibu Balloon of Wealth",
+   "hirata_beforetemple"
+  ],
+  [
+   51000460,
+   "Mibu Balloon of Soul",
+   "hirata_beforetemple"
+  ],
+  [
+   51000505,
+   "Bundled Jizo Statue",
+   "hirata_beforetemple"
+  ],
+  [
+   51000600,
+   "Fulminated Mercury",
+   "hirata_courtyard2"
+  ],
+  [
+   51000610,
+   "Adamantite Scrap",
+   "hirata_courtyard2"
+  ],
+  [
+   51000620,
+   "Adamantite Scrap",
+   "hirata_courtyard2"
+  ],
+  [
+   51000630,
+   "Fulminated Mercury",
+   "hirata_temple2"
+  ],
+  [
+   51000640,
+   "Mibu Balloon of Wealth",
+   "hirata_courtyard2"
+  ],
+  [
+   51000650,
+   "Fistful of Ash",
+   "hirata_courtyard2"
+  ],
+  [
+   51000660,
+   "Light Coin Purse",
+   "hirata_courtyard2"
+  ],
+  [
+   51000670,
+   "Ashina Sake",
+   "hirata_courtyard2"
+  ],
+  [
+   51000680,
+   "Pellet",
+   "hirata_courtyard2"
+  ],
+  [
+   51000690,
+   "\"Gokan's Sugar",
+   "hirata_temple2"
+  ],
+  [
+   60700001,
+   "Unrefined Sake",
+   "hirata_sidepath"
+  ],
+  [
+   60700005,
+   "Heavy Coin Purse",
+   "hirata_sidepath"
+  ],
+  [
+   60500005,
+   "Heavy Coin Purse",
+   "hirata"
+  ],
+  [
+   60500100,
+   "Bulging Coin Purse",
+   "hirata_sidepath"
+  ],
+  [
+   64703000,
+   "Scrap Iron",
+   "hirata_pagoda"
+  ],
+  [
+   60700105,
+   "Heavy Coin Purse",
+   "hirata_courtyard2"
+  ],
+  [
+   64703101,
+   "Adamantite Scrap",
+   "hirata_courtyard2"
+  ],
+  [
+   64703105,
+   "Heavy Coin Purse",
+   "hirata_courtyard2"
+  ],
+  [
+   63200000,
+   "Treasure Carp Scale",
+   "hirata"
+  ],
+  [
+   63200005,
+   "Treasure Carp Scale",
+   "hirata"
+  ],
+  [
+   63200010,
+   "Treasure Carp Scale",
+   "hirata"
+  ],
+  [
+   63200015,
+   "Treasure Carp Scale",
+   "hirata_underwater"
+  ],
+  [
+   63200020,
+   "Treasure Carp Scale",
+   "hirata_underwater"
+  ],
+  [
+   63200025,
+   "Treasure Carp Scale",
+   "hirata_underwater"
+  ],
+  [
+   51000000,
+   "Flame Barrel",
+   "hirata"
+  ],
+  [
+   51000010,
+   "Shinobi Axe of the Monkey",
+   "hirata"
+  ],
+  [
+   51000020,
+   "\"Mist Raven's Feathers",
+   "hirata_pagoda"
+  ],
+  [
+   50002030,
+   "Sakura Droplet",
+   "hirata_temple1"
+  ],
+  [
+   60500000,
+   "Prayer Bead",
+   "hirata"
+  ],
+  [
+   60700000,
+   "Prayer Bead",
+   "hirata_sidepath"
+  ],
+  [
+   64703100,
+   "Prayer Bead",
+   "hirata_courtyard2"
+  ],
+  [
+   60700100,
+   "Prayer Bead",
+   "hirata_courtyard2"
+  ],
+  [
+   51000500,
+   "Prayer Bead",
+   "hirata_beforetemple"
+  ],
+  [
+   51000004,
+   "Red Lump",
+   "hirata"
+  ],
+  [
+   50052650,
+   "Red Lump",
+   "dungeon"
+  ],
+  [
+   50062600,
+   "Taro Persimmon",
+   "dungeon"
+  ],
+  [
+   50053050,
+   "Red Lump",
+   "dungeon"
+  ],
+  [
+   50063100,
+   "\"Surgeon's Bloody Letter",
+   "dungeon"
+  ],
+  [
+   50063110,
+   "Lump of Fat Wax",
+   "dungeon"
+  ],
+  [
+   50063120,
+   "\"Surgeon's Stained Letter",
+   "dungeon"
+  ],
+  [
+   50063130,
+   "Lump of Grave Wax",
+   "dungeon"
+  ],
+  [
+   50053110,
+   "\"Academics' Red Lump",
+   "dungeon"
+  ],
+  [
+   51300000,
+   "Dosaku's Note",
+   "dungeon_underwater"
+  ],
+  [
+   51300010,
+   "Rotting Prisoner's Note",
+   "dungeon"
+  ],
+  [
+   51300020,
+   "Pacifying Agent",
+   "dungeon"
+  ],
+  [
+   51300030,
+   "Pacifying Agent",
+   "dungeon"
+  ],
+  [
+   51300040,
+   "Pacifying Agent",
+   "dungeon"
+  ],
+  [
+   51300050,
+   "Oil",
+   "dungeon"
+  ],
+  [
+   51300060,
+   "Mibu Balloon of Soul",
+   "dungeon"
+  ],
+  [
+   51300070,
+   "Oil",
+   "dungeon"
+  ],
+  [
+   51300080,
+   "Mibu Balloon of Soul",
+   "dungeon"
+  ],
+  [
+   51300090,
+   "Red Lump",
+   "dungeon"
+  ],
+  [
+   51300100,
+   "Ako's Sugar",
+   "dungeon"
+  ],
+  [
+   51300110,
+   "Light Coin Purse",
+   "dungeon"
+  ],
+  [
+   51300120,
+   "Bite Down",
+   "dungeon"
+  ],
+  [
+   51300130,
+   "Pacifying Agent",
+   "dungeon"
+  ],
+  [
+   51300140,
+   "Bulging Coin Purse",
+   "dungeon"
+  ],
+  [
+   51300150,
+   "Light Coin Purse",
+   "dungeon_underwater"
+  ],
+  [
+   51300160,
+   "Ceramic Shard",
+   "dungeon_underwater"
+  ],
+  [
+   51300170,
+   "Mibu Balloon of Soul",
+   "dungeon"
+  ],
+  [
+   51300180,
+   "Fistful of Ash",
+   "dungeon"
+  ],
+  [
+   51300190,
+   "Mibu Balloon of Soul",
+   "dungeon_underwater"
+  ],
+  [
+   51300200,
+   "Pacifying Agent",
+   "dungeon_underwater"
+  ],
+  [
+   51300220,
+   "Black Gunpowder",
+   "dungeon"
+  ],
+  [
+   51300230,
+   "Scrap Magnetite",
+   "dungeon"
+  ],
+  [
+   51300240,
+   "Scrap Iron",
+   "dungeon"
+  ],
+  [
+   51300250,
+   "Black Gunpowder",
+   "dungeon"
+  ],
+  [
+   51300260,
+   "Light Coin Purse",
+   "dungeon_underwater"
+  ],
+  [
+   51300270,
+   "Light Coin Purse",
+   "dungeon_underwater"
+  ],
+  [
+   60800000,
+   "Ceremonial Tanto",
+   "dungeon"
+  ],
+  [
+   60800005,
+   "Bulging Coin Purse",
+   "dungeon"
+  ],
+  [
+   50002050,
+   "Mibu Breathing Technique",
+   "mibuvillage"
+  ],
+  [
+   50002051,
+   "Memory: Corrupted Monk",
+   "mibuvillage"
+  ],
+  [
+   50002052,
+   "Memory",
+   "mibuvillage"
+  ],
+  [
+   50062800,
+   "Dragonspring Sake",
+   "mibuvillage"
+  ],
+  [
+   50052810,
+   "Treasure Carp Scale",
+   "mibuvillage"
+  ],
+  [
+   50063000,
+   "\"Jinza's Jizo Statue",
+   "mibuvillage"
+  ],
+  [
+   51500005,
+   "Bundled Jizo Statue",
+   "mibuvillage"
+  ],
+  [
+   51500015,
+   "Divine Grass",
+   "mibuvillage"
+  ],
+  [
+   51500020,
+   "Heavy Coin Purse",
+   "hiddenforest"
+  ],
+  [
+   51500030,
+   "Ashina Sake",
+   "mibuvillage"
+  ],
+  [
+   51500045,
+   "Bundled Jizo Statue",
+   "mibuvillage"
+  ],
+  [
+   51500050,
+   "Shelter Stone",
+   "mibuvillage_cave"
+  ],
+  [
+   51500060,
+   "Ceramic Shard",
+   "hiddenforest"
+  ],
+  [
+   51500070,
+   "Mibu Balloon of Wealth",
+   "hiddenforest"
+  ],
+  [
+   51500080,
+   "Scrap Iron",
+   "hiddenforest"
+  ],
+  [
+   51500090,
+   "Pellet",
+   "hiddenforest"
+  ],
+  [
+   51500100,
+   "Mibu Balloon of Soul",
+   "mibuvillage"
+  ],
+  [
+   51500110,
+   "Pellet",
+   "hiddenforest"
+  ],
+  [
+   51500120,
+   "Light Coin Purse",
+   "hiddenforest"
+  ],
+  [
+   51500130,
+   "Oil",
+   "hiddenforest"
+  ],
+  [
+   51500140,
+   "Ceramic Shard",
+   "hiddenforest"
+  ],
+  [
+   51500150,
+   "Contact Medicine",
+   "hiddenforest"
+  ],
+  [
+   51500160,
+   "Bite Down",
+   "hiddenforest"
+  ],
+  [
+   51500170,
+   "Light Coin Purse",
+   "hiddenforest"
+  ],
+  [
+   51500180,
+   "\"Yashariku's Sugar",
+   "hiddenforest"
+  ],
+  [
+   51500190,
+   "Adamantite Scrap",
+   "hiddenforest"
+  ],
+  [
+   51500200,
+   "Snap Seed",
+   "hiddenforest"
+  ],
+  [
+   51500210,
+   "Fistful of Ash",
+   "hiddenforest"
+  ],
+  [
+   51500220,
+   "Pellet",
+   "hiddenforest"
+  ],
+  [
+   51500230,
+   "Treasure Carp Scale",
+   "mibuvillage"
+  ],
+  [
+   51500240,
+   "Mibu Balloon of Soul",
+   "mibuvillage"
+  ],
+  [
+   51500250,
+   "Pacifying Agent",
+   "mibuvillage"
+  ],
+  [
+   51500260,
+   "Mibu Balloon of Wealth",
+   "mibuvillage"
+  ],
+  [
+   51500270,
+   "Fistful of Ash",
+   "mibuvillage"
+  ],
+  [
+   51500280,
+   "Pellet",
+   "mibuvillage"
+  ],
+  [
+   51500290,
+   "Contact Medicine",
+   "mibuvillage"
+  ],
+  [
+   51500300,
+   "Yellow Gunpowder",
+   "mibuvillage"
+  ],
+  [
+   51500310,
+   "Mibu Balloon of Soul",
+   "mibuvillage"
+  ],
+  [
+   51500325,
+   "Bundled Jizo Statue",
+   "mibuvillage_underwater"
+  ],
+  [
+   51500330,
+   "Light Coin Purse",
+   "mibuvillage_underwater"
+  ],
+  [
+   51500340,
+   "Light Coin Purse",
+   "mibuvillage_underwater"
+  ],
+  [
+   51500350,
+   "Precious Bait",
+   "mibuvillage_underwater"
+  ],
+  [
+   51500360,
+   "Pellet",
+   "mibuvillage"
+  ],
+  [
+   51500370,
+   "Contact Medicine",
+   "mibuvillage"
+  ],
+  [
+   51500380,
+   "Fistful of Ash",
+   "mibuvillage"
+  ],
+  [
+   51500390,
+   "Light Coin Purse",
+   "mibuvillage"
+  ],
+  [
+   51500400,
+   "Pellet",
+   "mibuvillage"
+  ],
+  [
+   51500410,
+   "Yashariku's Sugar",
+   "mibuvillage"
+  ],
+  [
+   51500420,
+   "Divine Confetti",
+   "mibuvillage"
+  ],
+  [
+   51500430,
+   "Scrap Magnetite",
+   "hiddenforest"
+  ],
+  [
+   51500440,
+   "Scrap Magnetite",
+   "hiddenforest"
+  ],
+  [
+   51500450,
+   "Adamantite Scrap",
+   "mibuvillage"
+  ],
+  [
+   51500460,
+   "Red Lump",
+   "mibuvillage"
+  ],
+  [
+   51500470,
+   "Adamantite Scrap",
+   "mibuvillage"
+  ],
+  [
+   51500480,
+   "Black Gunpowder",
+   "mibuvillage"
+  ],
+  [
+   51500490,
+   "Yellow Gunpowder",
+   "hiddenforest"
+  ],
+  [
+   51500500,
+   "Lump of Fat Wax",
+   "hiddenforest"
+  ],
+  [
+   51500510,
+   "Lump of Fat Wax",
+   "hiddenforest"
+  ],
+  [
+   51500520,
+   "Lump of Fat Wax",
+   "mibuvillage"
+  ],
+  [
+   51500530,
+   "Adamantite Scrap",
+   "mibuvillage"
+  ],
+  [
+   51500540,
+   "Lump of Fat Wax",
+   "mibuvillage"
+  ],
+  [
+   51500550,
+   "Mibu Balloon of Soul",
+   "mibuvillage"
+  ],
+  [
+   51500560,
+   "Mibu Balloon of Soul",
+   "hiddenforest"
+  ],
+  [
+   51500570,
+   "Divine Confetti",
+   "mibuvillage"
+  ],
+  [
+   51500580,
+   "Bite Down",
+   "hiddenforest"
+  ],
+  [
+   51500590,
+   "Oil",
+   "hiddenforest"
+  ],
+  [
+   51500610,
+   "Divine Grass",
+   "mibuvillage"
+  ],
+  [
+   51500620,
+   "Heavy Coin Purse",
+   "mibuvillage"
+  ],
+  [
+   51500630,
+   "Light Coin Purse",
+   "mibuvillage"
+  ],
+  [
+   51500640,
+   "Pellet",
+   "mibuvillage"
+  ],
+  [
+   63001000,
+   "Lump of Grave Wax",
+   "hiddenforest"
+  ],
+  [
+   63500000,
+   "\"Gachiin's Spiritfall",
+   "hiddenforest"
+  ],
+  [
+   63500005,
+   "Bulging Coin Purse",
+   "hiddenforest"
+  ],
+  [
+   120000005,
+   "\"Heavy Coin Purse",
+   "mibuvillage"
+  ],
+  [
+   60702001,
+   "Unrefined Sake",
+   "hiddenforest"
+  ],
+  [
+   60702005,
+   "Heavy Coin Purse",
+   "hiddenforest"
+  ],
+  [
+   64704000,
+   "Scrap Magnetite",
+   "mibuvillage"
+  ],
+  [
+   63200035,
+   "Treasure Carp Scale",
+   "mibuvillage_underwater"
+  ],
+  [
+   120000001,
+   "\"Breath of Life: Shadow",
+   "mibuvillage"
+  ],
+  [
+   51500010,
+   "Gourd Seed",
+   "mibuvillage"
+  ],
+  [
+   51500000,
+   "Pine Resin Ember",
+   "mibuvillage"
+  ],
+  [
+   60702000,
+   "Prayer Bead",
+   "hiddenforest"
+  ],
+  [
+   120000000,
+   "\"Prayer Bead",
+   "mibuvillage"
+  ],
+  [
+   51500040,
+   "Prayer Bead",
+   "mibuvillage"
+  ],
+  [
+   51500320,
+   "Prayer Bead",
+   "mibuvillage_underwater"
+  ],
+  [
+   63200100,
+   "Red Carp Eyes",
+   "mibuvillage_underwater"
+  ],
+  [
+   50002011,
+   "Memory: Guardian Ape",
+   "sunkenvalley_passage"
+  ],
+  [
+   50002012,
+   "Memory",
+   "sunkenvalley_passage"
+  ],
+  [
+   50002017,
+   "Memory: Headless Ape",
+   "sunkenvalley_burrow2"
+  ],
+  [
+   50002018,
+   "Memory",
+   "sunkenvalley_burrow2"
+  ],
+  [
+   51700000,
+   "Lotus of the Palace",
+   "sunkenvalley_flower"
+  ],
+  [
+   51700015,
+   "Bundled Jizo Statue",
+   "sunkenvalley"
+  ],
+  [
+   51700025,
+   "Bundled Jizo Statue",
+   "sunkenvalley"
+  ],
+  [
+   51700035,
+   "Bundled Jizo Statue",
+   "sunkenvalley"
+  ],
+  [
+   51700045,
+   "Bundled Jizo Statue",
+   "sunkenvalley_burrow1"
+  ],
+  [
+   51700050,
+   "Pellet",
+   "sunkenvalley"
+  ],
+  [
+   51700060,
+   "Divine Grass",
+   "sunkenvalley_cave"
+  ],
+  [
+   51700070,
+   "Antidote Powder",
+   "sunkenvalley"
+  ],
+  [
+   51700080,
+   "Snap Seed",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700090,
+   "Pacifying Agent",
+   "sunkenvalley"
+  ],
+  [
+   51700100,
+   "Pacifying Agent",
+   "sunkenvalley_poisonpool"
+  ],
+  [
+   51700110,
+   "Mibu Balloon of Soul",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700120,
+   "Divine Confetti",
+   "sunkenvalley"
+  ],
+  [
+   51700130,
+   "Black Gunpowder",
+   "sunkenvalley"
+  ],
+  [
+   51700140,
+   "Antidote Powder",
+   "sunkenvalley"
+  ],
+  [
+   51700150,
+   "Gokan's Sugar",
+   "sunkenvalley"
+  ],
+  [
+   51700160,
+   "Ungo's Sugar",
+   "sunkenvalley"
+  ],
+  [
+   51700180,
+   "Oil",
+   "sunkenvalley_poisonpool"
+  ],
+  [
+   51700200,
+   "Scrap Magnetite",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700210,
+   "Scrap Magnetite",
+   "sunkenvalley"
+  ],
+  [
+   51700220,
+   "Scrap Magnetite",
+   "sunkenvalley"
+  ],
+  [
+   51700230,
+   "Snap Seed",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700260,
+   "Dragon's Blood Droplet",
+   "sunkenvalley_senpou"
+  ],
+  [
+   51700290,
+   "Ungo's Sugar",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700300,
+   "Mibu Balloon of Soul",
+   "sunkenvalley"
+  ],
+  [
+   51700310,
+   "Pacifying Agent",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700320,
+   "Mibu Balloon of Soul",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700330,
+   "Scrap Magnetite",
+   "sunkenvalley"
+  ],
+  [
+   51700340,
+   "Divine Confetti",
+   "sunkenvalley_shrine"
+  ],
+  [
+   51700350,
+   "Black Gunpowder",
+   "sunkenvalley"
+  ],
+  [
+   51700360,
+   "Snap Seed",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700370,
+   "Heavy Coin Purse",
+   "sunkenvalley"
+  ],
+  [
+   51700380,
+   "Light Coin Purse",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700390,
+   "Scrap Magnetite",
+   "sunkenvalley"
+  ],
+  [
+   51700400,
+   "Snap Seed",
+   "sunkenvalley"
+  ],
+  [
+   51700410,
+   "Fistful of Ash",
+   "sunkenvalley"
+  ],
+  [
+   51700420,
+   "Scrap Magnetite",
+   "sunkenvalley"
+  ],
+  [
+   51700430,
+   "Ako's Sugar",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700440,
+   "Ceramic Shard",
+   "sunkenvalley"
+  ],
+  [
+   51700450,
+   "Adamantite Scrap",
+   "sunkenvalley_underwater"
+  ],
+  [
+   51700460,
+   "Scrap Magnetite",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700470,
+   "Antidote Powder",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700480,
+   "Fistful of Ash",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700490,
+   "Fulminated Mercury",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700500,
+   "Scrap Magnetite",
+   "sunkenvalley_poisonpool"
+  ],
+  [
+   51700510,
+   "Scrap Magnetite",
+   "sunkenvalley_poisonpool"
+  ],
+  [
+   51700520,
+   "Bulging Coin Purse",
+   "sunkenvalley_underwater"
+  ],
+  [
+   51700530,
+   "Scrap Magnetite",
+   "sunkenvalley_poisonpool"
+  ],
+  [
+   51700540,
+   "Yellow Gunpowder",
+   "sunkenvalley"
+  ],
+  [
+   51700550,
+   "Yellow Gunpowder",
+   "sunkenvalley"
+  ],
+  [
+   51700560,
+   "Fistful of Ash",
+   "sunkenvalley"
+  ],
+  [
+   51700570,
+   "Yellow Gunpowder",
+   "sunkenvalley"
+  ],
+  [
+   51700580,
+   "Yellow Gunpowder",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700590,
+   "Yellow Gunpowder",
+   "sunkenvalley_burrow1"
+  ],
+  [
+   51700600,
+   "Yellow Gunpowder",
+   "sunkenvalley_poisonpool"
+  ],
+  [
+   51700610,
+   "Heavy Coin Purse",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700620,
+   "Yashariku's Sugar",
+   "sunkenvalley_underwater"
+  ],
+  [
+   51700630,
+   "Pacifying Agent",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700640,
+   "Contact Medicine",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700650,
+   "Scrap Magnetite",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700660,
+   "Contact Medicine",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700670,
+   "Monkey Booze",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700680,
+   "Ungo's Sugar",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700690,
+   "Scrap Magnetite",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700700,
+   "Mibu Balloon of Soul",
+   "sunkenvalley_shrine"
+  ],
+  [
+   51700710,
+   "Pellet",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700720,
+   "Fistful of Ash",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700740,
+   "Mibu Possession Balloon",
+   "sunkenvalley_poisonpool"
+  ],
+  [
+   51700760,
+   "Black Gunpowder",
+   "sunkenvalley_poisonpool"
+  ],
+  [
+   51700780,
+   "Pellet",
+   "sunkenvalley_poisonpool"
+  ],
+  [
+   51700790,
+   "Heavy Coin Purse",
+   "sunkenvalley_poisonpool"
+  ],
+  [
+   51700810,
+   "Dried Serpent Viscera",
+   "sunkenvalley_shrine"
+  ],
+  [
+   51700825,
+   "Divine Grass",
+   "sunkenvalley"
+  ],
+  [
+   51700830,
+   "Monkey Booze",
+   "sunkenvalley_burrow1"
+  ],
+  [
+   51700840,
+   "Precious Bait",
+   "sunkenvalley_underwater"
+  ],
+  [
+   51700850,
+   "Pacifying Agent",
+   "sunkenvalley"
+  ],
+  [
+   51700860,
+   "Contact Medicine",
+   "sunkenvalley"
+  ],
+  [
+   51700870,
+   "Adamantite Scrap",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700880,
+   "Scrap Iron",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700890,
+   "Lump of Grave Wax",
+   "sunkenvalley_cave"
+  ],
+  [
+   51700900,
+   "Mibu Balloon of Soul",
+   "sunkenvalley_senpou"
+  ],
+  [
+   51700910,
+   "Bundled Jizo Statue",
+   "sunkenvalley_senpou"
+  ],
+  [
+   51700920,
+   "Treasure Carp Scale",
+   "sunkenvalley_underwater"
+  ],
+  [
+   100500000,
+   "Great White Whisker",
+   "sunkenvalley_carp"
+  ],
+  [
+   51700930,
+   "Gachiin's Sugar",
+   "sunkenvalley_underwater"
+  ],
+  [
+   62500000,
+   "Yellow Gunpowder",
+   "sunkenvalley_passage"
+  ],
+  [
+   62500005,
+   "Yellow Gunpowder",
+   "sunkenvalley_passage"
+  ],
+  [
+   100100000,
+   "Fresh Serpent Viscera",
+   "sunkenvalley_senpou"
+  ],
+  [
+   60401101,
+   "Yellow Gunpowder",
+   "sunkenvalley"
+  ],
+  [
+   60401105,
+   "Heavy Coin Purse",
+   "sunkenvalley"
+  ],
+  [
+   61900210,
+   "Yellow Gunpowder",
+   "sunkenvalley"
+  ],
+  [
+   63502000,
+   "\"Gokan's Spiritfall",
+   "sunkenvalley_cave"
+  ],
+  [
+   63502005,
+   "Bulging Coin Purse",
+   "sunkenvalley_cave"
+  ],
+  [
+   61900005,
+   "Heavy Coin Purse",
+   "sunkenvalley_poisonpool"
+  ],
+  [
+   61901105,
+   "Heavy Coin Purse",
+   "sunkenvalley"
+  ],
+  [
+   60802005,
+   "Bulging Coin Purse",
+   "sunkenvalley_burrow3"
+  ],
+  [
+   63200040,
+   "Treasure Carp Scale",
+   "sunkenvalley_passage"
+  ],
+  [
+   63200045,
+   "Treasure Carp Scale",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700010,
+   "Large Fan",
+   "sunkenvalley"
+  ],
+  [
+   50002010,
+   "Slender Finger",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700820,
+   "Gourd Seed",
+   "sunkenvalley"
+  ],
+  [
+   60802000,
+   "\"Malcontent's Ring",
+   "sunkenvalley_burrow3"
+  ],
+  [
+   50002200,
+   "\"Bestowal Ninjutsu",
+   "sunkenvalley_burrow3  # Causes burrow3 to spawn (slender finger requirement removed)"
+  ],
+  [
+   61900000,
+   "Prayer Bead",
+   "sunkenvalley"
+  ],
+  [
+   60401100,
+   "Prayer Bead",
+   "sunkenvalley"
+  ],
+  [
+   61901100,
+   "Prayer Bead",
+   "sunkenvalley_poisonpool"
+  ],
+  [
+   51700020,
+   "Prayer Bead",
+   "sunkenvalley"
+  ],
+  [
+   51700030,
+   "Prayer Bead",
+   "sunkenvalley"
+  ],
+  [
+   51700040,
+   "Prayer Bead",
+   "sunkenvalley_burrow1"
+  ],
+  [
+   50002015,
+   "Prayer Bead",
+   "sunkenvalley_burrow2"
+  ],
+  [
+   50002016,
+   "Prayer Bead",
+   "sunkenvalley_burrow2"
+  ],
+  [
+   50002021,
+   "Memory: Screen Monkeys",
+   "senpou_sanctum"
+  ],
+  [
+   50002022,
+   "Memory",
+   "senpou_sanctum"
+  ],
+  [
+   50003090,
+   "Shirt after Mortal Blade (cosmetic)",
+   "senpou_sanctum"
+  ],
+  [
+   50062200,
+   "Mortal Blade",
+   "senpou_sanctum"
+  ],
+  [
+   50062210,
+   "Rice for Kuro",
+   "senpou_sanctum"
+  ],
+  [
+   50062212,
+   "Frozen Tears",
+   "senpou_sanctum"
+  ],
+  [
+   50063200,
+   "Holy Chapter: Infested",
+   "senpou_grounds"
+  ],
+  [
+   52000820,
+   "Holy Chapter: Infested",
+   "senpou_grounds"
+  ],
+  [
+   50064500,
+   "Persimmon",
+   "senpou"
+  ],
+  [
+   52000005,
+   "Bundled Jizo Statue",
+   "senpou_grounds"
+  ],
+  [
+   52000010,
+   "\"Holy Chapter: Dragon's Return",
+   "senpou_grounds"
+  ],
+  [
+   52000020,
+   "Monkey Booze",
+   "senpou"
+  ],
+  [
+   52000030,
+   "Red and White Pinwheel",
+   "senpou"
+  ],
+  [
+   52000045,
+   "Bundled Jizo Statue",
+   "senpou_underwater"
+  ],
+  [
+   52000050,
+   "Mibu Balloon of Spirit",
+   "senpou_cavern"
+  ],
+  [
+   52000060,
+   "Illusive Hall Bell",
+   "senpou"
+  ],
+  [
+   52000070,
+   "Gachiin's Sugar",
+   "senpou"
+  ],
+  [
+   52000080,
+   "Antidote Powder",
+   "senpou"
+  ],
+  [
+   52000090,
+   "Gokan's Sugar",
+   "senpou_grounds"
+  ],
+  [
+   52000100,
+   "Ungo's Sugar",
+   "senpou"
+  ],
+  [
+   52000110,
+   "Ceramic Shard",
+   "senpou_grounds"
+  ],
+  [
+   52000120,
+   "Mibu Balloon of Spirit",
+   "senpou_grounds"
+  ],
+  [
+   52000130,
+   "Mibu Balloon of Spirit",
+   "senpou_grounds"
+  ],
+  [
+   52000140,
+   "Lump of Fat Wax",
+   "senpou_grounds"
+  ],
+  [
+   52000160,
+   "Gokan's Sugar",
+   "senpou"
+  ],
+  [
+   52000170,
+   "White Pinwheel",
+   "senpou"
+  ],
+  [
+   52000180,
+   "Scrap Iron",
+   "senpou"
+  ],
+  [
+   52000190,
+   "Ako's Sugar",
+   "senpou_grounds"
+  ],
+  [
+   52000200,
+   "Mibu Balloon of Spirit",
+   "senpou"
+  ],
+  [
+   52000210,
+   "Ungo's Sugar",
+   "senpou_grounds"
+  ],
+  [
+   52000230,
+   "Gokan's Sugar",
+   "senpou_grounds"
+  ],
+  [
+   52000240,
+   "Gachiin's Sugar",
+   "senpou"
+  ],
+  [
+   52000250,
+   "Pellet",
+   "senpou_grounds"
+  ],
+  [
+   52000260,
+   "Pellet",
+   "senpou_grounds"
+  ],
+  [
+   52000270,
+   "Pellet",
+   "senpou"
+  ],
+  [
+   52000280,
+   "Heavy Coin Purse",
+   "senpou_grounds"
+  ],
+  [
+   52000310,
+   "Gachiin's Sugar",
+   "senpou"
+  ],
+  [
+   52000330,
+   "Ceramic Shard",
+   "senpou"
+  ],
+  [
+   52000350,
+   "Black Gunpowder",
+   "senpou_grounds"
+  ],
+  [
+   52000360,
+   "Mibu Possession Balloon",
+   "senpou"
+  ],
+  [
+   52000370,
+   "Mibu Balloon of Spirit",
+   "senpou_grounds"
+  ],
+  [
+   52000390,
+   "Fistful of Ash",
+   "senpou"
+  ],
+  [
+   52000400,
+   "Light Coin Purse",
+   "senpou"
+  ],
+  [
+   52000410,
+   "Ungo's Sugar",
+   "senpou"
+  ],
+  [
+   52000420,
+   "Ceramic Shard",
+   "senpou_grounds"
+  ],
+  [
+   52000430,
+   "Heavy Coin Purse",
+   "senpou_grounds"
+  ],
+  [
+   52000440,
+   "Ako's Sugar",
+   "senpou"
+  ],
+  [
+   52000450,
+   "Snap Seed",
+   "senpou_cavern"
+  ],
+  [
+   52000460,
+   "Ako's Sugar",
+   "senpou"
+  ],
+  [
+   52000470,
+   "Mibu Balloon of Spirit",
+   "senpou"
+  ],
+  [
+   52000480,
+   "Black Gunpowder",
+   "senpou_bell"
+  ],
+  [
+   52000500,
+   "Antidote Powder",
+   "senpou"
+  ],
+  [
+   52000510,
+   "Scrap Magnetite",
+   "senpou_cavern"
+  ],
+  [
+   52000520,
+   "Scrap Magnetite",
+   "senpou_grounds"
+  ],
+  [
+   52000530,
+   "Black Gunpowder",
+   "senpou_grounds"
+  ],
+  [
+   52000540,
+   "Black Gunpowder",
+   "senpou_grounds"
+  ],
+  [
+   52000560,
+   "Lump of Fat Wax",
+   "senpou_grounds"
+  ],
+  [
+   52000570,
+   "Ceramic Shard",
+   "senpou"
+  ],
+  [
+   52000580,
+   "Pellet",
+   "senpou_grounds"
+  ],
+  [
+   52000590,
+   "Heavy Coin Purse",
+   "senpou"
+  ],
+  [
+   52000600,
+   "Pellet",
+   "senpou_sanctum"
+  ],
+  [
+   52000610,
+   "Fistful of Ash",
+   "senpou_grounds"
+  ],
+  [
+   52000620,
+   "Mibu Possession Balloon",
+   "senpou_grounds"
+  ],
+  [
+   52000650,
+   "Light Coin Purse",
+   "senpou_grounds"
+  ],
+  [
+   52000660,
+   "Ungo's Sugar",
+   "senpou_grounds"
+  ],
+  [
+   52000670,
+   "Fistful of Ash",
+   "senpou_grounds"
+  ],
+  [
+   52000680,
+   "Mibu Balloon of Spirit",
+   "senpou_grounds"
+  ],
+  [
+   52000690,
+   "Gokan's Sugar",
+   "senpou_grounds"
+  ],
+  [
+   52000700,
+   "Bundled Jizo Statue",
+   "senpou_grounds"
+  ],
+  [
+   52000710,
+   "Persimmon",
+   "senpou_grounds"
+  ],
+  [
+   52000720,
+   "\"Dragon's Blood Droplet",
+   "senpou_grounds"
+  ],
+  [
+   52000735,
+   "Divine Grass",
+   "senpou"
+  ],
+  [
+   52000740,
+   "Lump of Fat Wax",
+   "senpou"
+  ],
+  [
+   52000750,
+   "Pacifying Agent",
+   "senpou"
+  ],
+  [
+   52000760,
+   "Pellet",
+   "senpou"
+  ],
+  [
+   52000770,
+   "Light Coin Purse",
+   "senpou"
+  ],
+  [
+   52000780,
+   "Gachiin's Sugar",
+   "senpou"
+  ],
+  [
+   52000790,
+   "Mibu Balloon of Spirit",
+   "senpou"
+  ],
+  [
+   52000800,
+   "Mibu Balloon of Spirit",
+   "senpou_grounds"
+  ],
+  [
+   52000830,
+   "Antidote Powder",
+   "senpou"
+  ],
+  [
+   52000840,
+   "Heavy Coin Purse",
+   "senpou"
+  ],
+  [
+   52000850,
+   "Light Coin Purse",
+   "senpou"
+  ],
+  [
+   60600000,
+   "Heavy Coin Purse",
+   "senpou"
+  ],
+  [
+   60600100,
+   "Bulging Coin Purse",
+   "senpou_grounds"
+  ],
+  [
+   61300005,
+   "Heavy Coin Purse",
+   "senpou"
+  ],
+  [
+   61802000,
+   "Scrap Magnetite",
+   "senpou_grounds"
+  ],
+  [
+   60400001,
+   "Yellow Gunpowder",
+   "senpou"
+  ],
+  [
+   60400005,
+   "Heavy Coin Purse",
+   "senpou"
+  ],
+  [
+   63200050,
+   "Treasure Carp Scale",
+   "senpou_grounds"
+  ],
+  [
+   63200055,
+   "Treasure Carp Scale",
+   "senpou_grounds"
+  ],
+  [
+   52000000,
+   "Senpou Esoteric Text",
+   "senpou_grounds"
+  ],
+  [
+   61300001,
+   "Breath of Nature: Shadow",
+   "senpou"
+  ],
+  [
+   52000730,
+   "Gourd Seed",
+   "senpou"
+  ],
+  [
+   50002020,
+   "Puppeteer Ninjutsu",
+   "senpou_sanctum"
+  ],
+  [
+   61300000,
+   "Prayer Bead",
+   "senpou"
+  ],
+  [
+   60400000,
+   "Prayer Bead",
+   "senpou"
+  ],
+  [
+   52000040,
+   "Prayer Bead",
+   "senpou_underwater"
+  ],
+  [
+   50002061,
+   "Memory: True Monk",
+   "fountainhead_bridge"
+  ],
+  [
+   50002062,
+   "Memory",
+   "fountainhead_bridge"
+  ],
+  [
+   50002070,
+   "\"Divine Dragon's Tears",
+   "fountainhead"
+  ],
+  [
+   50002071,
+   "Memory: Divine Dragon",
+   "fountainhead"
+  ],
+  [
+   50002072,
+   "Memory",
+   "fountainhead"
+  ],
+  [
+   50052500,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   50052501,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   50062520,
+   "Divine Grass",
+   "fountainhead_carp"
+  ],
+  [
+   50063650,
+   "Truly Precious Bait",
+   "fountainhead_surface"
+  ],
+  [
+   50063660,
+   "Lapis Lazuli",
+   "fountainhead"
+  ],
+  [
+   52500005,
+   "Divine Grass",
+   "fountainhead"
+  ],
+  [
+   52500025,
+   "Bundled Jizo Statue",
+   "fountainhead"
+  ],
+  [
+   52500030,
+   "Mibu Balloon of Soul",
+   "fountainhead_surface"
+  ],
+  [
+   52500040,
+   "Light Coin Purse",
+   "fountainhead_surface"
+  ],
+  [
+   52500050,
+   "Mibu Balloon of Wealth",
+   "fountainhead_surface"
+  ],
+  [
+   52500060,
+   "Eel Liver",
+   "fountainhead_surface"
+  ],
+  [
+   52500070,
+   "Ungo's Sugar",
+   "fountainhead_surface"
+  ],
+  [
+   52500080,
+   "Heavy Coin Purse",
+   "fountainhead_surface"
+  ],
+  [
+   52500090,
+   "Yashariku's Sugar",
+   "fountainhead_surface"
+  ],
+  [
+   52500100,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   52500110,
+   "Bite Down",
+   "fountainhead_surface"
+  ],
+  [
+   52500120,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   52500130,
+   "Pellet",
+   "fountainhead_surface"
+  ],
+  [
+   52500140,
+   "Ako's Sugar",
+   "fountainhead_surface"
+  ],
+  [
+   52500150,
+   "Eel Liver",
+   "fountainhead_surface"
+  ],
+  [
+   52500160,
+   "Divine Confetti",
+   "fountainhead_surface"
+  ],
+  [
+   52500170,
+   "Yellow Gunpowder",
+   "fountainhead_surface"
+  ],
+  [
+   52500180,
+   "Adamantite Scrap",
+   "fountainhead_surface"
+  ],
+  [
+   52500190,
+   "Divine Grass",
+   "fountainhead_surface"
+  ],
+  [
+   52500200,
+   "Divine Confetti",
+   "fountainhead_surface"
+  ],
+  [
+   52500210,
+   "Adamantite Scrap",
+   "fountainhead_surface"
+  ],
+  [
+   52500220,
+   "Yashariku's Sugar",
+   "fountainhead_surface"
+  ],
+  [
+   52500230,
+   "Bulging Coin Purse",
+   "fountainhead_surface"
+  ],
+  [
+   52500240,
+   "Pellet",
+   "fountainhead_surface"
+  ],
+  [
+   52500250,
+   "Mibu Balloon of Soul",
+   "fountainhead_surface"
+  ],
+  [
+   52500260,
+   "Mibu Balloon of Soul",
+   "fountainhead_surface"
+  ],
+  [
+   52500270,
+   "Ceramic Shard",
+   "fountainhead_surface"
+  ],
+  [
+   52500280,
+   "Adamantite Scrap",
+   "fountainhead_surface"
+  ],
+  [
+   52500290,
+   "Light Coin Purse",
+   "fountainhead_surface"
+  ],
+  [
+   52500300,
+   "Heavy Coin Purse",
+   "fountainhead_surface"
+  ],
+  [
+   52500310,
+   "Bundled Jizo Statue",
+   "fountainhead_surface"
+  ],
+  [
+   52500320,
+   "Eel Liver",
+   "fountainhead_surface"
+  ],
+  [
+   52500330,
+   "Mibu Possession Balloon",
+   "fountainhead_surface"
+  ],
+  [
+   52500340,
+   "Mibu Possession Balloon",
+   "fountainhead_surface"
+  ],
+  [
+   52500350,
+   "Pellet",
+   "fountainhead_surface"
+  ],
+  [
+   52500360,
+   "Gokan's Sugar",
+   "fountainhead_surface"
+  ],
+  [
+   52500370,
+   "Divine Confetti",
+   "fountainhead_surface"
+  ],
+  [
+   52500380,
+   "Light Coin Purse",
+   "fountainhead"
+  ],
+  [
+   52500390,
+   "Scrap Magnetite",
+   "fountainhead"
+  ],
+  [
+   52500400,
+   "Red Lump",
+   "fountainhead"
+  ],
+  [
+   52500410,
+   "Precious Bait",
+   "fountainhead"
+  ],
+  [
+   52500420,
+   "Bulging Coin Purse",
+   "fountainhead_surface"
+  ],
+  [
+   52500430,
+   "Ceramic Shard",
+   "fountainhead"
+  ],
+  [
+   52500440,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   52500450,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   52500460,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   52500470,
+   "Precious Bait",
+   "fountainhead"
+  ],
+  [
+   52500480,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   52500490,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   52500500,
+   "Precious Bait",
+   "fountainhead"
+  ],
+  [
+   52500510,
+   "Light Coin Purse",
+   "fountainhead"
+  ],
+  [
+   52500520,
+   "Adamantite Scrap",
+   "fountainhead"
+  ],
+  [
+   52500530,
+   "Mibu Balloon of Soul",
+   "fountainhead"
+  ],
+  [
+   52500540,
+   "Dragon's Blood Droplet",
+   "fountainhead"
+  ],
+  [
+   52500550,
+   "Heavy Coin Purse",
+   "fountainhead"
+  ],
+  [
+   52500560,
+   "Light Coin Purse",
+   "fountainhead"
+  ],
+  [
+   52500570,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   52500580,
+   "Adamantite Scrap",
+   "fountainhead_surface"
+  ],
+  [
+   52500590,
+   "Adamantite Scrap",
+   "fountainhead_surface"
+  ],
+  [
+   52500600,
+   "Pellet",
+   "fountainhead_bridge"
+  ],
+  [
+   52500610,
+   "Lump of Grave Wax",
+   "fountainhead"
+  ],
+  [
+   52500620,
+   "Lump of Grave Wax",
+   "fountainhead_surface"
+  ],
+  [
+   52500630,
+   "Lump of Grave Wax",
+   "fountainhead_surface"
+  ],
+  [
+   52500640,
+   "Lump of Grave Wax",
+   "fountainhead_surface"
+  ],
+  [
+   52500650,
+   "Water of the Palace",
+   "fountainhead"
+  ],
+  [
+   52500660,
+   "Ceramic Shard",
+   "fountainhead_surface"
+  ],
+  [
+   52500670,
+   "Ako's Sugar",
+   "fountainhead"
+  ],
+  [
+   52500680,
+   "Ungo's Sugar",
+   "fountainhead"
+  ],
+  [
+   63100005,
+   "Heavy Coin Purse",
+   "fountainhead_surface"
+  ],
+  [
+   63800005,
+   "Heavy Coin Purse",
+   "fountainhead_surface"
+  ],
+  [
+   60801000,
+   "Lapis Lazuli",
+   "fountainhead"
+  ],
+  [
+   63401000,
+   "\"Yashariku's Spiritfall",
+   "fountainhead"
+  ],
+  [
+   63401005,
+   "Bulging Coin Purse",
+   "fountainhead"
+  ],
+  [
+   63100100,
+   "Dragonspring Sake",
+   "fountainhead"
+  ],
+  [
+   63200060,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   63200065,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   63200070,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   63200075,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   63200080,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   63200085,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   63200090,
+   "Treasure Carp Scale",
+   "fountainhead"
+  ],
+  [
+   63800001,
+   "\"A Beast's Karma",
+   "fountainhead_surface"
+  ],
+  [
+   52500000,
+   "Gourd Seed",
+   "fountainhead"
+  ],
+  [
+   50002060,
+   "\"Dragon's Tally Board",
+   "fountainhead_bridge"
+  ],
+  [
+   63800000,
+   "Prayer Bead",
+   "fountainhead_surface"
+  ],
+  [
+   63100000,
+   "Prayer Bead",
+   "fountainhead"
+  ],
+  [
+   52500020,
+   "Prayer Bead",
+   "fountainhead"
+  ],
+  [
+   50003010,
+   "Resurrection",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50003011,
+   "Temporary Regenerative Power",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50003200,
+   "Sabimaru Memo",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50003210,
+   "Valley Apparitions Memo",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50003220,
+   "Three-story Pagoda Memo",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50003800,
+   "Dancing Dragon Mask",
+   "ashinaoutskirts_temple"
+  ]
+ ],
+ "shop_purchase": [
+  [
+   51100000,
+   "Robert's Firecrackers",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100001,
+   "Pellet",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100003,
+   "Antidote Powder",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100002,
+   "Ungo's Sugar",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100004,
+   "Light Coin Purse",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100102,
+   "Antidote Powder",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   51100103,
+   "Fistful of Ash",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   51100105,
+   "Light Coin Purse",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   51100106,
+   "Heavy Coin Purse",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   51100101,
+   "Gourd Seed",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   51100207,
+   "Yashariku's Sugar",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100208,
+   "Gokan's Sugar",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100209,
+   "Heavy Coin Purse",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100213,
+   "Bulging Coin Purse",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100210,
+   "Scrap Magnetite",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100211,
+   "Yellow Gunpowder",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100212,
+   "Lump of Fat Wax",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100215,
+   "Divine Grass",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100203,
+   "Pellet",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100201,
+   "Ceramic Shard",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100202,
+   "Fistful of Ash",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100204,
+   "Light Coin Purse",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100300,
+   "Promissory Note",
+   "ashinaoutskirts_invasion2"
+  ],
+  [
+   51100401,
+   "Pellet",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100409,
+   "Light Coin Purse",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100410,
+   "Heavy Coin Purse",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100400,
+   "Gourd Seed",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100406,
+   "Sabimaru Memo",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100408,
+   "Three-story Pagoda Memo",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51101000,
+   "Loaded Shuriken",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51101001,
+   "Shinobi Firecracker",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51101002,
+   "Flame Vent",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51101003,
+   "Loaded Axe",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51101004,
+   "Mist Raven",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51101005,
+   "Sabimaru",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51101006,
+   "Loaded Umbrella",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51101007,
+   "Divine Abduction",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51101008,
+   "Loaded Spear",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51101009,
+   "Finger Whistle",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100407,
+   "Valley Apparitions Memo",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100200,
+   "Phantom Kunai",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100510,
+   "Robert's Firecrackers",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100511,
+   "Gourd Seed",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100512,
+   "Prayer Bead",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100513,
+   "Mask Fragment: Dragon",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100104,
+   "Dragon's Blood Droplet",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   51100112,
+   "Dragon's Blood Droplet",
+   "ashinaoutskirts_fortress2"
+  ],
+  [
+   51100411,
+   "Dragon's Blood Droplet",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100417,
+   "Dragon's Blood Droplet",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100214,
+   "Ako's Sugar",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100403,
+   "Dousing Powder",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100404,
+   "Pacifying Agent",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51100405,
+   "Ungo's Sugar",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   50001000,
+   "Spirit Emblem",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   51110002,
+   "Pellet",
+   "dungeon"
+  ],
+  [
+   51110003,
+   "Contact Medicine",
+   "dungeon"
+  ],
+  [
+   51110006,
+   "Mibu Possession Balloon",
+   "dungeon"
+  ],
+  [
+   51110004,
+   "Light Coin Purse",
+   "dungeon"
+  ],
+  [
+   51110005,
+   "Heavy Coin Purse",
+   "dungeon"
+  ],
+  [
+   51110000,
+   "Prayer Bead",
+   "dungeon"
+  ],
+  [
+   51110001,
+   "Mask Fragment: Dragon",
+   "dungeon"
+  ],
+  [
+   51111404,
+   "Bite Down",
+   "ashinacastle"
+  ],
+  [
+   51111403,
+   "Yashariku's Sugar",
+   "ashinacastle"
+  ],
+  [
+   51100500,
+   "Anti-air Deathblow Text",
+   "ashinacastle"
+  ],
+  [
+   51110007,
+   "Dragon's Blood Droplet",
+   "dungeon"
+  ],
+  [
+   51110013,
+   "Dragon's Blood Droplet",
+   "dungeon"
+  ],
+  [
+   51111402,
+   "Snap Seed",
+   "ashinacastle"
+  ],
+  [
+   51100007,
+   "Eel Liver",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100006,
+   "Divine Confetti",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100005,
+   "Snap Seed",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100008,
+   "Scrap Iron",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51100009,
+   "Black Gunpowder",
+   "ashinaoutskirts_stairway"
+  ],
+  [
+   51000000,
+   "Floating Passage Text",
+   "hirata"
+  ],
+  [
+   51000003,
+   "Divine Grass",
+   "hirata"
+  ],
+  [
+   51000001,
+   "Withered Red Gourd",
+   "hirata"
+  ],
+  [
+   51000002,
+   "\"Mask Fragment: Right",
+   "hirata"
+  ],
+  [
+   51500001,
+   "Pellet",
+   "mibuvillage"
+  ],
+  [
+   51500000,
+   "Mottled Purple Gourd",
+   "mibuvillage"
+  ],
+  [
+   51500003,
+   "Gachiin's Sugar",
+   "mibuvillage"
+  ],
+  [
+   51500004,
+   "Heavy Coin Purse",
+   "mibuvillage"
+  ],
+  [
+   51500005,
+   "Bulging Coin Purse",
+   "mibuvillage"
+  ],
+  [
+   51500002,
+   "Adamantite Scrap",
+   "mibuvillage"
+  ],
+  [
+   51500007,
+   "Dragonspring Sake",
+   "mibuvillage"
+  ],
+  [
+   51500006,
+   "Treasure Carp Scale",
+   "mibuvillage"
+  ],
+  [
+   51700001,
+   "Pellet",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700000,
+   "Green Mossy Gourd",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700004,
+   "Heavy Coin Purse",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700003,
+   "Yellow Gunpowder",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700005,
+   "Dragon's Blood Droplet",
+   "sunkenvalley_passage"
+  ],
+  [
+   51700005,
+   "Dragon's Blood Droplet",
+   "sunkenvalley_passage"
+  ],
+  [
+   51100402,
+   "Antidote Powder",
+   "ashinaoutskirts_temple"
+  ],
+  [
+   52000004,
+   "Persimmon",
+   "senpou"
+  ],
+  [
+   52000002,
+   "Ako's Sugar",
+   "senpou"
+  ],
+  [
+   52000003,
+   "Ungo's Sugar",
+   "senpou"
+  ],
+  [
+   52000000,
+   "Five-color Rice",
+   "senpou"
+  ],
+  [
+   52000005,
+   "Light Coin Purse",
+   "senpou"
+  ],
+  [
+   52000006,
+   "Heavy Coin Purse",
+   "senpou"
+  ],
+  [
+   52000007,
+   "Bulging Coin Purse",
+   "senpou"
+  ],
+  [
+   52000001,
+   "Scrap Magnetite",
+   "senpou"
+  ],
+  [
+   52000008,
+   "Dragon's Blood Droplet",
+   "senpou"
+  ],
+  [
+   52000014,
+   "Dragon's Blood Droplet",
+   "senpou"
+  ]
+ ]
+}

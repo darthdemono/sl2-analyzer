@@ -48,6 +48,18 @@ const SDT_MINIBOSS_NOTE =
 // what the game ships. An area absent from the list is unmapped, not empty.
 const DS3_PICKUP_NOTE =
   "one-off world items picked up, from each area's pickup flags — covers only the areas whose flag group is mapped";
+// Enemies that do not respawn, so the game has to remember each one dead. These are the
+// enemy's own DEATH flag, not the pickup flag its loot sets. Verbatim from DS3_ENEMY_NOTE
+// in sl2/render.py.
+// Sourced, not verified here; counts only, because the names are FromSoft's own Japanese.
+// Verbatim from DS1_EVENT_NOTE in sl2/render.py.
+const DS1_EVENT_NOTE =
+  "world events from the game's own event scripts, counted by kind — sourced, not verified here; some are transient (set while the event runs), so a finished run can honestly read 0 in a family";
+// Verbatim from DS3_NPC_NOTE in sl2/render.py.
+const DS3_NPC_NOTE =
+  "NPC deaths, hostility and questline milestones, each its own flag — the descriptions are the source's and one is known to be on the wrong flag, so an entity id is printed beside them where there is one";
+const DS3_ENEMY_NOTE =
+  "each enemy's own defeat flag — exact, not inferred, and it carries across a new journey; names are enemy types, so repeats in an area are different enemies";
 
 // Per-game "how it works" note (verbatim from GAMES[...]["how"]) and the header tier.
 const HOW = {
@@ -337,13 +349,60 @@ export function mdCharacter(ch, slot) {
   }
   if (ch.minibosses && ch.minibosses.length) {
     const dead = ch.minibosses.reduce((s2, [, c]) => s2 + c, 0);
-    const total = ch.minibosses.reduce((s2, [, , t]) => s2 + t, 0);
+    const total = ch.minibosses.reduce((s2, [, , , t]) => s2 + t, 0);
     L.push(
       `### Minibosses Defeated (${dead} of ${total} tracked)  _(${SDT_MINIBOSS_NOTE})_`,
       "",
-      ...ch.minibosses.map(([area, c, tot, alive]) => {
+      ...ch.minibosses.map(([area, c, names, tot, alive]) => {
         let row = `- ${area}: ${c}/${tot}`;
-        if (c && alive.length) row += `  _(still alive: ${countDupes(alive).join(" · ")})_`;
+        if (names.length) {
+          row += ` — ${countDupes(names).join(" · ")}`;
+          if (alive.length) row += `  _(still alive: ${countDupes(alive).join(" · ")})_`;
+        }
+        return row;
+      }),
+      "",
+    );
+  }
+  if (ch.npc_states && ch.npc_states.length) {
+    const got = ch.npc_states.reduce((s2, [, c]) => s2 + c, 0);
+    const total = ch.npc_states.reduce((s2, [, , , t]) => s2 + t, 0);
+    L.push(
+      `### NPC States (${got} of ${total} tracked)  _(${DS3_NPC_NOTE})_`,
+      "",
+      ...ch.npc_states.map(([family, c, names, tot]) => {
+        let row = `- ${family}: ${c}/${tot}`;
+        const said = names.filter((n) => !n.startsWith("character "));
+        const rest = names.length - said.length;
+        if (said.length) row += ` — ${countDupes(said).join(" · ")}`;
+        if (rest) row += `  _(+${rest} more, known only by entity id)_`;
+        return row;
+      }),
+      "",
+    );
+  }
+  if (ch.world_events && ch.world_events.length) {
+    const got = ch.world_events.reduce((s2, [, c]) => s2 + c, 0);
+    const total = ch.world_events.reduce((s2, [, , t]) => s2 + t, 0);
+    L.push(
+      `### World Events (${got} of ${total} tracked)  _(${DS1_EVENT_NOTE})_`,
+      "",
+      ...ch.world_events.map(([family, c, tot]) => `- ${family}: ${c}/${tot}`),
+      "",
+    );
+  }
+  if (ch.enemies && ch.enemies.length) {
+    const dead = ch.enemies.reduce((s2, [, c]) => s2 + c, 0);
+    const total = ch.enemies.reduce((s2, [, , , t]) => s2 + t, 0);
+    L.push(
+      `### One-Time Enemies Defeated (${dead} of ${total} tracked)  _(${DS3_ENEMY_NOTE})_`,
+      "",
+      ...ch.enemies.map(([area, c, names, tot, alive]) => {
+        let row = `- ${area}: ${c}/${tot}`;
+        if (names.length) {
+          row += ` — ${countDupes(names).join(" · ")}`;
+          if (alive.length) row += `  _(still alive: ${countDupes(alive).join(" · ")})_`;
+        }
         return row;
       }),
       "",

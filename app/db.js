@@ -111,6 +111,7 @@ async function loadDs1(getJSON) {
       "db_ds1/boss_flags.json",
       "db_ds1/boss_route.json",
       "db_ds1/known_flags.json",
+      "db_ds1/world_events.json",
     ]),
   ]);
   // name-keyed decimal, per-category, last-wins.
@@ -128,6 +129,7 @@ async function loadDs1(getJSON) {
     bonfires,
     bossFlags: extra[2] || {},
     knownFlags: extra[4] || {},
+    worldEvents: extra[5] || {},
     bossRoute: extra[3] || {},
     bonfireTotal: Object.keys(bonfires).length,
   };
@@ -224,6 +226,8 @@ async function loadDs3(getJSON) {
       "db_ds3/item_pickups.json",
       "db_ds3/ring_effects.json",
       "db_ds3/endings.json",
+      "db_ds3/enemies.json",
+      "db_ds3/npcs.json",
     ]),
   ]);
   // name-keyed decimal, flat id→[name,cat], first-wins.
@@ -251,6 +255,8 @@ async function loadDs3(getJSON) {
     pickups: extra[8] || {},
     ringEffects: extra[9] || {},
     endings: extra[10] || {},
+    enemies: extra[11] || {},
+    npcs: extra[12] || {},
     // DS3 groups bonfires by area, so the total is the sum of the area lists.
     bonfireTotal: Object.values(bonfires).reduce((s, a) => s + a.length, 0),
   };
@@ -322,6 +328,7 @@ const EMPTY = {
     bossFlags: {},
     bossRoute: {},
     knownFlags: {},
+    worldEvents: {},
     bonfireTotal: 0,
   }),
   ds2: () => ({
@@ -345,6 +352,8 @@ const EMPTY = {
     pickups: {},
     ringEffects: {},
     endings: {},
+    enemies: {},
+    npcs: {},
     bonfireTotal: 0,
   }),
   er: () => ({ items: {}, bossSouls: {} }),
@@ -389,6 +398,8 @@ export function dbPathsFor(family) {
       "db_ds1/bonfires.json",
       "db_ds1/boss_flags.json",
       "db_ds1/boss_route.json",
+      "db_ds1/known_flags.json",
+      "db_ds1/world_events.json",
     ];
   }
   if (family === "ds2") {
@@ -414,6 +425,8 @@ export function dbPathsFor(family) {
       "db_ds3/item_pickups.json",
       "db_ds3/ring_effects.json",
       "db_ds3/endings.json",
+      "db_ds3/enemies.json",
+      "db_ds3/npcs.json",
     ];
   }
   if (family === "er") {

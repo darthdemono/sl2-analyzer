@@ -946,7 +946,7 @@ function ds1Bonfires(buf, db) {
 const DS1_FLAG_BASE = { dsr: 127721, ptde: 127273 };
 const DS1_FLAG_MAX_DENSITY = 0.05,
   DS1_FLAG_SPAN = 23156;
-function ds1AttachFlags(ch, buf, table, game, known) {
+function ds1AttachFlags(ch, buf, table, game, known, events) {
   const base = DS1_FLAG_BASE[game];
   if (base == null || !table || !Object.keys(table).length) return;
   if (base + DS1_FLAG_SPAN > buf.length) return;
@@ -982,6 +982,20 @@ function ds1AttachFlags(ch, buf, table, game, known) {
     world.push([cat, got.length, got, rows.length, missing]);
   }
   if (world.some(([, c]) => c)) ch.world_flags = world;
+  // World EVENTS: the same region, from a much larger sourced table. Counts only — the
+  // names are FromSoft's own Japanese and are not translated. See ds1_attach_flags in
+  // sl2/ds1.py and tools/gen_ds1_world_events.py for what these families do and do not
+  // mean.
+  const events2 = [];
+  for (const [cat, rows] of Object.entries(events || {})) {
+    let got = 0;
+    for (const [off, mask] of rows) {
+      const v = u32(buf, base + off);
+      if (v != null && (v & mask) >>> 0) got++;
+    }
+    events2.push([cat, got, rows.length]);
+  }
+  if (events2.some(([, c]) => c)) ch.world_events = events2;
 }
 function dsrParse(buf, itemDb) {
   const m = dsrFindAnchor(buf);
@@ -1391,6 +1405,8 @@ function ds3AttachFlags(
   lordCinderDb,
   pickupDb,
   endingDb,
+  enemyDb,
+  npcDb,
 ) {
   if (base == null) return;
   const areas = [];
@@ -1456,6 +1472,33 @@ function ds3AttachFlags(
     picks.push([area, got.length, items.length, missing]);
   }
   if (anyFound) ch.pickups = picks;
+  // One-time enemies, in the bonfire shape because a kill is a named thing and the
+  // reader wants to know WHICH — the same call Sekiro's minibosses got.
+  const foes = [];
+  let anyDead = false;
+  for (const [area, enemies] of Object.entries(enemyDb || {})) {
+    const dead = [],
+      alive = [];
+    for (const [dist, bit, name] of enemies) {
+      const val = u8(buf, base + dist);
+      (val != null && val & (1 << bit) ? dead : alive).push(name);
+    }
+    anyDead = anyDead || dead.length > 0;
+    foes.push([area, dead.length, dead, enemies.length, alive]);
+  }
+  if (anyDead) ch.enemies = foes;
+  // NPC states: killed, turned hostile, questline milestones. Only what fired is kept —
+  // half of these are mutually exclusive outcomes of one questline.
+  const npcs = [];
+  for (const [family, marks] of Object.entries(npcDb || {})) {
+    const got = [];
+    for (const [dist, bit, lbl] of marks) {
+      const val = u8(buf, base + dist);
+      if (val != null && val & (1 << bit)) got.push(lbl);
+    }
+    npcs.push([family, got.length, got, marks.length]);
+  }
+  if (npcs.some(([, c]) => c)) ch.npc_states = npcs;
   const covs = {};
   for (const [cov, marks] of Object.entries(covenantDb || {})) {
     const got = [];
@@ -1815,8 +1858,9 @@ function sdtAttachFlags(ch, buf, dbs) {
     areas.push([area, named.length, named, idols.length, missing]);
   }
   if (anyLit) ch.bonfire_areas = areas;
-  // Minibosses, in DS3's pickup shape. Sekiro files a defeat under the enemy's own
-  // ENTITY id — see load_sdt_minibosses in sl2/sdt.py for how that was measured.
+  // Minibosses, in the bonfire shape — a miniboss is a named kill, so the section says
+  // WHICH. Sekiro files a defeat under the enemy's own ENTITY id — see
+  // load_sdt_minibosses in sl2/sdt.py for how that was measured.
   const minis = [];
   let anyDead = false;
   for (const [area, enemies] of Object.entries(dbs.sdt.minibosses || {})) {
@@ -1824,7 +1868,7 @@ function sdtAttachFlags(ch, buf, dbs) {
       alive = [];
     for (const [eid, name] of enemies) (sdtFlag(buf, Number(eid)) ? dead : alive).push(name);
     anyDead = anyDead || dead.length > 0;
-    minis.push([area, dead.length, enemies.length, alive]);
+    minis.push([area, dead.length, dead, enemies.length, alive]);
   }
   if (anyDead) ch.minibosses = minis;
 }
@@ -1941,7 +1985,7 @@ export const GAMES = {
     tier: "full",
     slots: [0, SDT_SLOT_COUNT],
     coverage:
-      "minibosses and world item pickups are not read — Sekiro publishes no id table for either, so there is nothing to look up even though the flag region itself is read",
+      "world item pickups are not read — Sekiro publishes no id table for them, so there is nothing to look up even though the flag region itself is read",
   },
 };
 
@@ -2136,6 +2180,8 @@ export function parseSave(data, dbs) {
           dbs.ds3.lordCinders,
           dbs.ds3.pickups,
           dbs.ds3.endings,
+          dbs.ds3.enemies,
+          dbs.ds3.npcs,
         );
         attachProgressTotals(ch, dbs);
         characters.push({ slot: label(i), ch });
@@ -2173,7 +2219,15 @@ export function parseSave(data, dbs) {
         // Soul/NG+ floor first: attachDefeatedBosses refuses to run once `bosses`
         // exists, so the flags must be merged on top of it, not before it.
         attachDefeatedBosses(ch, dbs);
-        if (!isDs2) ds1AttachFlags(ch, slot, dbs.ds1.bossFlags, game, dbs.ds1.knownFlags);
+        if (!isDs2)
+          ds1AttachFlags(
+            ch,
+            slot,
+            dbs.ds1.bossFlags,
+            game,
+            dbs.ds1.knownFlags,
+            dbs.ds1.worldEvents,
+          );
         attachProgressTotals(ch, dbs);
         characters.push({ slot: label(i), ch });
       }

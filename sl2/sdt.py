@@ -641,16 +641,17 @@ def sdt_attach_flags(ch, buf, base_dir):
     # minutes from the opening and have not reached an idol.
     if any_lit:
         ch["bonfire_areas"] = areas
-    # Minibosses, in DS3's pickup shape (area, found, total, missing) rather than the
-    # bonfire one — they have no per-area denominator worth naming individually, and the
-    # missing list wants collapsing by name because four of them really are "Shura
-    # Samurai" at four different entity ids.
+    # Minibosses, in the BONFIRE shape (area, count, names, total, missing) rather than
+    # the pickup one, because a miniboss is a named kill and the reader wants to know
+    # WHICH — the same thing the boss section prints. Both lists want collapsing by name
+    # on the way out, because four of these really are "Shura Samurai" at four different
+    # entity ids and printing the name four times is faithful but unreadable.
     minis, any_dead = [], False
     for area, enemies in load_sdt_minibosses(base_dir).items():
         dead, alive = [], []
         for eid, name in enemies:
             (dead if sdt_flag(buf, int(eid)) else alive).append(name)
         any_dead = any_dead or bool(dead)
-        minis.append((area, len(dead), len(enemies), alive))
+        minis.append((area, len(dead), dead, len(enemies), alive))
     if any_dead:
         ch["minibosses"] = minis
