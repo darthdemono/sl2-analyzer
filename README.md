@@ -709,7 +709,7 @@ Sekiro needs none of this. Its fields do not move between patches, so they are r
 
 ### Every event flag this tool reads
 
-**1,704 flags across four games, plus 5,126 more held as data for the day they can be read.** Elden Ring is not one of them, and that is the shape of the whole table: a family is readable only where the game's flag region has been located in the *save*, which is a different problem from knowing the flag IDs. Sekiro shipped its IDs for months before a single one could be read.
+**1,705 flags across four games, plus 5,126 more held as data for the day they can be read.** Elden Ring is not one of them, and that is the shape of the whole table: a family is readable only where the game's flag region has been located in the *save*, which is a different problem from knowing the flag IDs. Sekiro shipped its IDs for months before a single one could be read.
 
 | Game | Family | Flags | Denominator it prints | Where the IDs came from |
 |---|---|---:|---|---|
@@ -729,7 +729,7 @@ Sekiro needs none of this. Its fields do not move between patches, so they are r
 | DS3 | One-time enemies | 148 in 16 areas | of 148 tracked | Extracted from the committed `.emevd`, where each is a `common_func` template call taking a death flag and an entity id, plus map-local events deduped by entity. Mimics, Crystal Lizards, Black Knights, the Boreal Outrider Knights |
 | **Sekiro** | Sculptor's Idols | 55 in 8 areas | of 55 | `db_sdt/idols.json`, corroborated id-for-id against SoulSplitter `Idol.cs` |
 | Sekiro | Boss defeats | 15 | of 18 tracked | `Boss.cs`. The only thing that can name a Sekiro boss, since a held Memory resolves as a bare "Memory" |
-| Sekiro | Minibosses | 32 in 9 areas | of 32 tracked | The enemy's **entity ID used directly as the flag** — Sekiro's own convention, confirmed by a two-save window either side of the Blazing Bull |
+| Sekiro | Minibosses | 33 in 9 areas | of 33 tracked | The enemy's **entity ID used directly as the flag** — Sekiro's own convention, confirmed by two-save windows either side of the Blazing Bull and the Lone Shadow Longswordsman. The second of those also proved the sourced table incomplete: the Longswordsman's real flag is `1120450`, and the ID the source gives has never been set on any save here |
 | **Elden Ring** | — | **0** | — | Reads no flags at all. See below |
 
 Held as data and **not read**, because their games' flag regions are unsolved: `db_er/event_flags.json` (4,199 rows in 22 families — Great Runes, map fragments, remembrances, crystal tears, whetblades, endings, item pickups) and `db_sdt/item_flags.json` (927 Sekiro item-lot flags). Both ship so the research survives a clone; neither is loaded by either front end.

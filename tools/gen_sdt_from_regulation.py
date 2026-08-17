@@ -524,7 +524,12 @@ def load_fmg_bundle(msg_dir: Path, bundle: str) -> dict[str, dict[int, str]]:
     """Return {fmg_name: {id: text}} for every FMG in the named msgbnd set."""
     tables: dict[str, dict[int, str]] = {}
     for fn in FMG_BUNDLES[bundle]:
+        # An unpacked tree carries these decompressed and so WITHOUT the .dcx suffix;
+        # a tree taken straight out of the archives keeps it. Try both rather than
+        # making the caller rename files.
         p = msg_dir / fn
+        if not p.exists():
+            p = msg_dir / fn.removesuffix(".dcx")
         if not p.exists():
             continue
         for bf in read_bnd4(p.read_bytes()):
@@ -576,14 +581,30 @@ def load_paramdex_names(path: Path) -> dict[int, str]:
 
 
 def find_regulation(game_root: Path) -> Path:
-    for cand in ("regulation.bin", "Game/regulation.bin", "sekiro/regulation.bin"):
+    """Locate the param binder.
+
+    Sekiro's is `param/gameparam/gameparam.parambnd`, and it is looked for FIRST:
+    `regulation.bin` is a DS3/Elden Ring name that no Sekiro tree contains, so
+    searching for it alone made this function fail on every real input. Both the
+    packed `.dcx` name and the already-decompressed one are candidates, because
+    `scratch/sdt_unpack.py` writes the tree decompressed (its DCX is Oodle KRAK,
+    which nothing in this file can inflate — and does not need to).
+    """
+    for cand in (
+        "param/gameparam/gameparam.parambnd",
+        "param/gameparam/gameparam.parambnd.dcx",
+        "regulation.bin",
+        "Game/regulation.bin",
+        "sekiro/regulation.bin",
+    ):
         p = game_root / cand
         if p.exists():
             return p
-    hits = list(game_root.rglob("regulation.bin"))
-    if not hits:
-        raise FileNotFoundError(f"no regulation.bin under {game_root}")
-    return hits[0]
+    for pattern in ("gameparam.parambnd*", "regulation.bin"):
+        hits = list(game_root.rglob(pattern))
+        if hits:
+            return hits[0]
+    raise FileNotFoundError(f"no gameparam.parambnd or regulation.bin under {game_root}")
 
 
 def find_msg_dir(game_root: Path, lang: str) -> Path | None:

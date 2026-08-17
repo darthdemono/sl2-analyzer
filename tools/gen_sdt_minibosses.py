@@ -58,6 +58,29 @@ SDT_MAP_AREA = {
 }
 
 
+## @brief Rows MEASURED here, that the source does not have.
+#  @details The source is a placement dump and it is not complete. Each entry below was
+#  pinned the way the Blazing Bull was: a save either side of one named kill, with the
+#  owner saying what died, and exactly one entity-shaped flag in that map turning on
+#  across the window and staying on.
+#
+#  `1120450` — **Lone Shadow Longswordsman**, Ashina Reservoir. Killed in the
+#  17:35:58 → 17:52:36 window on the local ladder. It is the only block-0 (entity-shaped)
+#  flag in map `(11,2)` to flip there, it reads 0 in all twenty earlier saves, and it is
+#  still set in the newest. **The source's own Lone Shadow row for that map is `1120300`,
+#  and that flag has never been set in any save here** — so either it is a second
+#  placement nobody has killed, or the row is simply wrong. Both are kept: the measured
+#  one because it is proven, the sourced one because dropping a placement on suspicion is
+#  the mistake in the other direction.
+MEASURED = [
+    {
+        "entity_id": 1120450,
+        "map": "m11_02_00_00",
+        "type": "Lone Shadow Longswordsman",
+    },
+]
+
+
 ##
 # @brief Turn the sourced rows into {area: [[entity id, name]]}, in map order.
 # @details Areas follow @ref SDT_MAP_AREA's own insertion order, which is roughly the
@@ -68,7 +91,7 @@ SDT_MAP_AREA = {
 # @return An OrderedDict-shaped plain dict ready to serialise.
 def build(rows):
     out = {area: [] for area in SDT_MAP_AREA.values()}
-    for row in sorted(rows, key=lambda r: r["entity_id"]):
+    for row in sorted(list(rows) + MEASURED, key=lambda r: r["entity_id"]):
         area = SDT_MAP_AREA.get(row["map"])
         if area is None:
             sys.exit(
