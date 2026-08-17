@@ -645,6 +645,47 @@ Every tier the tool reaches is limited by two things only: offsets and item tabl
 
 The one remaining item gap is Elden Ring's list: no quantities, and no talismans, spells or consumables, because those live in a held inventory the parser does not walk. Names themselves are generated. `tools/gen_from_paramdex.py` rebuilds every DS1, DS3 and Elden Ring table from a pinned Paramdex commit, and every ID gate in it carries the collision it is holding back in its own docstring.
 
+### Reading the games' own files: `tools/gamefiles.py`
+
+The tables above are transcriptions. That was the only option while the games' files were sealed, and it costs accuracy in a way nothing in a save can reveal: a community enemy list can be missing five rows, mislabel fourteen more, and read as perfectly consistent. So there is now a reader for the installs themselves. It is one file with four subcommands, it never writes into a game folder, and it needs no Windows tooling.
+
+```bash
+# 1. open the archives. Sekiro and DS3 need UXM's published keys + name dictionary;
+#    DS2 ships its own *KeyCode.pem beside each archive and needs only the dictionary.
+curl -sSLO https://raw.githubusercontent.com/Nordgaren/UXM-Selective-Unpack/master/UXM/ArchiveKeys.cs
+curl -sSLO https://raw.githubusercontent.com/Nordgaren/UXM-Selective-Unpack/master/UXM/res/SekiroDictionary.txt
+
+python3 tools/gamefiles.py unpack --game sekiro --game-root "/path/to/Sekiro" \
+    --keys ArchiveKeys.cs --dict SekiroDictionary.txt --out /path/to/Sekiro-unpacked \
+    --prefix /event/ --prefix /param/ --prefix /msg/engus/ --prefix /map/mapstudio/
+
+# 2. map layouts: every enemy placement, its entity id, model and NpcParam
+python3 tools/gamefiles.py msb   <unpacked>/map/mapstudio --entity 1120450
+
+# 3. event scripts, instruction by instruction, arguments unpacked
+python3 tools/gamefiles.py emevd <unpacked>/event --instr 2003:87
+python3 tools/gamefiles.py emevd <DS3-unpacked>/event --ds3-deaths
+
+# 4. the payoff: Sekiro's boss/miniboss roster, checked against db_sdt/minibosses.json
+python3 tools/gamefiles.py roster <unpacked>/event --msg <unpacked>/msg/engus \
+    --maps <unpacked>/map/mapstudio
+```
+
+`--game` takes `sekiro`, `ds3`, `ds2` or `er`. Dark Souls Remastered needs none of this: it is already loose on disk. The extraction is selective — a full unpack is 15 GB of which this repo wants perhaps forty files — so it takes dictionary prefixes and extracts nothing else.
+
+**Elden Ring is wired but untested.** The archive layout (`Data0`–`Data3` plus `DLC`), its keys, its dictionary, and the two things Elden Ring changed are all in place: the filename hash widened to **uint64 with multiplier 0x85**, and its archive entry keeps DS3's 40-byte stride while laying the fields out differently — a 64-bit hash, then two 32-bit sizes. Get either wrong and nothing errors; the archive simply appears not to contain the file you asked for. `DCX/ZSTD` is handled alongside `KRAK` because Elden Ring's later patches use it (needs `pip install zstandard`; nothing else here does). What is *not* wired: `msb` refuses Elden Ring maps rather than guess at `MSBE`'s different part struct, and `roster`'s instruction ids are Sekiro's. And none of it helps read an Elden Ring *save* — that is blocked on the save-side flag region, which is a separate problem.
+
+**What it is worth, concretely.** `roster` reads the instructions the game itself uses to mark a fight: `2003[15] Handle Miniboss Defeat`, `2003[87] Display Miniboss Health Bar` and the three boss equivalents. Sekiro's defeat flag *is* the enemy's entity id, and the health-bar call carries the FMG id of the name printed over the bar — so the roster comes out enumerated and named in the game's own English, 48 of 48 name ids resolved. That is where `db_sdt/minibosses.json` comes from now: `--write` regenerates it, and doing so found one row that was not a miniboss at all, five missing (every Headless), and fourteen carrying a model-family name where the character has a proper one. It is deliberately not the default — regenerating a shipped table is a decision, not a side effect.
+
+Four things in there cost real time to learn, and are commented where they bite:
+
+- **FromSoft's Oodle Kraken streams decode one 256 KiB chunk at a time, each against its own window.** Hand a decoder the whole stream and chunk 1 is perfect and chunk 2 fails — identically in `powzix/ooz` and in the unrelated Rust `oozextract`, which is what proves it is the usage and not the decoder. Sekiro needs `libooz.so` built once (recipe in the file's docstring); DS1–DS3 use Deflate and need nothing.
+- **A boss or miniboss handler is usually parameterised.** Its own instruction arguments are zeroes and the real values arrive through `2000[6] Initialize Common Event`. Scan only the inline calls and Sekiro reports one miniboss instead of thirty-seven.
+- **DS2's archive entries are 32 bytes where DS3's are 40** (no unpadded-size field). The wrong stride does not error, it reports an empty archive — which looks exactly like a wrong key.
+- **Not every header is encrypted, and not every `.emevd` is the current format.** DS3's `Data0` is a plain BHD5 with no published key, and DS3 ships eight stray scripts in the older Bloodborne shape; both are skipped out loud rather than guessed at.
+
+Provenance for the layouts themselves: `JKAnderson/SoulsFormats` for the containers, DCX, MSB and EMEVD; `Nordgaren/UXM-Selective-Unpack` for the RSA step and the keys; `AinTunez/DarkScript3`'s EMEDF for instruction names and argument types. No key material is vendored here.
+
 ### Provenance and licensing
 
 I did not extract any of these from the games myself. They are transcribed, reconciled, and cross-checked from community sources, and where two sources disagreed I say which one won and why in `CLAUDE.md`'s change log. The originals:
@@ -729,7 +770,7 @@ Sekiro needs none of this. Its fields do not move between patches, so they are r
 | DS3 | One-time enemies | 148 in 16 areas | of 148 tracked | Extracted from the committed `.emevd`, where each is a `common_func` template call taking a death flag and an entity id, plus map-local events deduped by entity. Mimics, Crystal Lizards, Black Knights, the Boreal Outrider Knights |
 | **Sekiro** | Sculptor's Idols | 55 in 8 areas | of 55 | `db_sdt/idols.json`, corroborated id-for-id against SoulSplitter `Idol.cs` |
 | Sekiro | Boss defeats | 15 | of 18 tracked | `Boss.cs`. The only thing that can name a Sekiro boss, since a held Memory resolves as a bare "Memory" |
-| Sekiro | Minibosses | 33 in 9 areas | of 33 tracked | The enemy's **entity ID used directly as the flag** — Sekiro's own convention, confirmed by two-save windows either side of the Blazing Bull and the Lone Shadow Longswordsman. The second of those also proved the sourced table incomplete: the Longswordsman's real flag is `1120450`, and the ID the source gives has never been set on any save here |
+| Sekiro | Minibosses | 37 in 9 areas | of 37 tracked | The enemy's **entity ID used directly as the flag** — Sekiro's own convention, confirmed by a two-save window either side of the Blazing Bull. The table is generated from the game's own event scripts by `tools/gamefiles.py roster --write`, so every row is an entity the scripts pass to `Handle Miniboss Defeat` / `Display Miniboss Health Bar`, and every name is the one the game prints over the bar. It replaced a 33-row community list that was missing all five Headless, named fourteen rows by model family, and carried one entity (`1120450`, a mallet-carrying servant) that is not a miniboss at all |
 | **Elden Ring** | — | **0** | — | Reads no flags at all. See below |
 
 Held as data and **not read**, because their games' flag regions are unsolved: `db_er/event_flags.json` (4,199 rows in 22 families — Great Runes, map fragments, remembrances, crystal tears, whetblades, endings, item pickups) and `db_sdt/item_flags.json` (927 Sekiro item-lot flags). Both ship so the research survives a clone; neither is loaded by either front end.

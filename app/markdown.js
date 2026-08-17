@@ -43,7 +43,7 @@ const SDT_BONFIRE_NOTE =
 const DS1_WORLD_NOTE =
   "one-off world events, each read from its own flag — exact, but only the flags that have been named are counted";
 const SDT_MINIBOSS_NOTE =
-  "each miniboss's own defeat flag — exact, not inferred, but it resets on a new journey; names are enemy types, so repeats in an area are different enemies";
+  "each miniboss's own defeat flag — exact, not inferred, but it resets on a new journey; names are the game's own, so a repeat in an area is a second placement of that character";
 // Only six areas have a derived flag-group base, so this counts what is TRACKED, not
 // what the game ships. An area absent from the list is unmapped, not empty.
 const DS3_PICKUP_NOTE =

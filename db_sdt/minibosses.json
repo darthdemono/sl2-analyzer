@@ -2,51 +2,55 @@
  "Ashina Outskirts": [
   [
    1100300,
-   "Samurai General"
+   "General Naomori Kawarada"
   ],
   [
    1100301,
-   "Samurai General"
+   "General Tenzen Yamauchi"
   ],
   [
    1100310,
    "Chained Ogre"
   ],
   [
+   1100330,
+   "Headless"
+  ],
+  [
    1100480,
-   "Shura Samurai"
+   "Shigekichi of the Red Guard"
   ]
  ],
  "Hirata Estate": [
   [
    1000300,
-   "Shura Samurai"
+   "Juzou the Drunkard"
   ],
   [
    1000301,
-   "Shura Samurai"
+   "Juzou the Drunkard"
   ],
   [
    1000330,
-   "Shinobi Hunter"
+   "Shinobi Hunter Enshin of Misen"
   ],
   [
    1000353,
-   "Lone Shadow"
+   "Lone Shadow Masanaga the Spear-Bearer"
   ]
  ],
  "Ashina Castle": [
   [
    1110305,
-   "Lone Shadow"
+   "Lone Shadow Vilehand"
   ],
   [
    1110316,
-   "Lone Shadow"
+   "Lone Shadow Masanaga the Spear-Bearer"
   ],
   [
    1110410,
-   "Samurai General"
+   "General Kuranosuke Matsumoto"
   ],
   [
    1110440,
@@ -54,37 +58,37 @@
   ],
   [
    1110504,
-   "Fencer"
+   "Ashina Elite - Jinsuke Saze"
   ],
   [
    1110511,
-   "Fencer"
+   "Ashina Elite - Ujinari Mizuo"
   ],
   [
    1110610,
    "Chained Ogre"
+  ],
+  [
+   1110660,
+   "Headless"
   ]
  ],
  "Ashina Reservoir": [
   [
    1120250,
-   "Samurai General"
+   "Leader Shigenori Yamauchi"
   ],
   [
    1120300,
-   "Lone Shadow"
-  ],
-  [
-   1120450,
    "Lone Shadow Longswordsman"
   ],
   [
    1120521,
-   "Seven Ashina Spears"
+   "Seven Ashina Spears - Shume Masaji Oniwa"
   ],
   [
    1120530,
-   "Seven Ashina Spears"
+   "Seven Ashina Spears - Shikibu Toshikatsu Yamauchi"
   ]
  ],
  "Abandoned Dungeon": [
@@ -96,7 +100,7 @@
  "Senpou Temple, Mt. Kongo": [
   [
    2000279,
-   "Centipede Boss"
+   "Long-arm Centipede Sen'un"
   ],
   [
    2000400,
@@ -106,15 +110,19 @@
  "Sunken Valley": [
   [
    1700200,
-   "Snake Eyes"
+   "Snake Eyes Shirafuji"
   ],
   [
    1700201,
-   "Snake Eyes"
+   "Snake Eyes Shirahagi"
   ],
   [
    1700425,
-   "Centipede Boss"
+   "Long-arm Centipede Giraffe"
+  ],
+  [
+   1700500,
+   "Headless"
   ],
   [
    1700520,
@@ -124,21 +132,29 @@
  "Ashina Depths": [
   [
    1500200,
-   "Palace Noble"
+   "Mist Noble"
   ],
   [
    1500490,
-   "Shura Samurai"
+   "Tokujiro the Glutton"
+  ],
+  [
+   1500680,
+   "Headless"
   ],
   [
    1500690,
-   "O'Rin"
+   "O'Rin of the Water"
   ]
  ],
  "Fountainhead Palace": [
   [
    2500406,
-   "Okami Warrior"
+   "Okami Leader Shizu"
+  ],
+  [
+   2500550,
+   "Headless"
   ],
   [
    2500570,

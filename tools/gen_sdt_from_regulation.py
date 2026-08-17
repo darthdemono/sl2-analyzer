@@ -587,7 +587,7 @@ def find_regulation(game_root: Path) -> Path:
     `regulation.bin` is a DS3/Elden Ring name that no Sekiro tree contains, so
     searching for it alone made this function fail on every real input. Both the
     packed `.dcx` name and the already-decompressed one are candidates, because
-    `scratch/sdt_unpack.py` writes the tree decompressed (its DCX is Oodle KRAK,
+    `gamefiles.py unpack` writes the tree decompressed (its DCX is Oodle KRAK,
     which nothing in this file can inflate — and does not need to).
     """
     for cand in (

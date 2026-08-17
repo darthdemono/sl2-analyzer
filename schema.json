@@ -652,7 +652,7 @@
     },
     "minibosses": {
      "type": "array",
-     "description": "Sekiro only: minibosses defeated, by area. Each is read from the enemy's OWN entity id used as an event flag, so a kill here is exact rather than inferred. Resets on a new journey, like every other Sekiro flag family. Names are enemy types from the only published table that lists them, so repeats within an area are different enemies at different entity ids.",
+     "description": "Sekiro only: minibosses defeated, by area. Each is read from the enemy's OWN entity id used as an event flag, so a kill here is exact rather than inferred. Resets on a new journey, like every other Sekiro flag family. Names are the game's own: read from the FMG id its health-bar instruction carries, so a repeat within an area is a second placement of the same character at a different entity id, not a duplicate.",
      "items": {
       "type": "array",
       "minItems": 5,

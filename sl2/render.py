@@ -366,8 +366,8 @@ DS1_WORLD_NOTE = (
 
 SDT_MINIBOSS_NOTE = (
     "each miniboss's own defeat flag — exact, not inferred, but it "
-    "resets on a new journey; names are enemy types, so repeats in an "
-    "area are different enemies"
+    "resets on a new journey; names are the game's own, so a repeat in an "
+    "area is a second placement of that character"
 )
 
 
