@@ -77,6 +77,26 @@ Vanilla Dark Souls II used to be the one wall, because the Scholar key does not 
 
 The asterisk on Elden Ring is honest too. Identity, every attribute, runes held, and remembrances are read straight from the save. The item *list* is partial, and the reason is narrower than it used to be: the tables now cover Shadow of the Erdtree, and a reinforced or affinity weapon resolves to its own row with the `+N` on it. What is missing is the **held inventory**. Owned items come from the GaItem array, which carries weapons, armour and Ashes of War only, so talismans, spells and consumables never appear and per-item quantities are not read. What is listed is really owned. It is just not the complete stash.
 
+### How much each one has actually been tested
+
+A tier says how deep the read goes. It says nothing about how much evidence sits behind it, and those are not the same thing. So here is the corpus. **243 real `.sl2` files, 272 characters, every one of which parses today**, and this is how they are distributed.
+
+| Game | Saves | Characters | Confidence | What is behind it |
+|---|---:|---:|:---:|---|
+| Dark Souls III | 87 | 89 | **very high** | An 81-save personal ladder over one playthrough into NG+2, plus targeted differential pairs. Every progress table shipped was *dated* on that ladder: a flag is only accepted when it is clear in one snapshot and set in a later one, and the counts climb across the ladder in play-time order without a single regression. |
+| Sekiro | 74 | 85 | **high** | A 41-save community matrix, one save per boss and per achievement, plus a 30-save personal ladder taken as single-variable pairs. The boss roster is not transcribed from anywhere — it is regenerated from the game's own event scripts by `tools/gamefiles.py roster`, which is how it came out at 37 where the community list said 33. |
+| Dark Souls II: SOTFS | 73 | 74 | **high** | A 41-boss community mule set, one save per boss killed, plus a 28-save personal ladder. The full derived-stat panel is verified byte-exact against what the game's own menu prints. |
+| Dark Souls II (vanilla) | 1 | 1 | **high, inherited** | One file. It runs the identical code path as SOTFS and differs only in which key opens the block, so SOTFS's evidence carries across; the vanilla-specific evidence is that one save. |
+| Dark Souls Remastered | 4 | 9 | **medium** | Enough to pin every offset and confirm it across several characters. No long ladder, so the progress tables have less timing evidence under them than DS3's do. |
+| Dark Souls: Prepare to Die | 2 | 2 | **medium** | Shares DSR's layout and name anchor, and was calibrated through it. The PtDE-specific evidence is two saves. |
+| Elden Ring | 2 | 12 | **lowest** | One clean level-266 save calibrated the stat block and it is verified against the game. There is no ladder and no differential pair, which is exactly why the flag region is unsolved and why no boss flag, no grace and no pickup is read at all. |
+
+Confidence here means *how likely a printed number is to be right*, not *will it survive the file*. Every read is bounds-checked, so a save the tool cannot understand loses fields rather than crashing, and a character whose stat block fails validation drops to inventory tier instead of printing something invented. What the corpus size changes is how much of a game's **inference** has been proved against real play instead of merely reasoned about. DS3 and DS2 have been walked end to end; Elden Ring has been sampled.
+
+Two things do not vary by game. Every offset traces either to a published source or to a differential save with exactly one variable changed, and both are listed in [Credits](#credits). And the browser parser is never trusted on its own: three harnesses diff the JS output against the CLI's for every save in that corpus, across all three output formats, and a change ships only when all three report an exact match.
+
+Where a table is known to be soft, it says so in the file it prints, and the reasons are collected under [The honest limitations](#the-honest-limitations).
+
 ### Field by field
 
 What each game actually surfaces. A `no` means the field is not readable from that game's save with anything published today, so it is omitted rather than faked.
