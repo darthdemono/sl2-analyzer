@@ -131,6 +131,12 @@ BASE = Path(__file__).resolve().parent.parent
 # ships its own key file — DS2 puts `GameDataKeyCode.pem` next to `GameDataEbl.bhd`, so
 # nothing external is needed there. `bhd5` picks the entry stride. Sekiro having no `Data0`
 # is a fact about Sekiro, not a gap in this table.
+#
+# `fmt: off` here and on the other hand-laid-out tables in this file: ruff formats a dict
+# literal one key per line, which is right for code and wrong for a table — this one goes
+# from four rows you can compare at a glance to thirty-five you cannot. The code between
+# the tables is formatted normally.
+# fmt: off
 GAMES = {
     "sekiro": {"archives": ["Data1", "Data2", "Data3", "Data4", "Data5"],
                "keys": "SekiroKeys", "bhd5": "ds3", "dict": "SekiroDictionary.txt"},
@@ -147,6 +153,7 @@ GAMES = {
     "er": {"archives": ["Data0", "Data1", "Data2", "Data3", "DLC"],
            "keys": "EldenRingKeys", "bhd5": "er", "dict": "EldenRingDictionary.txt"},
 }
+# fmt: on
 
 ##
 # @brief The filename hash, per era. Same rolling shape, different width and multiplier.
@@ -181,10 +188,15 @@ Dark Souls II needs only the dictionary: its keys ship in the install as *KeyCod
 def load_keys(path: Path, dict_name: str) -> dict[str, str]:
     src = Path(path).read_text(encoding="utf-8-sig")
     body = re.search(
-        dict_name + r"\s*=\s*new\s+Dictionary<string,\s*string>\s*\{(.*?)\n\s*\};", src, re.S)
+        dict_name + r"\s*=\s*new\s+Dictionary<string,\s*string>\s*\{(.*?)\n\s*\};",
+        src,
+        re.S,
+    )
     if not body:
         sys.exit(f"no {dict_name} dictionary in {path}")
-    return dict(re.findall(r'\["([A-Za-z0-9_]+)"\]\s*=\s*@"(.*?)"', body.group(1), re.S))
+    return dict(
+        re.findall(r'\["([A-Za-z0-9_]+)"\]\s*=\s*@"(.*?)"', body.group(1), re.S)
+    )
 
 
 ##
@@ -203,7 +215,7 @@ def rsa_decrypt(data: bytes, pem: str) -> bytes:
     out_size = (n.bit_length() - 1) // 8
     out = bytearray()
     for i in range(0, len(data), in_size):
-        block = data[i:i + in_size]
+        block = data[i : i + in_size]
         if len(block) < in_size:
             break
         out += pow(int.from_bytes(block, "big"), e, n).to_bytes(out_size, "big")
@@ -218,7 +230,7 @@ class Reader:
     def take(self, n: int) -> bytes:
         if self.pos + n > len(self.buf):
             sys.exit(f"header truncated at 0x{self.pos:X} (+{n})")
-        v = self.buf[self.pos:self.pos + n]
+        v = self.buf[self.pos : self.pos + n]
         self.pos += n
         return v
 
@@ -255,13 +267,13 @@ def parse_bhd5(buf: bytes, variant: str = "ds3") -> dict[int, dict]:
     r.expect("BHD5")
     if r.u8() == 0:
         sys.exit("big-endian BHD5; the PC games' are little-endian")
-    r.u8()                                   # Unk05, "crypto allowed?" per SoulsFormats
+    r.u8()  # Unk05, "crypto allowed?" per SoulsFormats
     r.u8(), r.u8()
     if r.i32() != 1:
         sys.exit("BHD5 version word is not 1")
-    r.i32()                                  # file size, unused: the buffer is the size
+    r.i32()  # file size, unused: the buffer is the size
     bucket_count, buckets_offset = r.i32(), r.i32()
-    r.ascii(r.i32())                         # salt; only the SHA side-table needs it
+    r.ascii(r.i32())  # salt; only the SHA side-table needs it
 
     # Three entry shapes, all 32 or 40 bytes, and the difference is not cosmetic:
     #   ds2  hash(u32) padded(i32) offset(i64) sha(i64) aes(i64)                     = 32
@@ -278,11 +290,15 @@ def parse_bhd5(buf: bytes, variant: str = "ds3") -> dict[int, dict]:
         for i in range(count):
             e = Reader(buf, offset + i * stride)
             if variant == "er":
-                entry = {"hash": int.from_bytes(e.take(8), "little"),
-                         "padded": e.i32(), "unpadded": e.i32(), "offset": e.i64()}
+                entry = {
+                    "hash": int.from_bytes(e.take(8), "little"),
+                    "padded": e.i32(),
+                    "unpadded": e.i32(),
+                    "offset": e.i64(),
+                }
             else:
                 entry = {"hash": e.u32(), "padded": e.i32(), "offset": e.i64()}
-            e.i64()                          # SHA side table, not verified here
+            e.i64()  # SHA side table, not verified here
             aes_off = e.i64()
             if variant == "ds3":
                 entry["unpadded"] = e.i64()
@@ -345,10 +361,11 @@ def read_entry(bdt, entry: dict) -> bytes:
             if span <= 0:
                 continue
             dec = cipher.decryptor()
-            data[start:start + span] = dec.update(bytes(data[start:start + span])) \
-                + dec.finalize()
+            data[start : start + span] = (
+                dec.update(bytes(data[start : start + span])) + dec.finalize()
+            )
     if 0 < entry["unpadded"] < len(data):
-        del data[entry["unpadded"]:]
+        del data[entry["unpadded"] :]
     return bytes(data)
 
 
@@ -382,12 +399,18 @@ def ooz_load(explicit: str | None = None):
             if cand.is_file():
                 _OOZ = ctypes.CDLL(str(cand))
                 _OOZ.ooz_decompress.restype = ctypes.c_int
-                _OOZ.ooz_decompress.argtypes = [ctypes.c_char_p, ctypes.c_size_t,
-                                                ctypes.c_char_p, ctypes.c_size_t]
+                _OOZ.ooz_decompress.argtypes = [
+                    ctypes.c_char_p,
+                    ctypes.c_size_t,
+                    ctypes.c_char_p,
+                    ctypes.c_size_t,
+                ]
                 break
         else:
-            sys.exit("no libooz.so found — build it (see this file's docstring) and pass "
-                     "--ooz, or set SL2_OOZ_LIB")
+            sys.exit(
+                "no libooz.so found — build it (see this file's docstring) and pass "
+                "--ooz, or set SL2_OOZ_LIB"
+            )
     return _OOZ
 
 
@@ -425,14 +448,14 @@ def ooz_decompress_chunked(src: bytes, dst_len: int) -> bytes:
         if b0 & 0x0F != 0x0C:
             sys.exit(f"not an Oodle block header at {pos}: 0x{b0:02X}")
         frame = 2
-        if b0 & 0x40:                                    # uncompressed block
+        if b0 & 0x40:  # uncompressed block
             frame += want
         else:
-            v = int.from_bytes(src[pos + 2:pos + 5], "big")
+            v = int.from_bytes(src[pos + 2 : pos + 5], "big")
             frame += 3 + (3 if b1 & 0x80 else 0)
             size = v & 0x3FFFF
             frame += 0 if size == 0x3FFFF else size + 1
-        out += ooz_decompress(src[pos:pos + frame], want)
+        out += ooz_decompress(src[pos : pos + frame], want)
         pos += frame
     if pos != len(src):
         sys.exit(f"KRAK stream has {len(src) - pos} trailing byte(s)")
@@ -454,7 +477,7 @@ def dcx_decompress(data: bytes) -> bytes:
     # DCA\0 then its own length: the payload starts after that, and the length is read
     # rather than assumed because the DCX permutations differ in header size.
     dca = data.index(b"DCA\0")
-    body = data[dca + int.from_bytes(data[dca + 4:dca + 8], "big"):][:compressed]
+    body = data[dca + int.from_bytes(data[dca + 4 : dca + 8], "big") :][:compressed]
     if fmt == b"KRAK":
         out = ooz_decompress_chunked(body, uncompressed)
     elif fmt == b"DFLT":
@@ -467,7 +490,9 @@ def dcx_decompress(data: bytes) -> bytes:
             import zstandard
         except ImportError:
             sys.exit("this file is DCX/ZSTD — pip install zstandard")
-        out = zstandard.ZstdDecompressor().decompress(body, max_output_size=uncompressed)
+        out = zstandard.ZstdDecompressor().decompress(
+            body, max_output_size=uncompressed
+        )
     else:
         sys.exit(f"unsupported DCX compression {fmt!r}")
     if len(out) != uncompressed:
@@ -487,8 +512,10 @@ MODEL_SECTION, PARTS_SECTION = "MODEL_PARAM_ST", "PARTS_PARAM_ST"
 # @details Both enemy types matter: `DummyEnemy` placements are cutscene or unused copies
 # and they still carry entity ids, so filtering on "has an id" does not separate them.
 PART_ENEMY, PART_DUMMY_ENEMY = 2, 10
+# fmt: off
 PART_NAMES = {0: "MapPiece", 1: "Object", 2: "Enemy", 4: "Player", 5: "Collision",
               9: "DummyObject", 10: "DummyEnemy", 11: "ConnectCollision"}
+# fmt: on
 
 ## @brief Offsets inside a Part's base struct, and inside an enemy's type data.
 P_NAME_OFF, P_TYPE, P_MODEL_INDEX = 0x00, 0x08, 0x10
@@ -512,7 +539,7 @@ def _i64(b: bytes, o: int) -> int:
 ## @brief A NUL-terminated UTF-16LE string at @p off.
 def _utf16(b: bytes, off: int) -> str:
     end = off
-    while end + 1 < len(b) and b[end:end + 2] != b"\0\0":
+    while end + 1 < len(b) and b[end : end + 2] != b"\0\0":
         end += 2
     return b[off:end].decode("utf-16-le", "replace")
 
@@ -568,19 +595,25 @@ def msb_parts(buf: bytes, offsets: list[int], models: list[str]) -> list[dict]:
         mi = _i32(buf, off + P_MODEL_INDEX)
         row = {
             "name": _utf16(buf, off + _i64(buf, off + P_NAME_OFF)),
-            "type": kind, "type_name": PART_NAMES.get(kind, str(kind)),
+            "type": kind,
+            "type_name": PART_NAMES.get(kind, str(kind)),
             "model": models[mi] if 0 <= mi < len(models) else None,
             "entity_id": _i32(buf, off + _i64(buf, off + P_ENTITY_DATA_OFF)),
-            "npc_param": None, "think_param": None, "chara_init": None,
-            "event_flag": None, "event_flag_state": None,
+            "npc_param": None,
+            "think_param": None,
+            "chara_init": None,
+            "event_flag": None,
+            "event_flag_state": None,
         }
         if kind in (PART_ENEMY, PART_DUMMY_ENEMY):
             t = off + _i64(buf, off + P_TYPE_DATA_OFF)
-            row.update(npc_param=_i32(buf, t + E_NPC_PARAM),
-                       think_param=_i32(buf, t + E_THINK_PARAM),
-                       chara_init=_i32(buf, t + E_CHARA_INIT),
-                       event_flag=_i32(buf, t + E_EVENT_FLAG),
-                       event_flag_state=_i32(buf, t + E_EVENT_FLAG_STATE))
+            row.update(
+                npc_param=_i32(buf, t + E_NPC_PARAM),
+                think_param=_i32(buf, t + E_THINK_PARAM),
+                chara_init=_i32(buf, t + E_CHARA_INIT),
+                event_flag=_i32(buf, t + E_EVENT_FLAG),
+                event_flag_state=_i32(buf, t + E_EVENT_FLAG_STATE),
+            )
         out.append(row)
     return out
 
@@ -605,8 +638,10 @@ def read_msb(path: Path) -> tuple[str, list[dict]] | None:
     parts_version = _i32(buf, msb_section_pos(buf, PARTS_SECTION))
     if parts_version not in MSBS_PARTS_VERSIONS:
         return None
-    return (Path(path).name.replace(".msb", ""),
-            msb_parts(buf, sec[PARTS_SECTION], msb_models(buf, sec[MODEL_SECTION])))
+    return (
+        Path(path).name.replace(".msb", ""),
+        msb_parts(buf, sec[PARTS_SECTION], msb_models(buf, sec[MODEL_SECTION])),
+    )
 
 
 ## @brief `PARTS_PARAM_ST` versions this reader's part struct is known to match (Sekiro).
@@ -621,8 +656,11 @@ def read_msbs(root: str) -> list[tuple[str, list[dict]]]:
     for f in paths:
         got = read_msb(f)
         if got is None:
-            print(f"  ! {f.name}: not a Sekiro MSBS part layout (Elden Ring's MSBE is not "
-                  f"implemented), skipped", file=sys.stderr)
+            print(
+                f"  ! {f.name}: not a Sekiro MSBS part layout (Elden Ring's MSBE is not "
+                f"implemented), skipped",
+                file=sys.stderr,
+            )
             continue
         out.append(got)
     return out
@@ -649,10 +687,13 @@ AWARD_ITEM_LOT = (2003, 4)
 INIT_COMMON_EVENT = (2000, 6)
 
 ## @brief EMEDF numeric type code -> (struct format, size).
+# fmt: off
 ARG_TYPES = {0: ("B", 1), 1: ("H", 2), 2: ("I", 4), 3: ("b", 1), 4: ("h", 2),
              5: ("i", 4), 6: ("f", 4)}
+# fmt: on
 
 ## @brief Argument layouts for the instructions this file reads, from the EMEDF.
+# fmt: off
 LAYOUTS = {
     MINIBOSS_BAR: [3, 5, 4, 5],     # enabled, entity, slot, name id
     BOSS_BAR: [3, 5, 4, 5],
@@ -661,13 +702,16 @@ LAYOUTS = {
     BOSS_BANNER: [5, 0],            # entity, banner type
     AWARD_ITEM_LOT: [5],            # item lot id
 }
+# fmt: on
 
 ##
 # @brief The Dark Souls III `common_func` templates that flag a one-time enemy death.
 # @details Each takes a death flag and an entity id (some take more). Reading these out of
 # an install is how `db_ds3/enemies.json` was confirmed: 125 of the 130 flags they carry
 # land on a byte and bit that table already has, and none contradict it.
+# fmt: off
 DS3_DEATH_TEMPLATES = (20005340, 20005341, 20005342, 20000343, 20005416, 20005061, 20005760)
+# fmt: on
 
 
 ##
@@ -709,8 +753,13 @@ def read_emevd(path: Path) -> list[tuple[int, int, int, bytes]] | None:
     buf = Path(path).read_bytes()
     if buf[:4] != b"EVD\0":
         sys.exit(f"{path}: not an EMEVD")
-    if buf[4] != 0 or buf[5] != 0xFF or buf[6] != 1 or buf[7] not in (0, 0xFF) \
-            or _i32(buf, 8) != 0xCD:
+    if (
+        buf[4] != 0
+        or buf[5] != 0xFF
+        or buf[6] != 1
+        or buf[7] not in (0, 0xFF)
+        or _i32(buf, 8) != 0xCD
+    ):
         return None
 
     v = [_i64(buf, 0x10 + i * 8) for i in range(16)]
@@ -723,7 +772,7 @@ def read_emevd(path: Path) -> list[tuple[int, int, int, bytes]] | None:
         for i in range(n):
             ib = instrs_off + ioff + i * 32
             alen, aoff = _i64(buf, ib + 8), _i64(buf, ib + 16)
-            data = buf[args_off + aoff:args_off + aoff + alen] if alen > 0 else b""
+            data = buf[args_off + aoff : args_off + aoff + alen] if alen > 0 else b""
             out.append((eid, _i32(buf, ib), _i32(buf, ib + 4), data))
     return out
 
@@ -756,8 +805,13 @@ def read_emevds(root: str) -> dict[str, list]:
 # `(entity, name id, 0, kind)`.
 def roster_calls(scripts: dict[str, list]) -> list[tuple]:
     kinds = {MINIBOSS_BAR, BOSS_BAR, MINIBOSS_DEFEAT, BOSS_DEFEAT, BOSS_BANNER}
-    handlers = {eid: (b, i) for name, instrs in scripts.items() if name.startswith("common")
-                for eid, b, i, _d in instrs if (b, i) in kinds}
+    handlers = {
+        eid: (b, i)
+        for name, instrs in scripts.items()
+        if name.startswith("common")
+        for eid, b, i, _d in instrs
+        if (b, i) in kinds
+    }
 
     out = []
     for mapname, instrs in scripts.items():
@@ -775,9 +829,15 @@ def roster_calls(scripts: dict[str, list]) -> list[tuple]:
                 vals = common_init_args(data)
                 if not vals or vals[0] not in handlers:
                     continue
-                out.append((mapname, vals[0], handlers[vals[0]],
-                            vals[1] if len(vals) > 1 else 0,
-                            vals[2] if len(vals) > 2 else None))
+                out.append(
+                    (
+                        mapname,
+                        vals[0],
+                        handlers[vals[0]],
+                        vals[1] if len(vals) > 1 else 0,
+                        vals[2] if len(vals) > 2 else None,
+                    )
+                )
     return out
 
 
@@ -791,8 +851,17 @@ def build_roster(scripts: dict[str, list]) -> dict[int, dict]:
     for mapname, eid, key, entity, name_id in roster_calls(scripts):
         if entity <= 0:
             continue
-        row = roster.setdefault(entity, {"entity": entity, "maps": set(), "name_ids": set(),
-                                         "miniboss": False, "boss": False, "events": set()})
+        row = roster.setdefault(
+            entity,
+            {
+                "entity": entity,
+                "maps": set(),
+                "name_ids": set(),
+                "miniboss": False,
+                "boss": False,
+                "events": set(),
+            },
+        )
         row["maps"].add(mapname)
         row["events"].add(eid)
         if key in (MINIBOSS_BAR, MINIBOSS_DEFEAT):
@@ -824,6 +893,7 @@ def ds3_death_flags(scripts: dict[str, list]) -> dict[int, tuple[str, int]]:
 # Names
 # ==========================================================================
 
+
 ##
 # @brief Every FMG table in the English message binders, keyed by table name.
 # @details Which table holds an NPC name is not assumed: every table is loaded and the
@@ -840,7 +910,7 @@ def load_fmg_tables(msg_dir: str) -> dict[str, dict[int, str]]:
                 key = Path(bf.name.replace("\\", "/")).name.rsplit(".", 1)[0]
                 try:
                     tables[key] = fs.read_fmg(bf.data)
-                except Exception as exc:                          # noqa: BLE001
+                except Exception as exc:  # noqa: BLE001
                     print(f"  ! {cand}:{key} unreadable ({exc})", file=sys.stderr)
             break
     return tables
@@ -876,12 +946,14 @@ def npc_dev_names(paramdex: str) -> dict[int, str]:
 # mapping is the one the shipped table already uses, so a regenerated table keeps its shape;
 # the two Ashina Castle map files both fall under one menu area, and `m11_02` is the
 # Reservoir, which the menu files under its own name.
+# fmt: off
 SDT_AREA_BY_MAP = {
     "m10_00": "Hirata Estate", "m11_00": "Ashina Outskirts", "m11_01": "Ashina Castle",
     "m11_02": "Ashina Reservoir", "m13_00": "Abandoned Dungeon",
     "m15_00": "Ashina Depths", "m17_00": "Sunken Valley",
     "m20_00": "Senpou Temple, Mt. Kongo", "m25_00": "Fountainhead Palace",
 }
+# fmt: on
 
 ##
 # @brief The order areas are printed in: the game's own travel-menu order.
@@ -891,9 +963,11 @@ SDT_AREA_BY_MAP = {
 # menu's order nor the order the player sees them in. The Reservoir has no key of its own
 # in `idols.json` — its idol is filed under Ashina Castle — but it does have minibosses,
 # so it is inserted where the menu puts it rather than appended.
+# fmt: off
 SDT_AREA_ORDER = ["Ashina Outskirts", "Hirata Estate", "Ashina Castle", "Ashina Reservoir",
                   "Abandoned Dungeon", "Senpou Temple, Mt. Kongo", "Sunken Valley",
                   "Ashina Depths", "Fountainhead Palace"]
+# fmt: on
 
 ##
 # @brief Indent for a generated `db_*` table. ONE space, matching every other table there.
@@ -907,10 +981,14 @@ DB_INDENT = 1
 # Subcommands
 # ==========================================================================
 
+
 ## @brief Which dictionary paths to extract, from the prefixes and exact paths given.
 def wanted(dict_path: str, prefixes: list[str], paths: list[str]) -> list[str]:
-    names = [ln.strip() for ln in Path(dict_path).read_text(encoding="utf-8-sig").splitlines()
-             if ln.strip()]
+    names = [
+        ln.strip()
+        for ln in Path(dict_path).read_text(encoding="utf-8-sig").splitlines()
+        if ln.strip()
+    ]
     if not prefixes and not paths:
         return names
     keep = [n for n in names if any(n.startswith(p) for p in prefixes)]
@@ -921,7 +999,8 @@ def wanted(dict_path: str, prefixes: list[str], paths: list[str]) -> list[str]:
 def cmd_unpack(args) -> int:
     spec = GAMES[args.game]
     if not Path(args.dict).is_file() or (
-            spec["keys"] and not (args.keys and Path(args.keys).is_file())):
+        spec["keys"] and not (args.keys and Path(args.keys).is_file())
+    ):
         print(KEY_HELP, file=sys.stderr)
         return 2
     keys = load_keys(args.keys, spec["keys"]) if spec["keys"] else {}
@@ -931,7 +1010,10 @@ def cmd_unpack(args) -> int:
     # fatal: one install's DLC layout should not stop the run.
     index: dict[int, tuple[Path, dict]] = {}
     for name in spec["archives"]:
-        bhd, bdt = Path(args.game_root) / f"{name}.bhd", Path(args.game_root) / f"{name}.bdt"
+        bhd, bdt = (
+            Path(args.game_root) / f"{name}.bhd",
+            Path(args.game_root) / f"{name}.bdt",
+        )
         if not bhd.is_file() or not bdt.is_file():
             print(f"{name}: absent, skipped")
             continue
@@ -996,9 +1078,11 @@ def cmd_unpack(args) -> int:
     for f in failed:
         print(f"  ! could not decompress {f}")
     if missing:
-        print(f"{len(missing)} dictionary path(s) in no archive (normal — the dictionary "
-              f"covers every patch): {', '.join(missing[:5])}"
-              + (" ..." if len(missing) > 5 else ""))
+        print(
+            f"{len(missing)} dictionary path(s) in no archive (normal — the dictionary "
+            f"covers every patch): {', '.join(missing[:5])}"
+            + (" ..." if len(missing) > 5 else "")
+        )
     return 0
 
 
@@ -1007,8 +1091,10 @@ def cmd_msb(args) -> int:
     for name, rows in maps:
         enemies = [r for r in rows if r["type"] in (PART_ENEMY, PART_DUMMY_ENEMY)]
         ided = [r for r in enemies if r["entity_id"]]
-        print(f"{name}: {len(rows)} parts, {len(enemies)} enemies, "
-              f"{len(ided)} with an entity id")
+        print(
+            f"{name}: {len(rows)} parts, {len(enemies)} enemies, "
+            f"{len(ided)} with an entity id"
+        )
 
     if args.entity:
         want = set(args.entity)
@@ -1024,14 +1110,18 @@ def cmd_msb(args) -> int:
         for name, rows in maps:
             for r in rows:
                 if r["type"] in (PART_ENEMY, PART_DUMMY_ENEMY) and r["entity_id"]:
-                    print(f"{name}\t{r['entity_id']}\t{r['model']}\t{r['npc_param']}"
-                          f"\t{r['type_name']}\t{r['name']}")
+                    print(
+                        f"{name}\t{r['entity_id']}\t{r['model']}\t{r['npc_param']}"
+                        f"\t{r['type_name']}\t{r['name']}"
+                    )
     return 0
 
 
 def cmd_emevd(args) -> int:
     scripts = read_emevds(args.root)
-    print(f"{len(scripts)} script(s), {sum(len(v) for v in scripts.values())} instructions")
+    print(
+        f"{len(scripts)} script(s), {sum(len(v) for v in scripts.values())} instructions"
+    )
 
     for spec in args.instr:
         bank, iid = (int(x) for x in spec.split(":"))
@@ -1059,7 +1149,9 @@ def cmd_emevd(args) -> int:
 # is right but whose name is a model family rather than a character.
 def cmd_roster(args) -> int:
     scripts = read_emevds(args.root)
-    print(f"{len(scripts)} script(s), {sum(len(v) for v in scripts.values())} instructions")
+    print(
+        f"{len(scripts)} script(s), {sum(len(v) for v in scripts.values())} instructions"
+    )
     roster = build_roster(scripts)
 
     name_ids = {n for r in roster.values() for n in r["name_ids"] if n > 0}
@@ -1067,8 +1159,10 @@ def cmd_roster(args) -> int:
     if args.msg:
         tables = load_fmg_tables(args.msg)
         table, hits = pick_table(tables, name_ids)
-        print(f"name table: {table} ({hits} of {len(name_ids)} name ids resolved, "
-              f"{len(tables)} tables probed)")
+        print(
+            f"name table: {table} ({hits} of {len(name_ids)} name ids resolved, "
+            f"{len(tables)} tables probed)"
+        )
         names = tables.get(table, {})
 
     placed = {}
@@ -1082,11 +1176,15 @@ def cmd_roster(args) -> int:
     mini = sorted(e for e, r in roster.items() if r["miniboss"] and not r["boss"])
     boss = sorted(e for e, r in roster.items() if r["boss"] and not r["miniboss"])
     both = sorted(e for e, r in roster.items() if r["boss"] and r["miniboss"])
-    print(f"\n{len(mini)} miniboss entities, {len(boss)} boss entities, "
-          f"{len(both)} called by both")
+    print(
+        f"\n{len(mini)} miniboss entities, {len(boss)} boss entities, "
+        f"{len(both)} called by both"
+    )
 
     def printed_name(e: int) -> str:
-        got = sorted({names.get(n, f"name#{n}") for n in roster[e]["name_ids"] if n > 0})
+        got = sorted(
+            {names.get(n, f"name#{n}") for n in roster[e]["name_ids"] if n > 0}
+        )
         return ", ".join(got) or "(no health bar)"
 
     for label, ids in (("MINIBOSSES", mini), ("BOSSES", boss), ("BOTH", both)):
@@ -1099,15 +1197,19 @@ def cmd_roster(args) -> int:
                 extra = f"  {placed[e]['model']}"
                 if placed[e]["npc_param"] in dev:
                     extra += f"  [{dev[placed[e]['npc_param']]}]"
-            print(f"  {e}  {printed_name(e):38} {'/'.join(sorted(roster[e]['maps']))}{extra}")
+            print(
+                f"  {e}  {printed_name(e):38} {'/'.join(sorted(roster[e]['maps']))}{extra}"
+            )
 
     shipped_path = BASE / "db_sdt" / "minibosses.json"
     if shipped_path.is_file():
         shipped_raw = json.loads(shipped_path.read_text(encoding="utf-8"))
         shipped = {eid: n for rows in shipped_raw.values() for eid, n in rows}
         measured = set(mini) | set(both)
-        print(f"\n=== db_sdt/minibosses.json: {len(shipped)} rows vs {len(measured)} "
-              f"measured ===")
+        print(
+            f"\n=== db_sdt/minibosses.json: {len(shipped)} rows vs {len(measured)} "
+            f"measured ==="
+        )
         for eid in sorted(set(shipped) - measured):
             why = ""
             if eid in placed:
@@ -1132,25 +1234,45 @@ def cmd_roster(args) -> int:
         out = {a: rows[a] for a in SDT_AREA_ORDER if a in rows}
         out.update({a: r for a, r in rows.items() if a not in out})
         Path(args.write).write_text(
-            json.dumps(out, indent=DB_INDENT, ensure_ascii=False) + "\n", encoding="utf-8")
-        print(f"\nwrote {args.write}: {sum(len(v) for v in out.values())} rows in "
-              f"{len(out)} areas")
+            json.dumps(out, indent=DB_INDENT, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        print(
+            f"\nwrote {args.write}: {sum(len(v) for v in out.values())} rows in "
+            f"{len(out)} areas"
+        )
 
     if args.json:
-        Path(args.json).write_text(json.dumps(
-            {str(e): {"entity": e, "maps": sorted(r["maps"]), "miniboss": r["miniboss"],
-                      "boss": r["boss"], "name_ids": sorted(r["name_ids"]),
-                      "names": sorted({names[n] for n in r["name_ids"] if n in names}),
-                      "events": sorted(r["events"])}
-             for e, r in sorted(roster.items())}, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8")
+        Path(args.json).write_text(
+            json.dumps(
+                {
+                    str(e): {
+                        "entity": e,
+                        "maps": sorted(r["maps"]),
+                        "miniboss": r["miniboss"],
+                        "boss": r["boss"],
+                        "name_ids": sorted(r["name_ids"]),
+                        "names": sorted(
+                            {names[n] for n in r["name_ids"] if n in names}
+                        ),
+                        "events": sorted(r["events"]),
+                    }
+                    for e, r in sorted(roster.items())
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
         print(f"wrote {args.json} ({len(roster)} entities)")
     return 0
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--ooz", help="path to libooz.so (Oodle Kraken; see the docstring)")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
@@ -1160,27 +1282,48 @@ def main() -> int:
     u.add_argument("--keys", help="UXM's ArchiveKeys.cs; DS2 ships its own keys")
     u.add_argument("--dict", required=True, help="UXM's <game>Dictionary.txt")
     u.add_argument("--out", required=True)
-    u.add_argument("--prefix", action="append", default=[],
-                   help="extract every dictionary path starting with this; repeatable")
-    u.add_argument("--path", action="append", default=[],
-                   help="extract one exact path; repeatable")
-    u.add_argument("--keep-dcx", action="store_true",
-                   help="write the .dcx as stored instead of decompressing it")
+    u.add_argument(
+        "--prefix",
+        action="append",
+        default=[],
+        help="extract every dictionary path starting with this; repeatable",
+    )
+    u.add_argument(
+        "--path", action="append", default=[], help="extract one exact path; repeatable"
+    )
+    u.add_argument(
+        "--keep-dcx",
+        action="store_true",
+        help="write the .dcx as stored instead of decompressing it",
+    )
     u.set_defaults(func=cmd_unpack)
 
     m = sub.add_parser("msb", help="read map layouts: enemy placements and entity ids")
     m.add_argument("root", help="mapstudio directory, or one .msb")
-    m.add_argument("--entity", type=int, action="append", default=[],
-                   help="print the placement carrying this entity id; repeatable")
+    m.add_argument(
+        "--entity",
+        type=int,
+        action="append",
+        default=[],
+        help="print the placement carrying this entity id; repeatable",
+    )
     m.add_argument("--enemies", action="store_true", help="list every enemy placement")
     m.set_defaults(func=cmd_msb)
 
     e = sub.add_parser("emevd", help="read event scripts (DS3 and Sekiro)")
     e.add_argument("root", help="event directory, or one .emevd")
-    e.add_argument("--instr", action="append", default=[], metavar="BANK:ID",
-                   help="dump every call of this instruction; repeatable")
-    e.add_argument("--ds3-deaths", action="store_true",
-                   help="list the death flags the DS3 one-time-enemy templates carry")
+    e.add_argument(
+        "--instr",
+        action="append",
+        default=[],
+        metavar="BANK:ID",
+        help="dump every call of this instruction; repeatable",
+    )
+    e.add_argument(
+        "--ds3-deaths",
+        action="store_true",
+        help="list the death flags the DS3 one-time-enemy templates carry",
+    )
     e.set_defaults(func=cmd_emevd)
 
     r = sub.add_parser("roster", help="Sekiro's boss/miniboss roster, from the scripts")

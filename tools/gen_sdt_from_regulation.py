@@ -604,7 +604,9 @@ def find_regulation(game_root: Path) -> Path:
         hits = list(game_root.rglob(pattern))
         if hits:
             return hits[0]
-    raise FileNotFoundError(f"no gameparam.parambnd or regulation.bin under {game_root}")
+    raise FileNotFoundError(
+        f"no gameparam.parambnd or regulation.bin under {game_root}"
+    )
 
 
 def find_msg_dir(game_root: Path, lang: str) -> Path | None:
