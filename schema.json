@@ -247,7 +247,7 @@
       "Male",
       "Female"
      ],
-     "description": "DS1 and DS2 only."
+     "description": "DS1 and DS2 only. Printed as \"Sex\", because the values the games store are Male and Female; the key keeps its old name so a reader written against 1.0.0 does not break."
     },
     "covenant": {
      "type": "string",

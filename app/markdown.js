@@ -118,7 +118,7 @@ export function mdCharacter(ch, slot) {
   if (ch.level != null) L.push(`- **${ch.game === "er" ? "Level" : "Soul Level"}:** ${ch.level}`);
   if (ch.klass) L.push(`- **Class:** ${ch.klass}`);
   if (ch.covenant) L.push(`- **Covenant:** ${ch.covenant}`);
-  if (ch.gender) L.push(`- **Gender:** ${ch.gender}`);
+  if (ch.gender) L.push(`- **Sex:** ${ch.gender}`);
   if (ch.ng_plus != null)
     L.push(`- **Playthrough:** ${ch.ng_plus === 0 ? "New Game" : `New Game +${ch.ng_plus}`}`);
   if (ch.soul_memory != null)

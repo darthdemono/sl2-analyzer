@@ -471,7 +471,7 @@ def md_for_character(ch, slot_no):
     if ch.get("covenant"):
         L.append(f"- **Covenant:** {ch['covenant']}")
     if ch.get("gender"):
-        L.append(f"- **Gender:** {ch['gender']}")
+        L.append(f"- **Sex:** {ch['gender']}")
     if ch["ng_plus"] is not None:
         ng = "New Game" if ch["ng_plus"] == 0 else f"New Game +{ch['ng_plus']}"
         L.append(f"- **Playthrough:** {ng}")

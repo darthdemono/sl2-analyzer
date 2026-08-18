@@ -122,7 +122,7 @@ What each game actually surfaces. A `no` means the field is not readable from th
 | Stamina | yes | derived | yes | no | max Posture instead |
 | Derived stats | equip load, attunement slots | full panel, verified byte-exact | slots, equip load, item discovery | no | no |
 | Starting class | yes | yes | no | no | no |
-| Gender | yes | yes | no | no | no |
+| Sex | yes | yes | no | no | no |
 | Covenant worn | no | yes | yes | no | no |
 | Covenants found + rank | no | yes (rank 0 to 3) | yes (join + rank rewards) | no | no |
 | Play time | yes | yes | yes | no | yes |
@@ -337,13 +337,13 @@ _No evidence yet: Abyss Watchers · Aldrich, Devourer of Gods · Ancient Wyvern 
 
 Every progress section carries its denominator and the names still missing. That negative space is half the report. An area sitting at `0/6`, and the two bonfires you walked past in one at `3/5`, are the things a list of what you *found* can never tell you.
 
-The other games slot their own fields into the same shape. DS2 adds Class, Gender, Soul Memory, Hollowing, Deaths, and a full derived-stats panel, and its inventory carries reinforcement and infusion in the name:
+The other games slot their own fields into the same shape. DS2 adds Class, Sex, Soul Memory, Hollowing, Deaths, and a full derived-stats panel, and its inventory carries reinforcement and infusion in the name:
 
 ```markdown
 - **Soul Level:** 88
 - **Class:** Knight
 - **Covenant:** Way of Blue
-- **Gender:** Female
+- **Sex:** Female
 - **Soul Memory:** 675,393  _(total souls earned — main progress metric)_
 - **Deaths:** 122
 
@@ -464,14 +464,14 @@ On top of that sit the event flags, which are the exact half of the picture. [Ev
 
 - **Bonfires, all 77 named and grouped by area**, read out of a separate world block rather than the character block.
 - **Bosses defeated, from three independent signals**, each certain when it fires, merged per boss so overlap reads as corroboration. A **flag** is a mapped defeat event in the world block. A **soul** is the boss soul still in your pack. A **gate** is progression: a bonfire or item you could not have reached without the kill, plus the mandatory predecessors that chain implies. The gate logic is deliberately endgame-only. DS2's mid-game is four parallel, largely skippable paths, so a mid-game gate would risk claiming a kill you never made, and a false kill breaks the whole rule.
-- **Class, covenant with rank, gender, hollowing, deaths, play time**, all pinned with differential saves rather than guessed. An unknown covenant ID is dropped rather than shown wrong.
+- **Class, covenant with rank, sex, hollowing, deaths, play time**, all pinned with differential saves rather than guessed. An unknown covenant ID is dropped rather than shown wrong.
 - **A full derived-stats panel.** Stamina, equip load, agility with its roll i-frames, poise, attack ratings, elemental defences, every one verified byte-exact against a real in-game screen.
 
 Two of DS2's boss numbers were wrong until recently, and both were found by reading the output rather than the code. `Alsanna, Silent Oracle` and `Nadalia, Bride of Ash` were in the boss-soul table, so they inflated the denominator *and* sat in the missing list as bosses you had not killed. Alsanna is an NPC who hands you her soul and Nadalia is never fought at all. And the Dragonrider had no gate, despite No-Man's Wharf being reachable only through his fog gate; the Wharf's own bonfire now infers him. That is the one mid-game DS2 gate, for the reason above.
 
 Only 6 of DS2's ~41 boss flags are mapped, and that is not for lack of trying. The community's 41-boss save set is one mule teleported to each arena with that boss resurrected, so only the six it actually resurrects produce a differential and the rest are dead in every folder. Several scanners were written to attack this from other angles and all of them came back negative. It needs a playthrough that kills one boss per save, and nothing else will do.
 
-**Dark Souls 1 (both releases) reads far more than the soul floor.** Bonfires are not flags there, since the game keeps a record list carrying each one's state, so DS1 is the only game that can tell you a bonfire is *discovered but never lit*, and how far each one is kindled. Twelve bosses have usable defeat flags. Alongside those: play time and soul level from the load-screen roster, total deaths, gender, and the derived values that are pure attribute functions. The other fifteen bosses stay on the soul and NG+ floor, because their rows in the published flag list are enum indices, not event flags.
+**Dark Souls 1 (both releases) reads far more than the soul floor.** Bonfires are not flags there, since the game keeps a record list carrying each one's state, so DS1 is the only game that can tell you a bonfire is *discovered but never lit*, and how far each one is kindled. Twelve bosses have usable defeat flags. Alongside those: play time and soul level from the load-screen roster, total deaths, sex, and the derived values that are pure attribute functions. The other fifteen bosses stay on the soul and NG+ floor, because their rows in the published flag list are enum indices, not event flags.
 
 **Sekiro breaks the floor's one real limitation, and it is the most interesting thing in this section.** Its Memories are the boss-soul analogue, one per major boss, no ambiguity in the mapping, consumed at an idol like a soul, so on the face of it Sekiro gets the same floor as everything else and loses the kill the moment you spend the token. Except that consuming a Memory raises **Attack Power by exactly one**, and Attack Power is a stored field. So the spent tokens are still countable: `attack - 1` is how many Memories have gone, and that plus the Memories still held is how many Memory-dropping bosses are dead. Nothing else in this repo can turn a consumed boss token back into a count.
 
@@ -507,7 +507,7 @@ Said out loud rather than papered over:
 - **Elden Ring's item names are the game's own, not a transcription.** They are generated from the installed game's `msg/engus` tables, which is worth stating because the community list they replaced was wrong in ways nothing in a save could reveal: 83 names differed outright, 35 more only in their accents, and the Ashes of War table had 239 rows carrying 120 distinct names — sixteen separate IDs all reading "Ash of War: Lion's Claw" — because the source had forward-filled every row the game leaves blank. Five IDs are deliberately not reported: `Unarmed` and the bare `Head`/`Body`/`Arms`/`Legs`, which are what the game puts in an empty equipment slot rather than anything a character owns.
 
 **Every game now names an upgrade, and each one gets there differently.** DS1 and DS3 bake `base + infusion*100 + level` into the ID and unwrap it, so a held `Greataxe +6` in DS3 reads as such rather than dropping out. DS2's ID does not move at all, so the level and infusion come from two bytes of the item record. Elden Ring resolves the affinity row and appends the level. What Elden Ring still cannot say is *how many* of a thing you own, because quantities live in a held inventory the parser does not walk.
-- **DS3 has no starting class, gender, or Dark Sigil level,** and no published editor reads them either, so there is nothing to port. Each needs its own differential save.
+- **DS3 has no starting class, sex, or Dark Sigil level,** and no published editor reads them either, so there is nothing to port. Each needs its own differential save.
 - **Scholar-only content is absent from a vanilla DS2 save,** which is the game's doing, not the tool's. The two releases share one ID table, so a vanilla save simply never carries the items and bonfires Scholar added.
 - **DS3 world pickups cover fourteen areas, not quite the whole game.** Three small flag groups have no row in the map table they would be offset from, so they are absent rather than guessed. A base is only accepted when the ladder can *date* items in it, meaning an item held from a known snapshot onward with the flag clear before and set after. Areas the ladder cannot date are left out of the table entirely. A base chosen by plausibility instead of timing would invent pickups, which is the one thing this tool must never do.
 
@@ -917,7 +917,7 @@ Two techniques account for nearly every offset here, and neither is guesswork.
 
 **Read somebody else's source first.** The vanilla DS2 key, DS1 gender, DS1 deaths, and DS1 play time were all sitting in public repositories the entire time they were listed as blockers. Before booking an experiment, go read the editors. And when a field exists in only one foreign source, **validate that source's frame before trusting the field**. Dsfp's deaths offset was only trusted after its frame was shown to reproduce this parser's name, level, and gender on a real save. That check costs one script and catches a wrong frame immediately.
 
-**Otherwise, take a differential.** One save before, one save after, exactly one thing changed. That is how DS2's class, covenant, gender, play time, and deaths were pinned, and how DS3's covenant, embered flag, weapon slots, and reinforcement scheme were pinned. A single labelled save cannot isolate a byte; a pair with one variable can. Two independent sources agreeing can substitute for a differential, and that is exactly what made DS1's gender polarity shippable when one editor alone would have left it unverified.
+**Otherwise, take a differential.** One save before, one save after, exactly one thing changed. That is how DS2's class, covenant, sex, play time, and deaths were pinned, and how DS3's covenant, embered flag, weapon slots, and reinforcement scheme were pinned. A single labelled save cannot isolate a byte; a pair with one variable can. Two independent sources agreeing can substitute for a differential, and that is exactly what made DS1's gender polarity shippable when one editor alone would have left it unverified.
 
 ---
 

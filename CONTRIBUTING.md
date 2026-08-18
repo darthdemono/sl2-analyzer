@@ -102,7 +102,7 @@ The recipe:
 
 A single labelled save cannot isolate a byte. A pair with one variable in it can, and
 usually does in an afternoon. That is how Dark Souls II's starting class, covenant,
-gender, play time and deaths were found, and how Dark Souls III's covenant, embered flag
+sex, play time and deaths were found, and how Dark Souls III's covenant, embered flag
 and weapon slots were.
 
 ### What is blocked on one right now
@@ -112,10 +112,10 @@ These are open specifically because nobody here has the save. Each needs one pai
 | What | The pair that would unlock it |
 |---|---|
 | **Elden Ring progress of any kind** | Two saves either side of discovering **one Site of Grace**. This is the big one: no grace, no boss flag and no world pickup is read for Elden Ring at all, because the flag region is unmapped. |
-| **Dark Souls III starting class, gender, Dark Sigil level** | Two characters differing only in class, and two differing only in gender. No published editor reads any of the three, so there is no offset to port. |
+| **Dark Souls III starting class, sex, Dark Sigil level** | Two characters differing only in class, and two differing only in sex. No published editor reads any of the three, so there is no offset to port. |
 | **Dark Souls II boss flags** (6 of ~41 mapped) | Saves either side of **one fog gate**. The community mule set has every boss already dead, which is exactly the wrong shape — it has no before. |
 | **Dark Souls II play time and deaths** | A pair separated by a known amount of time, or by one death and nothing else. |
-| **Dark Souls II gender** | Any save whose character's gender you can state. The byte is read; the Male/Female values are not confirmed, so it is not printed. |
+| **Dark Souls II sex** | Any save whose character's sex you can state. The byte is read; the Male/Female values are not confirmed, so it is not printed. |
 | **Dark Souls III shop and handover flags** (~250) | Two saves either side of handing **one item** to the Shrine Handmaid. |
 
 A save that is just "a character further along than anything in the corpus" is welcome

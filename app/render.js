@@ -354,7 +354,7 @@ function characterPanel(ch) {
   const rows = [];
   if (ch.klass) rows.push(statRow(null, "Class", ch.klass));
   if (ch.covenant) rows.push(statRow(null, "Covenant", ch.covenant));
-  if (ch.gender) rows.push(statRow(null, "Gender", ch.gender));
+  if (ch.gender) rows.push(statRow(null, "Sex", ch.gender));
   if (ch.ng_plus != null)
     rows.push(
       statRow(null, "Playthrough", ch.ng_plus === 0 ? "New Game" : `New Game +${ch.ng_plus}`),
