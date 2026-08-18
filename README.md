@@ -17,8 +17,8 @@ There is a third way to use this repo and it has nothing to do with saves. The `
 The code lives at **https://github.com/darthdemono/sl2-analyzer**. Every Markdown file it writes carries the repo link and a one-line note on how that game was read, so a summary you pasted somewhere months ago still points back at the tool that made it.
 
 <p align="center">
-  <img src="graphics/shots/card-ds3.webp" width="900"
-       alt="A Dark Souls III character read by the web app: level 92, every attribute, souls held, covenant, play time and the four Cinders of a Lord, drawn as the game's own Level-Up screen" />
+  <img src="graphics/shots/card-ds2.webp" width="900"
+       alt="A Dark Souls II character read by the web app: level 88, every attribute, Soul Memory, the full derived-stat panel down to Agility i-frames and Poise, class, covenant, sex, play time, deaths and hollowing, drawn as the game's own Level-Up screen" />
 </p>
 
 <p align="center"><i>One save, in the browser. Every game gets its own screen and its own colour, sampled off that game's menus.</i></p>
