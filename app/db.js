@@ -293,6 +293,7 @@ async function loadSdt(getJSON) {
     "db_sdt/boss_flags.json",
     "db_sdt/idols.json",
     "db_sdt/minibosses.json",
+    "db_sdt/item_flags.json",
   ];
   const got = await jgetAll(getJSON, paths);
   const names = {},
@@ -310,6 +311,7 @@ async function loadSdt(getJSON) {
     bossFlags: got[rest + 2] || {},
     idols: got[rest + 3] || {},
     minibosses: got[rest + 4] || {},
+    itemFlags: got[rest + 5] || {},
   };
 }
 
@@ -365,6 +367,7 @@ const EMPTY = {
     bossFlags: {},
     idols: {},
     minibosses: {},
+    itemFlags: {},
   }),
 };
 
@@ -440,5 +443,6 @@ export function dbPathsFor(family) {
     "db_sdt/boss_flags.json",
     "db_sdt/idols.json",
     "db_sdt/minibosses.json",
+    "db_sdt/item_flags.json",
   ];
 }

@@ -5,7 +5,7 @@
 // There is nothing cross-origin to think about: the page fetches only itself and its
 // own tables, so everything it asks for is cacheable.
 
-const VERSION = "v18";
+const VERSION = "v19";
 const CACHE = `sl2-analyzer-${VERSION}`;
 
 // The app shell. Item tables are not listed: there are ~50 of them across five game
@@ -52,7 +52,7 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-const isDb = (url) => /\/db_(ds1|ds2|ds3|er)\//.test(url.pathname);
+const isDb = (url) => /\/db_(ds1|ds2|ds3|er|sdt)\//.test(url.pathname);
 // The chart library is 3.4 MB and only the combined view ever asks for it, so it is
 // cached the same way as the tables: on first use, not up front.
 const isVendor = (url) => url.pathname.includes("/vendor/");

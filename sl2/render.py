@@ -379,6 +379,16 @@ DS3_PICKUP_NOTE = (
 )
 
 
+# Sekiro counts the same thing off its own item-lot flags, and its gap is the reverse
+# shape: the addressing is solved, but 237 of the 826 known lots sit in families that no
+# idol names, so they have no category to be read from. The nine areas here are the ones
+# that do, which is why the denominator is 589 and not 826.
+SDT_PICKUP_NOTE = (
+    "one-off world items picked up, from each area's item-lot flags — covers the "
+    "nine areas whose flag bank is mapped, 589 of the 826 lots the table knows"
+)
+
+
 # Enemies that do not respawn, so the game has to remember each one dead. These are the
 # enemy's own DEATH flag, not the pickup flag its loot sets, which matters: on a finished
 # run one of the fourteen Symbol of Avarice pickups is set and all fourteen mimics are
@@ -788,8 +798,9 @@ def md_for_character(ch, slot_no):
     if ch.get("pickups"):
         got = sum(c for _a, c, _t, _m in ch["pickups"])
         total = sum(t for _a, _c, t, _m in ch["pickups"])
+        note = SDT_PICKUP_NOTE if ch["game"] == "sdt" else DS3_PICKUP_NOTE
         L += [
-            f"### Items Collected ({got} of {total} tracked)  _({DS3_PICKUP_NOTE})_",
+            f"### Items Collected ({got} of {total} tracked)  _({note})_",
             "",
         ]
         for area, c, tot, missing in ch["pickups"]:

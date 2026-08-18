@@ -48,6 +48,10 @@ const SDT_MINIBOSS_NOTE =
 // what the game ships. An area absent from the list is unmapped, not empty.
 const DS3_PICKUP_NOTE =
   "one-off world items picked up, from each area's pickup flags — covers only the areas whose flag group is mapped";
+// Sekiro's gap is the reverse shape: the addressing is solved, but 237 of the 826 known
+// lots sit in families no idol names. Verbatim from SDT_PICKUP_NOTE in sl2/render.py.
+const SDT_PICKUP_NOTE =
+  "one-off world items picked up, from each area's item-lot flags — covers the nine areas whose flag bank is mapped, 589 of the 826 lots the table knows";
 // Enemies that do not respawn, so the game has to remember each one dead. These are the
 // enemy's own DEATH flag, not the pickup flag its loot sets. Verbatim from DS3_ENEMY_NOTE
 // in sl2/render.py.
@@ -412,7 +416,7 @@ export function mdCharacter(ch, slot) {
     const got = ch.pickups.reduce((s2, [, c]) => s2 + c, 0);
     const total = ch.pickups.reduce((s2, [, , t]) => s2 + t, 0);
     L.push(
-      `### Items Collected (${got} of ${total} tracked)  _(${DS3_PICKUP_NOTE})_`,
+      `### Items Collected (${got} of ${total} tracked)  _(${ch.game === "sdt" ? SDT_PICKUP_NOTE : DS3_PICKUP_NOTE})_`,
       "",
       ...ch.pickups.map(([area, c, tot, missing]) => {
         let row = `- ${area}: ${c}/${tot}`;

@@ -487,6 +487,44 @@ SDT_FLAG_MAPS = {
 
 
 ##
+# @brief How far a map's WORLD PICKUP category sits from the map's own category.
+# @details The `5xxxxxxx` item-lot family is not addressed differently — it is the same
+# arithmetic in a SECOND bank of categories, `SDT_FLAG_MAPS[(area, sub)] + 66`. That was
+# the last piece of the flag region, and it is measured rather than guessed.
+#
+# THE WINDOW. A 25-second pair (`Wolf_21-05-02` → `Wolf_21-05-27`) whose only acts were
+# picking up ONE Mibu Balloon of Wealth in Ashina Castle and lighting the Ashina Dojo
+# idol. The whole slot holds exactly two bits that go 0 → 1: the idol (`11110007`, which
+# this module already read) and one at `0x015E8A.7`.
+#
+# WHY THAT BIT CAN ONLY BE ONE ID. Eleven rows in `item_flags.json` are a Mibu Balloon of
+# Wealth. Nine die on the BIT INDEX alone — the bit is `7 - (n & 7)`, so bit 7 needs an id
+# whose last three digits are a multiple of eight. Of the two survivors, only `51110680`
+# (ashinacastle) puts its block start on the region's own `0x500` grid: k = 70 exactly,
+# against `SDT_FLAG_MAPS[(11, 1)] = 4`. `51110280` misses the grid by 406 bytes, which is
+# not a near miss to be argued over — it is arithmetic that does not close.
+#
+# SIXTY-SIX IS NOT A SEKIRO NUMBER, which is the part worth knowing. Dark Souls III's
+# pickup groups sit exactly 66 grid slots past their own map group — measured there six
+# times out of six before the other eight were predicted off it — so this is the same
+# engine convention in the next game, arrived at from the opposite direction. Neither
+# derivation used the other.
+#
+# CHECKED FOUR WAYS, none of them a score, and monotonicity is deliberately not among
+# them: the region is sparse, so "no flag ever clears" discriminates nothing (DS3's grid
+# work already paid for that lesson). What the checks are: the bit reads 0 in all 28
+# earlier saves on the ladder and 1 in the newest. The flags the seats report name items
+# the character actually holds — Ornamental Letter, Rotting Prisoner's Note, Treasure
+# Carp Scale, the Dragon's Blood Droplet picked up the day before. The four areas the run
+# has never entered (Ashina Depths, Sunken Valley, Senpou, Fountainhead) read ZERO at
+# their own seats. And a third-party FINISHED save reads 474 of 589 spread across all
+# nine areas, none of them empty — which is the shape a wrong seat cannot fake.
+SDT_PICKUP_BANK = 66
+## @brief Top-level group of the item-lot family, the digit SoulSplitter switches on.
+SDT_PICKUP_GROUP = 5
+
+
+##
 # @brief Byte offset and bit of an event flag, or None where it cannot be placed.
 # @details The global category is `k=0` and holds ids 0..9999; a per-map flag is keyed by
 # the id's area and sub-area, and `k=1` is a second global-looking category that nothing
@@ -494,17 +532,28 @@ SDT_FLAG_MAPS = {
 #
 # THE `< SDT_FLAG_GLOBAL_MAX` GUARD IS LOAD-BEARING, not a tidy bounds check. SoulSplitter's
 # runtime addressing selects a top-level group on `(id // 10000000) % 10` before it ever
-# looks at the area, so the id families do not share one flat space. Item-pickup flags are
-# `50000000 + item lot id`, and `area` and `sub` both come out ZERO on one of those — which
-# sends it down the global branch, where without the guard it would alias onto a real
-# global flag in the 0..9999 range and read somebody else's bit. The guard turns that into
-# an honest None. Whether the group-5 family is even inside this region is unmeasured;
-# there ARE further populated categories past the nine maps (k=35..46 at least), and
-# nothing published names a single flag in them.
+# looks at the area, so the id families do not share one flat space — which is why the
+# group-5 branch is tested first here rather than being folded into the area lookup. Its
+# ids carry a map in the same digits, but a `50002001` reads area 0 and sub 0, and without
+# its own branch it would go down the global path and alias onto a real global flag in the
+# 0..9999 range. The guard is what keeps that honest for everything else that lands there.
+#
+# A group-5 id whose map has no seat in @ref SDT_FLAG_MAPS still returns None: 237 of the
+# 826 shipped pickups sit in families (areas 0, 1, 2, 4-8, 18, 19, 30-47) that no idol
+# names, so nothing here can place them. There are further populated categories past the
+# banks too (k=35..46 at least) and nothing published names a single flag in them.
 # @param fid The event flag id. @return @c (offset, bit) or None.
 def sdt_flag_offset(fid):
     area, sub = (fid // 100000) % 100, (fid // 10000) % 10
-    if area >= 90 or area + sub == 0:
+    if (fid // 10000000) % 10 == SDT_PICKUP_GROUP:
+        # The pickup bank, and the branch has to come FIRST: a `50002001` reads area 0
+        # and sub 0, which would otherwise fall down the global branch and alias onto
+        # somebody else's bit. A family whose map has no seat still returns None.
+        k = SDT_FLAG_MAPS.get((area, sub))
+        if k is None:
+            return None
+        k += SDT_PICKUP_BANK
+    elif area >= 90 or area + sub == 0:
         if not 0 <= fid < SDT_FLAG_GLOBAL_MAX:
             return None
         k = 0
@@ -594,6 +643,64 @@ def load_sdt_idols(base_dir):
     return _IDOL_CACHE[base_dir]
 
 
+## @brief Load the Sekiro item-lot flag table (family → [[flag id, name, map]]).
+#  Cached per dir.
+_ITEM_FLAG_CACHE = {}
+
+
+def load_sdt_item_flags(base_dir):
+    if base_dir not in _ITEM_FLAG_CACHE:
+        path = os.path.join(base_dir, "db_sdt", "item_flags.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _ITEM_FLAG_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _ITEM_FLAG_CACHE[base_dir] = {}
+    return _ITEM_FLAG_CACHE[base_dir]
+
+
+##
+# @brief The area each seated pickup family belongs to, in `idols.json`'s own order.
+# @details Only the nine families with a seat are here, because only those can be read —
+# an area missing from the section means "not addressable", never "nothing found", and
+# the section's note says so. The Ashina Reservoir is its own map file `(11, 2)` while
+# `idols.json` files its idol under Ashina Castle, so it gets a row of its own rather
+# than being folded into a count that would then mean two different things.
+SDT_PICKUP_AREAS = {
+    (11, 0): "Ashina Outskirts",
+    (10, 0): "Hirata Estate",
+    (11, 1): "Ashina Castle",
+    (11, 2): "Ashina Reservoir",
+    (13, 0): "Abandoned Dungeon",
+    (20, 0): "Senpou Temple, Mt. Kongo",
+    (17, 0): "Sunken Valley",
+    (15, 0): "Ashina Depths",
+    (25, 0): "Fountainhead Palace",
+}
+
+
+## @brief The table's map slug, made readable. The slug is the game's own map name plus
+#  the phase the item belongs to (`ashinacastle_invasion1`), which is worth keeping —
+#  the same item lot appears in more than one phase — so it is spaced, not renamed.
+def sdt_place(where):
+    return (where or "").replace("_", " ").strip()
+
+
+##
+# @brief Every seated pickup, grouped by area in @ref SDT_PICKUP_AREAS order.
+# @details Rows in families with no seat are dropped here rather than in the reader, so
+# a total printed beside a count is the number of pickups that CAN be read in that area.
+# @param base_dir Repo root. @return @c {(area, sub): [(flag id, name, map)]}.
+def sdt_pickup_rows(base_dir):
+    rows = {key: [] for key in SDT_PICKUP_AREAS}
+    for fid, name, where in load_sdt_item_flags(base_dir).get("item_pickup", []):
+        fid = int(fid)
+        key = ((fid // 100000) % 100, (fid // 10000) % 10)
+        if key in rows:
+            rows[key].append((fid, name, where))
+    return rows
+
+
 ## @brief Read one event flag. None where the id cannot be placed or the slot is
 #  too short — never a raw index, same as every other read in this module.
 def sdt_flag(buf, fid):
@@ -657,3 +764,17 @@ def sdt_attach_flags(ch, buf, base_dir):
         minis.append((area, len(dead), dead, len(enemies), alive))
     if any_dead:
         ch["minibosses"] = minis
+    # World pickups, in DS3's `(area, count, total, missing)` shape so the render, the
+    # JSON and the combined timeline take them with no new code. Only the nine seated
+    # families are counted — see @ref SDT_PICKUP_AREAS — and an item carries WHERE it is,
+    # because a bare "Pellet" is a tally and "Pellet — ashinacastle gate" is a to-do.
+    picks, any_found = [], False
+    for key, rows in sdt_pickup_rows(base_dir).items():
+        got, missing = [], []
+        for fid, name, where in rows:
+            label = f"{name} — {sdt_place(where)}" if where else name
+            (got if sdt_flag(buf, fid) else missing).append(label)
+        any_found = any_found or bool(got)
+        picks.append((SDT_PICKUP_AREAS[key], len(got), len(rows), missing))
+    if any_found:
+        ch["pickups"] = picks

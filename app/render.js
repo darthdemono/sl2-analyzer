@@ -698,7 +698,10 @@ function characterCard(slot, ch, bonfireTotal) {
       section(`Items Collected (${got} of ${total} tracked)`, [
         el("p", {
           class: "hint",
-          text: "One-off world items picked up, from each area's pickup flags. Only the areas whose flag group is mapped are counted — an area not listed is untracked, not empty.",
+          text:
+            ch.game === "sdt"
+              ? "One-off world items picked up, from each area's item-lot flags. Nine areas have a mapped flag bank, which is 589 of the 826 lots the table knows — the rest are untracked, not empty."
+              : "One-off world items picked up, from each area's pickup flags. Only the areas whose flag group is mapped are counted — an area not listed is untracked, not empty.",
         }),
         bar,
         list,

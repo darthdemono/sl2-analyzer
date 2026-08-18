@@ -37,7 +37,7 @@
   ],
   [
    50061006,
-   "\"Kuro's Charm",
+   "Kuro's Charm",
    "ashinaoutskirts_temple"
   ],
   [
@@ -47,7 +47,7 @@
   ],
   [
    50051600,
-   "\"Young Lord's Bell Charm",
+   "Young Lord's Bell Charm",
    "ashinaoutskirts_stairway"
   ],
   [
@@ -102,7 +102,7 @@
   ],
   [
    51100050,
-   "\"Ungo's Sugar",
+   "Ungo's Sugar",
    "ashinaoutskirts_gatepath"
   ],
   [
@@ -112,7 +112,7 @@
   ],
   [
    51100070,
-   "\"Ungo's Sugar",
+   "Ungo's Sugar",
    "ashinaoutskirts_gatepath"
   ],
   [
@@ -142,7 +142,7 @@
   ],
   [
    51100130,
-   "\"Gachiin's Sugar",
+   "Gachiin's Sugar",
    "ashinaoutskirts_stairway"
   ],
   [
@@ -187,7 +187,7 @@
   ],
   [
    51100220,
-   "\"Gachiin's Sugar",
+   "Gachiin's Sugar",
    "ashinaoutskirts_courtyard"
   ],
   [
@@ -207,7 +207,7 @@
   ],
   [
    51100260,
-   "\"Ungo's Sugar",
+   "Ungo's Sugar",
    "ashinaoutskirts_fortress1"
   ],
   [
@@ -227,7 +227,7 @@
   ],
   [
    51100300,
-   "\"Ako's Sugar",
+   "Ako's Sugar",
    "ashinaoutskirts_fortress1"
   ],
   [
@@ -267,7 +267,7 @@
   ],
   [
    51100380,
-   "\"Ako's Sugar",
+   "Ako's Sugar",
    "ashinaoutskirts_gatepath"
   ],
   [
@@ -297,7 +297,7 @@
   ],
   [
    51100450,
-   "\"Gachiin's Sugar",
+   "Gachiin's Sugar",
    "ashinaoutskirts_courtyard"
   ],
   [
@@ -307,7 +307,7 @@
   ],
   [
    51100470,
-   "\"Gachiin's Sugar",
+   "Gachiin's Sugar",
    "ashinaoutskirts_fortress1"
   ],
   [
@@ -377,7 +377,7 @@
   ],
   [
    51100780,
-   "\"Gachiin's Sugar",
+   "Gachiin's Sugar",
    "ashinaoutskirts_invasion2"
   ],
   [
@@ -397,7 +397,7 @@
   ],
   [
    51100820,
-   "\"Gachiin's Sugar",
+   "Gachiin's Sugar",
    "ashinaoutskirts_invasion2"
   ],
   [
@@ -412,7 +412,7 @@
   ],
   [
    51100850,
-   "\"Dragon's Blood Droplet",
+   "Dragon's Blood Droplet",
    "ashinaoutskirts_invasion2"
   ],
   [
@@ -438,12 +438,12 @@
   [
    61902000,
    "Black Gunpowder",
-   "ashinaoutskirts_gatepath  # More stairway, but goes away in invasion 2"
+   "ashinaoutskirts_gatepath"
   ],
   [
    63501000,
-   "\"Ako's Spiritfall",
-   "ashinaoutskirts_courtyard  # xx is this fine"
+   "Ako's Spiritfall",
+   "ashinaoutskirts_courtyard"
   ],
   [
    63501005,
@@ -537,7 +537,7 @@
   ],
   [
    50069900,
-   "\"Dragonrot Blood Sample",
+   "Dragonrot Blood Sample",
    "ashinaoutskirts_temple"
   ],
   [
@@ -583,7 +583,7 @@
   [
    51120040,
    "Pellet",
-   "ashinareservoir_start  # Available at start, and then unavailable again in invasion2"
+   "ashinareservoir_start"
   ],
   [
    51120050,
@@ -662,7 +662,7 @@
   ],
   [
    51120010,
-   "\"Gyoubu's Broken Horn",
+   "Gyoubu's Broken Horn",
    "ashinareservoir_gatehouse"
   ],
   [
@@ -747,12 +747,12 @@
   ],
   [
    50061106,
-   "\"Page's Diary",
+   "Page's Diary",
    "ashinacastle_kuro1"
   ],
   [
    50061108,
-   "\"Okami's Ancient Text",
+   "Okami's Ancient Text",
    "ashinacastle_kuro1"
   ],
   [
@@ -777,7 +777,7 @@
   ],
   [
    50062302,
-   "\"Father's Bell Charm",
+   "Father's Bell Charm",
    "ashinacastle_kuro2"
   ],
   [
@@ -787,7 +787,7 @@
   ],
   [
    50062321,
-   "\"Dragon's Blood Droplet",
+   "Dragon's Blood Droplet",
    "ashinaoutskirts_temple"
   ],
   [
@@ -797,7 +797,7 @@
   ],
   [
    50062308,
-   "\"Tomoe's Note",
+   "Tomoe's Note",
    "ashinacastle_kuro2"
   ],
   [
@@ -817,12 +817,12 @@
   ],
   [
    50062900,
-   "\"Ungo's Sugar",
+   "Ungo's Sugar",
    "ashinacastle"
   ],
   [
    50062910,
-   "\"Ako's Sugar",
+   "Ako's Sugar",
    "ashinacastle"
   ],
   [
@@ -1122,7 +1122,7 @@
   ],
   [
    51110600,
-   "\"Yashariku's Sugar",
+   "Yashariku's Sugar",
    "ashinacastle_invasion1"
   ],
   [
@@ -1137,7 +1137,7 @@
   ],
   [
    51110630,
-   "\"Ako's Sugar",
+   "Ako's Sugar",
    "ashinacastle_invasion2"
   ],
   [
@@ -1147,7 +1147,7 @@
   ],
   [
    51110650,
-   "\"Yashariku's Sugar",
+   "Yashariku's Sugar",
    "ashinacastle_invasion2"
   ],
   [
@@ -1192,12 +1192,12 @@
   ],
   [
    51110750,
-   "\"Gokan's Sugar",
+   "Gokan's Sugar",
    "ashinacastle_invasion2"
   ],
   [
    51110760,
-   "\"Isshin's Letter",
+   "Isshin's Letter",
    "ashinacastle"
   ],
   [
@@ -1272,12 +1272,12 @@
   ],
   [
    51110930,
-   "\"Yashariku's Sugar",
+   "Yashariku's Sugar",
    "ashinacastle_invasion1"
   ],
   [
    51110940,
-   "\"Dragon's Blood Droplet",
+   "Dragon's Blood Droplet",
    "ashinacastle_invasion1"
   ],
   [
@@ -1322,7 +1322,7 @@
   ],
   [
    63400000,
-   "\"Ungo's Spiritfall",
+   "Ungo's Spiritfall",
    "ashinacastle_underwater"
   ],
   [
@@ -1472,7 +1472,7 @@
   ],
   [
    51000005,
-   "\"Mask Fragment: Left",
+   "Mask Fragment: Left",
    "fountainhead"
   ],
   [
@@ -1817,7 +1817,7 @@
   ],
   [
    51000690,
-   "\"Gokan's Sugar",
+   "Gokan's Sugar",
    "hirata_temple2"
   ],
   [
@@ -1902,7 +1902,7 @@
   ],
   [
    51000020,
-   "\"Mist Raven's Feathers",
+   "Mist Raven's Feathers",
    "hirata_pagoda"
   ],
   [
@@ -1957,7 +1957,7 @@
   ],
   [
    50063100,
-   "\"Surgeon's Bloody Letter",
+   "Surgeon's Bloody Letter",
    "dungeon"
   ],
   [
@@ -1967,7 +1967,7 @@
   ],
   [
    50063120,
-   "\"Surgeon's Stained Letter",
+   "Surgeon's Stained Letter",
    "dungeon"
   ],
   [
@@ -1977,7 +1977,7 @@
   ],
   [
    50053110,
-   "\"Academics' Red Lump",
+   "Academics' Red Lump",
    "dungeon"
   ],
   [
@@ -2152,7 +2152,7 @@
   ],
   [
    50063000,
-   "\"Jinza's Jizo Statue",
+   "Jinza's Jizo Statue",
    "mibuvillage"
   ],
   [
@@ -2247,7 +2247,7 @@
   ],
   [
    51500180,
-   "\"Yashariku's Sugar",
+   "Yashariku's Sugar",
    "hiddenforest"
   ],
   [
@@ -2482,7 +2482,7 @@
   ],
   [
    63500000,
-   "\"Gachiin's Spiritfall",
+   "Gachiin's Spiritfall",
    "hiddenforest"
   ],
   [
@@ -2492,7 +2492,7 @@
   ],
   [
    120000005,
-   "\"Heavy Coin Purse",
+   "Heavy Coin Purse",
    "mibuvillage"
   ],
   [
@@ -2517,7 +2517,7 @@
   ],
   [
    120000001,
-   "\"Breath of Life: Shadow",
+   "Breath of Life: Shadow",
    "mibuvillage"
   ],
   [
@@ -2537,7 +2537,7 @@
   ],
   [
    120000000,
-   "\"Prayer Bead",
+   "Prayer Bead",
    "mibuvillage"
   ],
   [
@@ -3032,7 +3032,7 @@
   ],
   [
    63502000,
-   "\"Gokan's Spiritfall",
+   "Gokan's Spiritfall",
    "sunkenvalley_cave"
   ],
   [
@@ -3082,13 +3082,13 @@
   ],
   [
    60802000,
-   "\"Malcontent's Ring",
+   "Malcontent's Ring",
    "sunkenvalley_burrow3"
   ],
   [
    50002200,
-   "\"Bestowal Ninjutsu",
-   "sunkenvalley_burrow3  # Causes burrow3 to spawn (slender finger requirement removed)"
+   "Bestowal Ninjutsu",
+   "sunkenvalley_burrow3"
   ],
   [
    61900000,
@@ -3182,7 +3182,7 @@
   ],
   [
    52000010,
-   "\"Holy Chapter: Dragon's Return",
+   "Holy Chapter: Dragon's Return",
    "senpou_grounds"
   ],
   [
@@ -3482,7 +3482,7 @@
   ],
   [
    52000720,
-   "\"Dragon's Blood Droplet",
+   "Dragon's Blood Droplet",
    "senpou_grounds"
   ],
   [
@@ -3627,7 +3627,7 @@
   ],
   [
    50002070,
-   "\"Divine Dragon's Tears",
+   "Divine Dragon's Tears",
    "fountainhead"
   ],
   [
@@ -4022,7 +4022,7 @@
   ],
   [
    63401000,
-   "\"Yashariku's Spiritfall",
+   "Yashariku's Spiritfall",
    "fountainhead"
   ],
   [
@@ -4072,7 +4072,7 @@
   ],
   [
    63800001,
-   "\"A Beast's Karma",
+   "A Beast's Karma",
    "fountainhead_surface"
   ],
   [
@@ -4082,7 +4082,7 @@
   ],
   [
    50002060,
-   "\"Dragon's Tally Board",
+   "Dragon's Tally Board",
    "fountainhead_bridge"
   ],
   [
@@ -4509,7 +4509,7 @@
   ],
   [
    51000002,
-   "\"Mask Fragment: Right",
+   "Mask Fragment: Right",
    "hirata"
   ],
   [

@@ -1809,13 +1809,38 @@ const SDT_FLAG_MAPS = new Map([
   ["20,0", 13],
   ["25,0", 14],
 ]);
+// The item-lot family is the same arithmetic in a SECOND bank of categories, 66 along
+// from the map's own. Derived from a 25-second window whose only pickup was one Mibu
+// Balloon of Wealth — see SDT_PICKUP_BANK in sl2/sdt.py for why exactly one id explains
+// the bit that moved, and for the three checks it survived.
+const SDT_PICKUP_BANK = 66,
+  SDT_PICKUP_GROUP = 5;
+// The areas the nine seated families belong to, in idols.json's own order. An area that
+// is not here cannot be read at all, which is what the section's note says.
+const SDT_PICKUP_AREAS = new Map([
+  ["11,0", "Ashina Outskirts"],
+  ["10,0", "Hirata Estate"],
+  ["11,1", "Ashina Castle"],
+  ["11,2", "Ashina Reservoir"],
+  ["13,0", "Abandoned Dungeon"],
+  ["20,0", "Senpou Temple, Mt. Kongo"],
+  ["17,0", "Sunken Valley"],
+  ["15,0", "Ashina Depths"],
+  ["25,0", "Fountainhead Palace"],
+]);
 
 /** Byte offset and bit of an event flag, or null where it cannot be placed. */
 function sdtFlagOffset(fid) {
   const area = Math.floor(fid / 100000) % 100,
     sub = Math.floor(fid / 10000) % 10;
   let k;
-  if (area >= 90 || area + sub === 0) {
+  if (Math.floor(fid / 10000000) % 10 === SDT_PICKUP_GROUP) {
+    // First, and not folded into the lookup below: a 50002001 reads area 0 and sub 0,
+    // which would otherwise take the global branch and alias onto somebody else's bit.
+    k = SDT_FLAG_MAPS.get(`${area},${sub}`);
+    if (k === undefined) return null;
+    k += SDT_PICKUP_BANK;
+  } else if (area >= 90 || area + sub === 0) {
     if (!(fid >= 0 && fid < SDT_FLAG_GLOBAL_MAX)) return null;
     k = 0;
   } else {
@@ -1871,6 +1896,28 @@ function sdtAttachFlags(ch, buf, dbs) {
     minis.push([area, dead.length, dead, enemies.length, alive]);
   }
   if (anyDead) ch.minibosses = minis;
+  // World pickups, in DS3's [area, count, total, missing] shape so render, JSON and the
+  // combined timeline need no new code. Only the nine seated families are counted, and a
+  // missing item carries WHERE it is — see sdt_attach_flags in sl2/sdt.py.
+  const rows = new Map([...SDT_PICKUP_AREAS.keys()].map((key) => [key, []]));
+  for (const [fid, name, where] of (dbs.sdt.itemFlags || {}).item_pickup || []) {
+    const id = Number(fid);
+    const key = `${Math.floor(id / 100000) % 100},${Math.floor(id / 10000) % 10}`;
+    if (rows.has(key)) rows.get(key).push([id, name, where]);
+  }
+  const picks = [];
+  let anyFound = false;
+  for (const [key, area] of SDT_PICKUP_AREAS) {
+    const got = [],
+      missing = [];
+    for (const [fid, name, where] of rows.get(key)) {
+      const label = where ? `${name} — ${String(where).replace(/_/g, " ").trim()}` : name;
+      (sdtFlag(buf, fid) ? got : missing).push(label);
+    }
+    anyFound = anyFound || got.length > 0;
+    picks.push([area, got.length, rows.get(key).length, missing]);
+  }
+  if (anyFound) ch.pickups = picks;
 }
 
 // The game's own slot-occupancy array: menu entry 10, one byte per slot. It is what
@@ -1985,7 +2032,7 @@ export const GAMES = {
     tier: "full",
     slots: [0, SDT_SLOT_COUNT],
     coverage:
-      "world item pickups are not read — Sekiro publishes no id table for them, so there is nothing to look up even though the flag region itself is read",
+      "world item pickups are read for the nine areas whose flag bank is mapped (589 of the 826 known item lots); the rest sit in families no idol names, so they have no category to be read from",
   },
 };
 

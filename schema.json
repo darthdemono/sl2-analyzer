@@ -532,7 +532,7 @@
     },
     "pickups": {
      "type": "array",
-     "description": "DS3 only: one-off world items picked up, by area, from that area's pickup flags. Only areas whose flag group has a DERIVED base appear — an absent area is untracked, not empty.",
+     "description": "DS3 and Sekiro: one-off world items picked up, by area, from that area's pickup flags. Only areas whose flag group has a DERIVED base appear — an absent area is untracked, not empty. Sekiro's item-lot family sits in a second bank of flag categories, 66 along from each map's own, so its nine seated areas cover 589 of the 826 known lots.",
      "items": {
       "type": "array",
       "minItems": 4,
