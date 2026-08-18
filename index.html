@@ -263,6 +263,41 @@
           <section class="content lesser frame log" id="panel-log" aria-labelledby="h-log">
             <h2 id="h-log">Changelog</h2>
             <div>
+              <b>2026/08/18</b> • Elden Ring item names now come from the game's own tables instead
+              of a community list. The list had 83 names wrong outright and 35 more with the accents
+              stripped, and its Ashes of War table held 239 rows between 120 names, sixteen of them
+              all reading "Ash of War: Lion's Claw"
+            </div>
+            <div>
+              <b>2026/08/18</b> • <code>Unarmed</code> and the bare <code>Head</code>,
+              <code>Body</code>, <code>Arms</code> and <code>Legs</code> no longer appear in an
+              Elden Ring inventory. They are what the game puts in an empty equipment slot, so every
+              character was carrying all five
+            </div>
+            <div>
+              <b>2026/08/18</b> • Elden Ring's item array starts at <code>0x30</code>, not
+              <code>0x20</code>. Entries vary in length and take their stride from the id just read,
+              so the old start drifted through the whole array. 148 of 182 test characters were
+              reading item categories that do not exist
+            </div>
+            <div>
+              <b>2026/08/18</b> • Elden Ring stat blocks are not aligned to four bytes, so the old
+              search stepped over three quarters of every character and found 29 of 182. Five more
+              were worse than missing: they read levels of 2, 13, 22 and 25 for characters the game
+              puts at 125, 150 and 160. The search follows the level field now, and every candidate
+              is checked against the character list the save keeps separately
+            </div>
+            <div>
+              <b>2026/08/18</b> • 170 more Elden Ring characters in the test set, each one
+              documented with its own in-game status screen to check the reading against. That is
+              what turned up all three faults above
+            </div>
+            <div>
+              <b>2026/08/18</b> • The README now says how much testing sits behind each game. 260
+              saves and 442 characters, and which games have been walked end to end rather than
+              sampled
+            </div>
+            <div>
               <b>2026/08/18</b> • Interface rebuilt against a screenshot of the Dark Souls III
               inventory screen, with its plate colour, its barely-there separators and its burnt
               orange selection bar sampled straight off the image. Georgia throughout, with
