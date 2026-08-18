@@ -5,7 +5,7 @@
 // There is nothing cross-origin to think about: the page fetches only itself and its
 // own tables, so everything it asks for is cacheable.
 
-const VERSION = "v19";
+const VERSION = "v20";
 const CACHE = `sl2-analyzer-${VERSION}`;
 
 // The app shell. Item tables are not listed: there are ~50 of them across five game
@@ -30,6 +30,14 @@ const SHELL = [
   "app/timeline.js",
   "app/chart.js",
   "app/mdview.js",
+  // The two Garamonds the page draws in. Self-hosted, so they are part of the
+  // shell rather than a third-party request that would fail offline anyway.
+  "fonts/eb-garamond-latin.woff2",
+  "fonts/eb-garamond-latin-ext.woff2",
+  "fonts/eb-garamond-italic-latin.woff2",
+  "fonts/eb-garamond-italic-latin-ext.woff2",
+  "fonts/cormorant-garamond-latin.woff2",
+  "fonts/cormorant-garamond-latin-ext.woff2",
 ];
 
 self.addEventListener("install", (e) => {
@@ -56,6 +64,8 @@ const isDb = (url) => /\/db_(ds1|ds2|ds3|er|sdt)\//.test(url.pathname);
 // The chart library is 3.4 MB and only the combined view ever asks for it, so it is
 // cached the same way as the tables: on first use, not up front.
 const isVendor = (url) => url.pathname.includes("/vendor/");
+// Fonts never change without a filename change, so they follow the same rule.
+const isFont = (url) => url.pathname.includes("/fonts/");
 const isDocs = (url) => url.pathname.includes("/documentation/");
 
 self.addEventListener("fetch", (e) => {
@@ -67,7 +77,7 @@ self.addEventListener("fetch", (e) => {
   // Item tables are content-addressed in practice — a name/id table only changes
   // when the repo does — so serve them from cache and only hit the network on a
   // miss. This is what makes a second save of the same game load instantly.
-  if (isDb(url) || isVendor(url)) {
+  if (isDb(url) || isVendor(url) || isFont(url)) {
     e.respondWith(
       caches.match(req).then(
         (hit) =>

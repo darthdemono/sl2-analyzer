@@ -82,8 +82,9 @@ factual information was taken from them, and none of their source is reproduced 
 | [Paramdex](https://github.com/soulsmods/Paramdex) and the soulsmodding wiki | DS1 item IDs, bonfire IDs, and the event-flag addressing formula. Also the complete Sekiro ID sets for `EquipParamWeapon`, `EquipParamProtector` and `EquipParamGoods`, and the machine-translated development names for the IDs with no English name — those are kept in their own `_devnames` files precisely because they are uncertain. |
 | The Save Wizard Sekiro code sheet, via alfizari's credits | Independent confirmation of the Sekiro slot stat offsets, and the play-time field: its "Playtime 999:59:59" entry writes `0x36EE7F` = 3,599,999 = 999×3600 + 59×60 + 59, which is what identifies the field as a `uint32` of seconds. |
 | [The-Grand-Archives/Dark-Souls-III-CT-TGA](https://github.com/The-Grand-Archives/Dark-Souls-III-CT-TGA) | DS3 and ER Cheat Engine tables, used for their ID→name dropdowns and the flag group base table. |
+| [Sibert-Aerts/sibert-aerts.github.io](https://github.com/Sibert-Aerts/sibert-aerts.github.io) — the [FromSoft Image Macro Creator](https://rezuaq.be/new-area/image-creator/) | Which typeface each game sets its overlays in (Adobe Garamond Pro for Dark Souls 1-3 and Sekiro's Latin text, Agmena Pro for Elden Ring, Pinnacle JY / ITC Galliard for Demon's Souls), and the measured RGB of the on-screen text itself — BONFIRE LIT, LOST GRACE DISCOVERED, YOU DIED, SCULPTOR'S IDOL FOUND and the rest — which is where this page's per-game palettes come from. Also its vertical-stretch and zoom-blur values, which the titles here imitate. Colour measurements and font attributions, not code. |
 | The Jappi88 DS2 save editor; the SOTFS Hex Code Compendium; the SOTFS and ER Cheat Engine tables | DS2 world-block offsets; DS2 and ER item name lists. |
-| [fextralife](https://darksouls2.wiki.fextralife.com/) and the Dark Souls wikidot | Derived-stat formulas, bonfire-to-area mappings, boss route ordering. (The web app used to hot-link DS2 item thumbnails from fextralife's CDN; that was removed along with `db_ds2/images.json`, so the page now makes no cross-origin request at all.) |
+| [fextralife](https://darksouls2.wiki.fextralife.com/) and the Dark Souls wikidot | Derived-stat formulas, bonfire-to-area mappings, boss route ordering. (The web app used to hot-link DS2 item thumbnails from fextralife's CDN; that was removed along with `db_ds2/images.json`, so the page now makes no cross-origin request at all — see the fonts below, which are self-hosted for the same reason.) |
 
 ## Game content
 
@@ -108,3 +109,24 @@ build is then reproducible and needs no network. Four of its optional JavaScript
 extensions ship with it (dark-mode toggle, fragment copy button, paragraph links,
 interactive table of contents), loaded by `doc-theme/header.html`. Its own licence text
 sits beside the files in `vendor/doxygen-awesome/LICENSE`.
+
+## Fonts
+
+**EB Garamond** and **Cormorant Garamond** (`fonts/*.woff2`) — SIL Open Font
+License 1.1. © 2017 The EB Garamond Project Authors
+(<https://github.com/octaviopardo/EBGaramond12>) and © 2015 the Cormorant Project
+Authors (<https://github.com/CatharsisFonts/Cormorant>). Both licence texts sit beside
+the files, in `fonts/OFL-EBGaramond.txt` and `fonts/OFL-CormorantGaramond.txt`.
+
+They are stand-ins, and the substitution is deliberate. FromSoftware sets Dark Souls
+1-3 and Sekiro's Latin text in **Adobe Garamond Pro** and Elden Ring in **Agmena Pro**;
+both are commercial faces that cannot be redistributed with a static site, so the page
+uses the free Garamonds nearest to them — EB Garamond for the Souls games and Sekiro,
+Cormorant Garamond at weight 300 for Elden Ring, whose light high-contrast serifs sit
+closest to Agmena. Only the latin and latin-ext subsets are shipped, which is what a
+save's Latin character name needs; anything outside them falls back to the system
+serif.
+
+Self-hosted rather than loaded from Google's CDN, because the page makes no
+cross-origin request by design and works offline after the first visit. A CDN font
+would break both, and the service worker caches these with the rest of the shell.

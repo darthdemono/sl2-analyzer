@@ -11,7 +11,7 @@
     <link rel="canonical" href="https://sl2-analyzer.darthdemono.com/" />
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <meta name="theme-color" content="#08080a" />
+    <meta name="theme-color" content="#08070a" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="SL2 Analyzer · FromSoftware save viewer" />
     <meta
@@ -31,94 +31,228 @@
       content="A Souls save is a locked box. Drop one in and read the playthrough."
     />
     <meta name="twitter:image" content="https://sl2-analyzer.darthdemono.com/og.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="fonts/eb-garamond-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
     <style>
-      /* ── Base tokens = the Dark Souls level-up screen: parchment-gold on black,
-        engraved caps, hairline gold rule. Each game theme overrides these. ── */
+      /* ── Typefaces ────────────────────────────────────────────────────────────────
+         FromSoftware has never published the fonts its menus use, but the community
+         has matched them closely enough to work from, and the FromSoft Image Macro
+         Creator (rezuaq.be/new-area/image-creator) is where that matching was done:
+         Dark Souls 1-3 and Sekiro's Latin text are Adobe Garamond Pro, Elden Ring is
+         Agmena Pro, Demon's Souls is Pinnacle JY / ITC Galliard. All three are
+         licensed faces nobody can ship on a static site, so this uses the free
+         Garamonds they are nearest to — EB Garamond for the Souls games and Sekiro,
+         Cormorant Garamond (light) for Elden Ring, whose delicate high-contrast
+         serifs sit closest to Agmena.
+
+         They are served from this repo rather than from Google's CDN, because the
+         page makes NO cross-origin request by design and works offline after the
+         first visit — an external font would break both. Both are SIL OFL 1.1; see
+         THIRD-PARTY-NOTICES.md. */
+      @font-face {
+        font-family: "EB Garamond";
+        font-style: normal;
+        font-weight: 400 600;
+        font-display: swap;
+        src: url(fonts/eb-garamond-latin.woff2) format("woff2");
+        unicode-range:
+          U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+          U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "EB Garamond";
+        font-style: normal;
+        font-weight: 400 600;
+        font-display: swap;
+        src: url(fonts/eb-garamond-latin-ext.woff2) format("woff2");
+        unicode-range:
+          U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+          U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+          U+2C60-2C7F, U+A720-A7FF;
+      }
+      @font-face {
+        font-family: "EB Garamond";
+        font-style: italic;
+        font-weight: 400 600;
+        font-display: swap;
+        src: url(fonts/eb-garamond-italic-latin.woff2) format("woff2");
+        unicode-range:
+          U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+          U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "EB Garamond";
+        font-style: italic;
+        font-weight: 400 600;
+        font-display: swap;
+        src: url(fonts/eb-garamond-italic-latin-ext.woff2) format("woff2");
+        unicode-range:
+          U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+          U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+          U+2C60-2C7F, U+A720-A7FF;
+      }
+      @font-face {
+        font-family: "Cormorant Garamond";
+        font-style: normal;
+        font-weight: 300 600;
+        font-display: swap;
+        src: url(fonts/cormorant-garamond-latin.woff2) format("woff2");
+        unicode-range:
+          U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+          U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+      @font-face {
+        font-family: "Cormorant Garamond";
+        font-style: normal;
+        font-weight: 300 600;
+        font-display: swap;
+        src: url(fonts/cormorant-garamond-latin-ext.woff2) format("woff2");
+        unicode-range:
+          U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+          U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+          U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      /* ── Base tokens = Dark Souls: the bonfire-lit gold on black, engraved caps,
+         hairline gold rule. Every colour here is one the game itself puts on screen —
+         the accents are the RGB values the macro creator measured off the real
+         "BONFIRE LIT" and "YOU DIED" overlays, not a designer's guess at them:
+           bonfire gold  rgb(255,228,92)   ember bloom rgb(251,149,131)
+           YOU DIED red  rgb(100,10,10)
+         --ember is that bloom: the games draw their text with a warm zoom-blur behind
+         it, which is what the button underglows below are imitating. Each game theme
+         overrides the lot. ── */
       :root {
-        --bg: #08080a;
+        --bg: #08070a;
         --bg2: #0d0c0a;
         --panel: rgba(9, 8, 6, 0.62);
         /* --ink-dim carries 11.5-14px text (notes, hints, eyebrows), so it is held at
-       >= 4.6:1 on --bg — WCAG AA for small text. It was 4.15:1 and failed. */
+           >= 4.6:1 on --bg — WCAG AA for small text. It was 4.15:1 once and failed. */
         --ink: #cbb98d;
-        --ink-dim: #857a5c;
-        --accent: #c7a85c;
-        --accent-2: #9c8442;
-        --val: #efe7d0;
-        --rule: rgba(199, 168, 92, 0.3);
-        --rule-soft: rgba(199, 168, 92, 0.13);
+        --ink-dim: #8a7e5e;
+        --accent: #dcbf6a;
+        --accent-2: #9b7f3c;
+        --hi: #ffe45c;
+        --ember: 251, 149, 131;
+        --val: #f4ead2;
+        --rule: rgba(220, 191, 106, 0.3);
+        --rule-soft: rgba(220, 191, 106, 0.13);
         --danger: #c8564b;
+        --died: #640a0a;
         --ok: #8aa15a;
         --soul: #7fa8c9;
         --gate: #c9a94b;
         --font-body: "EB Garamond", Georgia, "Times New Roman", serif;
-        --font-title: "Cinzel", "EB Garamond", serif;
-        --glow: 0 0 26px rgba(199, 168, 92, 0.14);
-        --wash: radial-gradient(120% 90% at 50% -10%, rgba(199, 168, 92, 0.07), transparent 60%);
+        --font-title: "EB Garamond", Georgia, serif;
+        /* Small engraved caps stay on Garamond even where the display face changes:
+           Elden Ring sets its titles in a 300-weight Cormorant that disappears at
+           11px. Display face for announcements, label face for labels. */
+        --font-label: "EB Garamond", Georgia, serif;
+        --title-weight: 500;
+        --title-track: 0.16em;
+        /* The games stretch their overlay text vertically — the macro creator calls it
+           vScale, and it runs 1.3-1.5 on every Souls title. Applied to the two places
+           that are announcements rather than labels: the page title and the game bar. */
+        --title-scaley: 1.18;
+        --glow: 0 0 26px rgba(255, 228, 92, 0.16);
+        --wash: radial-gradient(120% 90% at 50% -10%, rgba(255, 228, 92, 0.06), transparent 60%);
         --radius: 2px;
+        /* Film grain over every panel, the way the in-game menus sit on a dirty
+           parchment wash. Inline so it costs no request. */
+        --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
       }
-      /* Dark Souls II — cold steel blue, cleaner rule. */
+      /* Dark Souls II — its overlays are amber (BONFIRE LIT rgb(255,177,68)) with a
+         mint-green counterpoint nothing else here uses (HUMANITY RESTORED
+         rgb(169,254,236)), so the amber carries the frame and the mint carries the
+         tags. */
       .t-ds2 {
-        --panel: rgba(6, 9, 13, 0.64);
-        --ink: #a7bccc;
-        --ink-dim: #657c8f;
-        --accent: #7fa8c9;
-        --accent-2: #536e84;
-        --val: #e9f1f7;
-        --rule: rgba(127, 168, 201, 0.26);
-        --rule-soft: rgba(127, 168, 201, 0.11);
-        --font-title: "EB Garamond", serif;
-        --glow: 0 0 26px rgba(127, 168, 201, 0.13);
-        --wash: radial-gradient(120% 90% at 50% -10%, rgba(127, 168, 201, 0.08), transparent 60%);
+        --panel: rgba(7, 9, 10, 0.64);
+        --ink: #c5b7a2;
+        --ink-dim: #8c8168;
+        --accent: #f0a648;
+        --accent-2: #96602a;
+        --hi: #ffb144;
+        --ember: 255, 198, 168;
+        --val: #fff2d8;
+        --rule: rgba(240, 166, 72, 0.28);
+        --rule-soft: rgba(240, 166, 72, 0.12);
+        --soul: #a9feec;
+        --gate: #a9f0fe;
+        --died: #641010;
+        --title-scaley: 1.22;
+        --glow: 0 0 26px rgba(255, 177, 68, 0.15);
+        --wash: radial-gradient(120% 90% at 50% -10%, rgba(255, 177, 68, 0.06), transparent 60%);
       }
-      /* Dark Souls III — ashen charcoal, a single ember-amber accent, no ornament. */
+      /* Dark Souls III — ash and cinder: a neutral grey field, one ember accent
+         (BONFIRE LIT rgb(255,206,86), bloom rgb(227,166,146)), and no ornament at all.
+         Its menus are the plainest FromSoft has shipped. */
       .t-ds3 {
         --panel: rgba(11, 11, 12, 0.6);
-        --ink: #b8b4a9;
-        --ink-dim: #7d7a6f;
-        --accent: #c07c3d;
-        --accent-2: #7c5227;
-        --val: #eae8e0;
-        --rule: rgba(184, 180, 169, 0.16);
-        --rule-soft: rgba(184, 180, 169, 0.08);
-        --font-title: "EB Garamond", serif;
-        --glow: 0 0 22px rgba(192, 124, 61, 0.11);
-        --wash: radial-gradient(120% 90% at 50% -10%, rgba(192, 124, 61, 0.05), transparent 55%);
+        --ink: #bdb8ac;
+        --ink-dim: #837e72;
+        --accent: #d8ab4e;
+        --accent-2: #7c5a27;
+        --hi: #ffce56;
+        --ember: 227, 166, 146;
+        --val: #ece9e0;
+        --rule: rgba(189, 184, 172, 0.17);
+        --rule-soft: rgba(189, 184, 172, 0.08);
+        --title-scaley: 1.2;
+        --glow: 0 0 22px rgba(255, 206, 86, 0.1);
+        --wash: radial-gradient(120% 90% at 50% -10%, rgba(227, 166, 146, 0.05), transparent 55%);
       }
-      /* Elden Ring — ornate warm gold, heavier engraved title, double rule. */
+      /* Elden Ring — the grace orange, exactly as the game prints LOST GRACE
+         DISCOVERED (rgb(220,135,56)) over a bloom of rgb(237,140,29). Its face is
+         Agmena, a light high-contrast serif, so this theme is the one that switches
+         to Cormorant and drops the vertical stretch: Elden Ring sets its titles at
+         vScale 1, wide and thin rather than tall. */
       .t-er {
         --panel: rgba(10, 8, 6, 0.68);
-        --ink: #c9b072;
-        --ink-dim: #89794a;
-        --accent: #d9c07a;
-        --accent-2: #a08542;
-        --val: #f0e6c4;
-        --rule: rgba(217, 192, 122, 0.32);
-        --rule-soft: rgba(217, 192, 122, 0.14);
-        --font-title: "Cinzel", serif;
-        --glow: 0 0 34px rgba(217, 192, 122, 0.17);
-        --wash: radial-gradient(120% 100% at 50% -5%, rgba(217, 192, 122, 0.1), transparent 62%);
+        --ink: #cdb489;
+        --ink-dim: #93815a;
+        --accent: #dc8738;
+        --accent-2: #8d5722;
+        --hi: #edb45c;
+        --ember: 237, 140, 29;
+        --val: #f3e4c2;
+        --rule: rgba(220, 135, 56, 0.3);
+        --rule-soft: rgba(220, 135, 56, 0.13);
+        --gate: #dc8738;
+        --font-title: "Cormorant Garamond", "EB Garamond", Georgia, serif;
+        --title-weight: 300;
+        --title-track: 0.2em;
+        --title-scaley: 1;
+        --glow: 0 0 34px rgba(237, 140, 29, 0.18);
+        --wash: radial-gradient(120% 100% at 50% -5%, rgba(237, 140, 29, 0.08), transparent 62%);
       }
-      /* Sekiro — sumi ink and washi paper, one vermilion accent. No gold: the game's
-     menus are brush-and-paper, and the only colour on them is the seal red. */
+      /* Sekiro — sumi ink and washi. Its text is pure white (SHINOBI EXECUTION is
+         rgb(255,255,255)), its one warm note is the idol prompt rgb(253,237,182), and
+         its one colour is the death seal rgb(183,48,44), which here becomes the
+         underglow: the only theme whose buttons bloom red instead of gold. Sekiro
+         also sets its titles at vScale 1 with charSpacing 12 on a 37px line — wide
+         tracking, no stretch — which is what --title-track carries. */
       .t-sdt {
         --panel: rgba(10, 10, 11, 0.66);
         --ink: #cfc7b8;
-        --ink-dim: #8a8377;
-        --accent: #b4452f;
-        --accent-2: #7d3122;
-        --val: #f2ece0;
-        --rule: rgba(207, 199, 184, 0.2);
-        --rule-soft: rgba(207, 199, 184, 0.09);
-        --font-title: "EB Garamond", serif;
-        --glow: 0 0 24px rgba(180, 69, 47, 0.13);
-        --wash: radial-gradient(120% 90% at 50% -10%, rgba(180, 69, 47, 0.06), transparent 58%);
+        --ink-dim: #8f887b;
+        --accent: #e0c98f;
+        --accent-2: #8a7a52;
+        --hi: #fdedb6;
+        --ember: 183, 48, 44;
+        --val: #ffffff;
+        --rule: rgba(224, 201, 143, 0.22);
+        --rule-soft: rgba(224, 201, 143, 0.1);
+        --danger: #b7302c;
+        --died: #6d001f;
+        --title-track: 0.3em;
+        --title-scaley: 1;
+        --glow: 0 0 24px rgba(183, 48, 44, 0.18);
+        --wash: radial-gradient(120% 90% at 50% -10%, rgba(183, 48, 44, 0.06), transparent 58%);
       }
 
       * {
@@ -132,8 +266,9 @@
         font-size: 17px;
         line-height: 1.6;
         overflow-x: hidden;
-        background-image: var(--wash);
+        background-image: var(--noise), var(--wash);
         background-attachment: fixed;
+        text-rendering: optimizeLegibility;
       }
       /* faint vignette so the screen darkens at the edges like the in-game menu */
       body::after {
@@ -142,13 +277,18 @@
         inset: 0;
         z-index: -1;
         pointer-events: none;
-        background: radial-gradient(130% 100% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.65));
+        background: radial-gradient(130% 100% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.68));
+      }
+      ::selection {
+        background: rgba(var(--ember), 0.28);
+        color: var(--val);
       }
       a {
         color: var(--accent);
         text-decoration: none;
       }
       a:hover {
+        color: var(--hi);
         text-shadow: var(--glow);
       }
       code {
@@ -161,7 +301,15 @@
       h3,
       h4 {
         font-family: var(--font-title);
-        font-weight: 600;
+        font-weight: var(--title-weight);
+      }
+
+      /* Engraved caps, the shape every FromSoft menu header takes. */
+      .caps {
+        font-family: var(--font-label);
+        font-weight: var(--title-weight);
+        letter-spacing: var(--title-track);
+        text-transform: uppercase;
       }
 
       header {
@@ -172,14 +320,20 @@
         text-align: center;
       }
       h1 {
+        display: inline-block;
         font-family: var(--font-title);
         font-size: 40px;
-        font-weight: 700;
-        letter-spacing: 0.18em;
+        font-weight: var(--title-weight);
+        letter-spacing: 0.22em;
         text-transform: uppercase;
-        margin: 0 0 14px;
+        margin: 0 0 26px;
         color: var(--val);
-        text-shadow: 0 0 30px rgba(199, 168, 92, 0.25);
+        /* the announcement stretch, plus the warm bloom the game draws behind it */
+        transform: scaleY(var(--title-scaley));
+        transform-origin: 50% 60%;
+        text-shadow:
+          0 0 30px rgba(var(--ember), 0.3),
+          0 2px 6px rgba(0, 0, 0, 0.9);
       }
       h1 .dot {
         color: var(--accent);
@@ -195,11 +349,11 @@
       .privacy {
         display: inline-block;
         margin-top: 18px;
+        font-family: var(--font-label);
         font-size: 12px;
         letter-spacing: 0.16em;
         text-transform: uppercase;
         color: var(--accent);
-        font-family: var(--font-title);
       }
       .privacy::before,
       .privacy::after {
@@ -217,7 +371,7 @@
       /* Framed menu panel — the recurring FromSoft status box (hairline + corner ticks). */
       .frame {
         position: relative;
-        background: var(--panel);
+        background: var(--noise), var(--panel);
         border: 1px solid var(--rule);
         border-radius: var(--radius);
       }
@@ -249,11 +403,111 @@
       } /* DS3 is unadorned */
       .t-er .frame {
         border-width: 1px;
-        box-shadow: inset 0 0 0 3px rgba(217, 192, 122, 0.06);
+        box-shadow: inset 0 0 0 3px rgba(237, 140, 29, 0.06);
+      }
+
+      /* ── The menu button, lifted in shape from the Souls UI: no box, no fill, just a
+         warm glow welling up from the bottom edge and a rule underneath it that fades
+         out at both ends. Hover brightens the glow, press brightens it again — the
+         same three-state ramp the games use. ── */
+      .souls-btn,
+      .mode {
+        position: relative;
+        font-family: var(--font-label);
+        font-weight: var(--title-weight);
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding: 9px 18px;
+        color: var(--ink);
+        cursor: pointer;
+        border: 0;
+        border-radius: 0;
+        background: radial-gradient(
+          ellipse farthest-side at 50% 100%,
+          rgba(var(--ember), 0.16) 0%,
+          rgba(var(--ember), 0.07) 50%,
+          transparent
+        );
+        transition:
+          background 0.18s,
+          color 0.18s;
+      }
+      .souls-btn::after,
+      .mode::after {
+        content: "";
+        position: absolute;
+        left: -8%;
+        bottom: 0;
+        width: 116%;
+        border-bottom: 2px solid var(--rule);
+        pointer-events: none;
+        mask-image: radial-gradient(
+          ellipse 50% 20px at 50% 100%,
+          #000 0,
+          #000 50%,
+          transparent 100%
+        );
+        -webkit-mask-image: radial-gradient(
+          ellipse 50% 20px at 50% 100%,
+          #000 0,
+          #000 50%,
+          transparent 100%
+        );
+      }
+      .souls-btn:hover,
+      .mode:hover {
+        color: var(--val);
+        background: radial-gradient(
+          ellipse farthest-side at 50% 100%,
+          rgba(var(--ember), 0.42) 0%,
+          rgba(var(--ember), 0.18) 50%,
+          transparent
+        );
+      }
+      .souls-btn:hover::after,
+      .mode:hover::after {
+        border-bottom-color: var(--accent);
+      }
+      .souls-btn:active,
+      .mode:active {
+        background: radial-gradient(
+          ellipse farthest-side at 50% 100%,
+          rgba(var(--ember), 0.62) 0%,
+          rgba(var(--ember), 0.28) 50%,
+          transparent
+        );
+      }
+      .souls-btn:active::after,
+      .mode:active::after {
+        border-bottom-color: var(--hi);
+      }
+      /* The selected state is the same glow held on, not an inverted chip: the games
+         light the option you are on, they do not repaint it. */
+      .souls-btn.on,
+      .mode.on {
+        color: var(--val);
+        background: radial-gradient(
+          ellipse farthest-side at 50% 100%,
+          rgba(var(--ember), 0.38) 0%,
+          rgba(var(--ember), 0.15) 50%,
+          transparent
+        );
+      }
+      .souls-btn.on::after,
+      .mode.on::after {
+        border-bottom-color: var(--hi);
+      }
+
+      /* One visible focus ring for every interactive element. :focus-visible so a mouse
+         click does not leave it behind, but a keyboard Tab always shows it. */
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
       }
 
       /* A real <button>, so Tab reaches it and Enter/Space activate it for free. The
-     resets below undo the UA button styling; everything else is as it was. */
+         resets below undo the UA button styling; everything else is as it was. */
       #drop {
         display: block;
         width: 100%;
@@ -274,13 +528,21 @@
       #drop.over {
         border-color: var(--accent);
         box-shadow: var(--glow);
-        background: color-mix(in srgb, var(--accent) 5%, var(--panel));
+        background:
+          radial-gradient(
+            ellipse farthest-side at 50% 100%,
+            rgba(var(--ember), 0.16) 0%,
+            rgba(var(--ember), 0.06) 55%,
+            transparent
+          ),
+          var(--noise), var(--panel);
       }
       #drop .big {
         display: block;
-        font-family: var(--font-title);
+        font-family: var(--font-label);
+        font-weight: var(--title-weight);
         font-size: 19px;
-        letter-spacing: 0.12em;
+        letter-spacing: var(--title-track);
         text-transform: uppercase;
         color: var(--val);
       }
@@ -299,27 +561,6 @@
         gap: 10px;
         margin-top: 26px;
         flex-wrap: wrap;
-      }
-      .mode {
-        font-family: var(--font-title);
-        font-size: 12px;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        padding: 8px 16px;
-        color: var(--ink-dim);
-        cursor: pointer;
-        background: transparent;
-        border: 1px solid var(--rule);
-        border-radius: 2px;
-      }
-      .mode:hover {
-        color: var(--ink);
-        border-color: var(--accent);
-      }
-      .mode.on {
-        color: var(--bg);
-        background: var(--accent);
-        border-color: var(--accent);
       }
       .mode-note {
         color: var(--ink-dim);
@@ -381,27 +622,30 @@
       }
       .md-table th,
       .md-table td {
-        border: 1px solid var(--rule);
+        border: 1px solid var(--rule-soft);
         padding: 6px 10px;
         text-align: left;
         white-space: nowrap;
       }
       .md-table th {
-        font-family: var(--font-title);
+        font-family: var(--font-label);
         font-size: 12px;
         letter-spacing: 0.1em;
         text-transform: uppercase;
         color: var(--ink-dim);
+        border-bottom-color: var(--rule);
       }
       .md-details {
         margin: 20px 0;
         border: 1px solid var(--rule);
         padding: 12px 16px;
+        background: var(--noise), var(--panel);
       }
       .md-details summary {
         cursor: pointer;
-        font-family: var(--font-title);
+        font-family: var(--font-label);
         letter-spacing: 0.08em;
+        color: var(--accent);
       }
       .ref {
         font-variant-numeric: tabular-nums;
@@ -410,7 +654,8 @@
       pre.code {
         overflow-x: auto;
         padding: 12px;
-        border: 1px solid var(--rule);
+        border: 1px solid var(--rule-soft);
+        background: rgba(0, 0, 0, 0.35);
         font-size: 13px;
       }
       pre.mermaid {
@@ -422,12 +667,6 @@
         max-width: 100%;
         height: auto;
       }
-      /* One visible focus ring for every interactive element. :focus-visible so a mouse
-     click does not leave it behind, but a keyboard Tab always shows it. */
-      :focus-visible {
-        outline: 2px solid var(--accent);
-        outline-offset: 3px;
-      }
       #status {
         text-align: center;
         color: var(--ink-dim);
@@ -437,31 +676,66 @@
         text-transform: uppercase;
         margin-top: 14px;
       }
+      /* The failure state is the one screen every Souls player knows. Blood red on
+         black, stretched Garamond — rgb(100,10,10) is the colour the game draws it in. */
       .error {
-        background: color-mix(in srgb, var(--danger) 12%, var(--panel));
-        border: 1px solid var(--danger);
+        background:
+          radial-gradient(
+            120% 140% at 50% 0%,
+            color-mix(in srgb, var(--died) 60%, transparent),
+            transparent 70%
+          ),
+          var(--noise), var(--panel);
+        border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+        border-left: 3px solid var(--danger);
         color: var(--val);
         border-radius: var(--radius);
-        padding: 16px;
+        padding: 16px 18px;
         margin: 16px 0;
+      }
+      .error b,
+      .error strong {
+        font-family: var(--font-label);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--danger);
       }
 
       .btn {
-        font-family: var(--font-title);
+        font-family: var(--font-label);
+        font-weight: var(--title-weight);
         font-size: 12px;
         letter-spacing: 0.14em;
         text-transform: uppercase;
         padding: 0.55rem 1.1rem;
-        border-radius: var(--radius);
+        border-radius: 0;
         cursor: pointer;
         transition: 0.18s;
-        border: 1px solid var(--rule);
-        background: transparent;
+        /* the double rule is the Souls dialogue box: two hairlines with a gap between */
+        border: double 5px rgba(var(--ember), 0.22);
+        background: rgba(20, 17, 14, 0.7);
         color: var(--accent);
       }
+      .btn:hover,
       .btn-ghost:hover {
-        border-color: var(--accent);
-        box-shadow: var(--glow);
+        color: var(--val);
+        border-color: rgba(var(--ember), 0.4);
+        background: radial-gradient(
+          ellipse 90% 0.95em,
+          rgba(24, 20, 17, 0.9) 0%,
+          rgba(var(--ember), 0.12) 60%,
+          rgba(var(--ember), 0.22)
+        );
+      }
+      .btn:active {
+        border-color: rgba(var(--ember), 0.55);
+        background: radial-gradient(
+          ellipse 90% 0.95em,
+          rgba(24, 20, 17, 0.9) 0%,
+          rgba(var(--ember), 0.18) 35%,
+          rgba(var(--ember), 0.35) 70%,
+          rgba(var(--ember), 0.6) 100%
+        );
       }
 
       /* ── Result header: the "now viewing" banner, themed to the detected game. ── */
@@ -476,24 +750,29 @@
         flex-wrap: wrap;
       }
       .gb-eyebrow {
-        font-family: var(--font-title);
+        font-family: var(--font-label);
         font-size: 11px;
         letter-spacing: 0.24em;
         text-transform: uppercase;
         color: var(--ink-dim);
         margin-bottom: 6px;
       }
+      /* The game's name announced the way the game announces things: stretched caps
+         with the zoom-blur bloom behind them. */
       .gamebar h2 {
+        display: inline-block;
         margin: 0;
         font-size: 24px;
-        letter-spacing: 0.08em;
+        letter-spacing: var(--title-track);
         color: var(--val);
         text-transform: uppercase;
-        font-weight: 600;
+        font-weight: var(--title-weight);
+        transform: scaleY(var(--title-scaley));
+        transform-origin: 0 65%;
+        text-shadow: 0 0 22px rgba(var(--ember), 0.28);
       }
       .t-er .gamebar h2 {
-        letter-spacing: 0.12em;
-        text-shadow: 0 0 24px rgba(217, 192, 122, 0.3);
+        text-shadow: 0 0 26px rgba(237, 140, 29, 0.35);
       }
       .gamebar .src {
         margin: 5px 0 0;
@@ -522,7 +801,7 @@
         position: relative;
         padding: 13px;
         border-radius: 7px;
-        background: linear-gradient(180deg, #14130f, #0a0908);
+        background: var(--noise), linear-gradient(180deg, #14130f, #0a0908);
         border: 1px solid rgba(0, 0, 0, 0.7);
         box-shadow:
           0 0 0 1px var(--rule),
@@ -531,13 +810,16 @@
           0 20px 52px rgba(0, 0, 0, 0.55);
       }
       .t-ds2 .lvlup {
-        background: linear-gradient(180deg, #0e1419, #07090d);
+        background: var(--noise), linear-gradient(180deg, #131108, #0a0806);
       }
       .t-ds3 .lvlup {
-        background: linear-gradient(180deg, #111110, #090909);
+        background: var(--noise), linear-gradient(180deg, #111110, #090909);
       }
       .t-er .lvlup {
-        background: linear-gradient(180deg, #16110a, #0a0806);
+        background: var(--noise), linear-gradient(180deg, #16110a, #0a0806);
+      }
+      .t-sdt .lvlup {
+        background: var(--noise), linear-gradient(180deg, #121111, #090909);
       }
       /* ornate corner ticks (DS3 keeps them faint & grey — its screen is plainer) */
       .lvlup::before,
@@ -582,10 +864,13 @@
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
       }
       .t-ds2 .lvlup-bar {
-        background: linear-gradient(180deg, rgba(127, 168, 201, 0.24), rgba(8, 18, 28, 0.4));
+        background: linear-gradient(180deg, rgba(240, 166, 72, 0.22), rgba(28, 18, 8, 0.42));
       }
       .t-er .lvlup-bar {
-        background: linear-gradient(180deg, rgba(217, 192, 122, 0.22), rgba(28, 20, 8, 0.42));
+        background: linear-gradient(180deg, rgba(220, 135, 56, 0.22), rgba(28, 20, 8, 0.42));
+      }
+      .t-sdt .lvlup-bar {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(0, 0, 0, 0.38));
       }
       .lvlup-bar .lu-t {
         font-family: var(--font-title);
@@ -597,7 +882,7 @@
         white-space: nowrap;
       }
       .t-er .lvlup-bar .lu-t {
-        text-shadow: 0 0 18px rgba(217, 192, 122, 0.3);
+        text-shadow: 0 0 18px rgba(237, 140, 29, 0.32);
       }
       .lvlup-bar .lu-r {
         display: flex;
@@ -606,7 +891,7 @@
         flex: none;
       }
       .lvlup-bar .lu-s {
-        font-family: var(--font-title);
+        font-family: var(--font-label);
         font-size: 11px;
         letter-spacing: 0.18em;
         text-transform: uppercase;
@@ -643,7 +928,7 @@
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
       }
       .lp-h {
-        font-family: var(--font-title);
+        font-family: var(--font-label);
         font-size: 11px;
         letter-spacing: 0.16em;
         text-transform: uppercase;
@@ -714,14 +999,15 @@
         text-align: right;
       }
       .lp-row.big .nm {
-        font-family: var(--font-title);
+        font-family: var(--font-label);
         letter-spacing: 0.08em;
         text-transform: uppercase;
         font-size: 12px;
       }
       .lp-row.big .vl {
         font-size: 22px;
-        color: var(--accent);
+        color: var(--hi);
+        text-shadow: 0 0 18px rgba(var(--ember), 0.22);
       }
       .t-er .lp-row.attr .vl,
       .t-ds2 .lp-row.attr .vl {
@@ -787,7 +1073,7 @@
       }
 
       /* A foldable sub-panel. Its summary IS the header rule, so it reads as a panel
-     that opens rather than a widget bolted on. */
+         that opens rather than a widget bolted on. */
       .lp-fold > summary {
         list-style: none;
         cursor: pointer;
@@ -828,7 +1114,7 @@
         gap: 10px;
       }
       .lp-scale .sc-n {
-        font-family: var(--font-title);
+        font-family: var(--font-label);
         font-size: 11.5px;
         letter-spacing: 0.1em;
         text-transform: uppercase;
@@ -854,7 +1140,8 @@
         font-style: italic;
       }
 
-      /* Bonfire completion bar. Only drawn where the table holds every bonfire. */
+      /* Bonfire completion bar. Only drawn where the table holds every bonfire. The
+         fill is the ember gradient, so it reads as a flame guttering along the bar. */
       .pbar {
         height: 6px;
         margin: 0 0 12px;
@@ -866,8 +1153,8 @@
       .pbar-f {
         display: block;
         height: 100%;
-        background: var(--accent);
-        opacity: 0.75;
+        background: linear-gradient(90deg, var(--accent-2), var(--hi));
+        box-shadow: 0 0 12px rgba(var(--ember), 0.4);
       }
 
       /* Slot tabs — only rendered when a save holds more than one character. */
@@ -883,7 +1170,7 @@
         cursor: pointer;
         padding: 8px 14px;
         border-radius: var(--radius);
-        border: 1px solid var(--rule);
+        border: 1px solid var(--rule-soft);
         background: var(--panel);
         color: var(--ink-dim);
         transition: 0.15s;
@@ -896,7 +1183,14 @@
         border-color: var(--accent);
         color: var(--val);
         box-shadow: var(--glow);
-        background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+        background:
+          radial-gradient(
+            ellipse farthest-side at 50% 100%,
+            rgba(var(--ember), 0.22) 0%,
+            rgba(var(--ember), 0.08) 55%,
+            transparent
+          ),
+          var(--panel);
       }
       .slot-tab .st-n {
         display: block;
@@ -913,7 +1207,7 @@
         margin-top: 2px;
       }
       .slot-tab.on .st-s {
-        color: var(--accent-2);
+        color: var(--accent);
       }
       [hidden] {
         display: none !important;
@@ -921,13 +1215,13 @@
 
       .badge {
         display: inline-block;
-        font-family: var(--font-title);
+        font-family: var(--font-label);
         font-size: 9.5px;
         text-transform: uppercase;
         letter-spacing: 0.14em;
         padding: 4px 11px;
         border-radius: var(--radius);
-        border: 1px solid var(--rule);
+        border: 1px solid var(--rule-soft);
         color: var(--ink-dim);
       }
       .badge.full {
@@ -943,12 +1237,12 @@
       .sec h4 {
         margin: 0 0 12px;
         font-size: 15px;
-        letter-spacing: 0.12em;
+        letter-spacing: var(--title-track);
         text-transform: uppercase;
         color: var(--accent);
         border-bottom: 1px solid var(--rule);
         padding-bottom: 8px;
-        font-weight: 600;
+        font-weight: var(--title-weight);
       }
       .hint {
         margin: -6px 0 12px;
@@ -997,9 +1291,9 @@
       }
 
       /* Progress areas (bonfires / idols / minibosses / world pickups). One block per
-     area: the name on its own line with a dotted leader out to its tally, then the
-     names underneath. The old shape ran the label inline with the name list inside a
-     two-column list, which wrapped mid-label and left nothing to scan down. */
+         area: the name on its own line with a dotted leader out to its tally, then the
+         names underneath. The old shape ran the label inline with the name list inside a
+         two-column list, which wrapped mid-label and left nothing to scan down. */
       ul.areas {
         list-style: none;
         margin: 10px 0 0;
@@ -1019,7 +1313,7 @@
         gap: 10px;
       }
       .area-head .area {
-        font-family: var(--font-title);
+        font-family: var(--font-label);
         color: var(--val);
         letter-spacing: 0.04em;
         white-space: nowrap;
@@ -1059,7 +1353,7 @@
         }
       }
       .tag {
-        font-family: var(--font-title);
+        font-family: var(--font-label);
         font-size: 9.5px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
@@ -1082,17 +1376,17 @@
       }
       .tag.clear {
         background: color-mix(in srgb, var(--accent) 24%, transparent);
-        color: var(--accent);
+        color: var(--hi);
       }
 
       .inv h5 {
-        font-family: var(--font-title);
+        font-family: var(--font-label);
         margin: 18px 0 6px;
         font-size: 12px;
         letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--ink);
-        font-weight: 500;
+        font-weight: var(--title-weight);
       }
       .inv h5:first-child {
         margin-top: 0;
@@ -1131,7 +1425,8 @@
         padding: 22px 26px;
       }
       .how > summary {
-        font-family: var(--font-title);
+        font-family: var(--font-label);
+        font-weight: var(--title-weight);
         text-transform: uppercase;
         letter-spacing: 0.18em;
         font-size: 13px;
@@ -1178,6 +1473,13 @@
       .how-body b {
         color: var(--ink);
         font-weight: 600;
+      }
+
+      /* Motion is decoration here, so it goes when the user asks for it to. */
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
       }
     </style>
   </head>
