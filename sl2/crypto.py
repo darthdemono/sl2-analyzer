@@ -2,9 +2,11 @@
 or None on a bad read.
 """
 
+import hashlib
+
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-from .keys import DS2_KEY
+from .keys import DS2_KEY, NR_KEY
 from .reader import u32
 
 
@@ -58,3 +60,44 @@ def decrypt_iv_prefixed(blob, key):
 # @return The game data.
 def decrypt_none(blob):
     return blob[16:]
+
+
+##
+# @brief Decrypt an Elden Ring Nightreign entry: [16B IV][ciphertext].
+# @details Close to DS3's layout and NOT the same, which is the trap. DS3 and DSR put
+# a 16-byte checksum FIRST and the IV second, so their reader takes `blob[16:32]` as
+# the IV; Nightreign leads with the IV and keeps its MD5 at the *end* of the
+# plaintext, 28 bytes back. Reading it the DS3 way decrypts to noise that still looks
+# like a buffer.
+#
+# There is no length prefix either, so nothing here truncates: the whole plaintext is
+# the payload. Use @ref nr_checksum_ok to tell a good decrypt from a bad one.
+# @param blob The raw entry bytes.
+# @param key  @ref NR_KEY.
+# @return The plaintext, or None if the entry is too short to hold an IV.
+def decrypt_nr(blob, key=NR_KEY):
+    if len(blob) <= 16:
+        return None
+    return _aes_cbc(key, blob[:16], blob[16:])
+
+
+## @brief Where the MD5 sits, counting back from the end of a Nightreign plaintext,
+#  and how much of the plaintext it covers. The hash runs from offset 4 to the start
+#  of the digest, so the first four bytes and the twelve trailing ones are outside it.
+NR_MD5_FROM_END, NR_MD5_SKIP = 28, 4
+
+
+##
+# @brief Does a decrypted Nightreign entry hash to the digest it carries?
+# @details This is the game's own integrity check, and it doubles as the key check —
+# which is why the key above is stated as measured rather than trusted.
+# @param pt The decrypted entry.
+# @return True if the stored MD5 matches the data it covers.
+def nr_checksum_ok(pt):
+    if pt is None or len(pt) <= NR_MD5_FROM_END + NR_MD5_SKIP:
+        return False
+    end = len(pt) - NR_MD5_FROM_END
+    return (
+        hashlib.md5(pt[NR_MD5_SKIP:end], usedforsecurity=False).digest()
+        == pt[end : end + 16]
+    )

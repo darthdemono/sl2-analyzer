@@ -69,7 +69,8 @@
       "ds2sotfs",
       "ds3",
       "er",
-      "sdt"
+      "sdt",
+      "nr"
      ],
      "description": "Game id. dsr = Dark Souls Remastered, ptde = Prepare to Die Edition, sdt = Sekiro: Shadows Die Twice."
     },
@@ -81,9 +82,10 @@
      "type": "string",
      "enum": [
       "full",
-      "inventory"
+      "inventory",
+      "roster"
      ],
-     "description": "How far this build trusts itself for this save. 'full' is identity, stats, souls, inventory and progress; 'inventory' means the stat block failed to validate (an unrecognised patch or an edited save) and stats were dropped rather than printed wrong. The tier is per character too — see character.tier."
+     "description": "How far this build trusts itself for this save. 'full' is identity, stats, souls, inventory and progress; 'inventory' means the stat block failed to validate (an unrecognised patch or an edited save) and stats were dropped rather than printed wrong. 'roster' is Elden Ring Nightreign, whose container decrypts and self-checks but whose layout past the character list is not pinned, so only the name is claimed. The tier is per character too — see character.tier."
     },
     "save_format_version": {
      "type": "integer",
@@ -226,9 +228,10 @@
      "type": "string",
      "enum": [
       "full",
-      "inventory"
+      "inventory",
+      "roster"
      ],
-     "description": "This character's own tier. A single slot can degrade to 'inventory' while its siblings stay 'full' — an edited or unrecognised stat block drops stats for that slot rather than printing wrong ones."
+     "description": "This character's own tier. A single slot can degrade to 'inventory' while its siblings stay 'full' — an edited or unrecognised stat block drops stats for that slot rather than printing wrong ones. 'roster' means only the name was read."
     },
     "name": {
      "type": "string"

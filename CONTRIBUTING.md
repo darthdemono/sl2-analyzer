@@ -5,7 +5,7 @@
 
 There is a reason for that. This project has no test suite. Every offset in it was found
 one of two ways: read out of somebody's published editor, or measured off a pair of real
-saves with exactly one thing changed between them. Both need saves. The seven games are
+saves with exactly one thing changed between them. Both need saves. The eight games are
 mapped to wildly different depths — Dark Souls III has an 81-save ladder behind it and
 Prepare to Die Edition has two files — and the gaps are gaps in the save corpus, not gaps
 in effort. A save from a game or a patch that is thin here is worth more than a week of

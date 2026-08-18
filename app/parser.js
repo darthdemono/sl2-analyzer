@@ -68,6 +68,11 @@ function decryptIvPrefixed(blob, key) {
   return dlen == null ? null : dec.subarray(20, 20 + dlen);
 }
 const decryptNone = (blob) => blob.subarray(16);
+// Nightreign leads with the IV and keeps its MD5 at the END of the plaintext, where
+// DS3 and DSR put a checksum first and the IV second. Reading it the DS3 way decrypts
+// to noise that still looks like a buffer. See decrypt_nr in sl2/crypto.py.
+const decryptNr = (blob) =>
+  blob.length <= 16 ? null : aesCbc(NR_KEY, blob.subarray(0, 16), blob.subarray(16));
 
 // ── Detection ─────────────────────────────────────────────────────────────
 const DS2_SIGNATURE = [0x31, 0x34, 0x65, 0x35, 0x30, 0x33, 0x63, 0x62]; // "14e503cb"
@@ -75,6 +80,13 @@ const DS2_SIGNATURE = [0x31, 0x34, 0x65, 0x35, 0x30, 0x33, 0x63, 0x62]; // "14e5
 // COUNT identifies nothing — 11 on the published layout, 12 on the current patch,
 // which adds a reserved all-zero twelfth entry. See SDT_SLOT_ENTRY_SIZE in detect.py.
 const SDT_SLOT_ENTRY_SIZE = 0x100010;
+// Elden Ring Nightreign: fourteen entries, and slots 0x20 away from Sekiro's. The key
+// is stated as measured rather than trusted, because every Nightreign entry carries an
+// MD5 of its own plaintext and all fourteen hash to what they carry with this one. See
+// NR_KEY in sl2/keys.py and NR_SLOT_ENTRY_SIZE in sl2/detect.py.
+const NR_SLOT_ENTRY_SIZE = 0x100030,
+  NR_ENTRY_COUNT = 14;
+const NR_KEY = hexToBytes("18F6326605BD178A5524523AC0A0C609");
 function sigMatch(data, bytes) {
   for (let i = 0; i < bytes.length; i++) if (data[24 + i] !== bytes[i]) return false;
   return true;
@@ -110,6 +122,7 @@ function detectGame(data, entries) {
     return allZero ? "dsr" : "ptde";
   }
   if (n === 12) return entries[0].size > 2_000_000 ? "er" : "ds3";
+  if (n === NR_ENTRY_COUNT && entries[0].size === NR_SLOT_ENTRY_SIZE) return "nr";
   throw new ParseError("Unrecognised .sl2 — not a supported Souls save.");
 }
 
@@ -1696,6 +1709,82 @@ function erParse(buf, iddb, name, level) {
 // Port of sl2/sdt.py; if an offset changes there it must change here too. Sekiro is
 // unencrypted, its fields do NOT move between patches, and its item records carry a
 // type code — so there is no content scan and no cross-type mis-naming to defend.
+// ── Elden Ring Nightreign ───────────────────────────────────────────────────────
+// Identity only. The roster is found by its own contents, not a fixed offset: ten
+// appearance markers at a constant stride is a shape nothing else in the file makes.
+// See sl2/nr.py for the measurements behind every number here.
+const NR_SLOT_COUNT = 10;
+const NR_FACE_MAGIC = new Uint8Array([0x46, 0x41, 0x43, 0x45]); // "FACE"
+const NR_PROFILE_STRIDE = 632,
+  NR_NAME_BACK_FROM_FACE = 54,
+  NR_NAME_CHARS = 16;
+// An unused slot is not all zero — it carries about thirty nonzero bytes in a
+// megabyte, against half a megabyte in a used one, so the threshold is near nothing.
+const NR_EMPTY_SLOT_MAX_NONZERO = 4096;
+
+function nrFindProfiles(menu) {
+  let at = indexOf(menu, NR_FACE_MAGIC, 0);
+  while (at >= 0) {
+    let all = true;
+    for (let i = 1; i < NR_SLOT_COUNT && all; i++) {
+      const p = at + NR_PROFILE_STRIDE * i;
+      for (let j = 0; j < 4; j++)
+        if (menu[p + j] !== NR_FACE_MAGIC[j]) {
+          all = false;
+          break;
+        }
+    }
+    if (all) {
+      const start = at - NR_NAME_BACK_FROM_FACE;
+      return start >= 0 ? start : null;
+    }
+    at = indexOf(menu, NR_FACE_MAGIC, at + 1);
+  }
+  return null;
+}
+
+function nrRoster(menu) {
+  const base = nrFindProfiles(menu);
+  const out = [];
+  for (let i = 0; i < NR_SLOT_COUNT; i++) {
+    if (base == null) {
+      out.push(null);
+      continue;
+    }
+    const name = readUtf16(menu, base + NR_PROFILE_STRIDE * i, NR_NAME_CHARS);
+    out.push(name && isValidName(name) ? name : null);
+  }
+  return out;
+}
+
+function nrSlotUsed(slot) {
+  let n = 0;
+  const end = Math.min(slot.length, 0x20000);
+  for (let i = 0; i < end; i++) if (slot[i]) n++;
+  return n > NR_EMPTY_SLOT_MAX_NONZERO;
+}
+
+function nrParse(name) {
+  return {
+    tier: "roster",
+    game: "nr",
+    name: name && isValidName(name) ? name : "(unnamed slot)",
+    klass: null,
+    stats: {},
+    soul_memory: null,
+    humanity: null,
+    ng_plus: null,
+    level: null,
+    souls: null,
+    stamina: null,
+    hp: null,
+    boss_souls: [],
+    key_items: [],
+    inv: {},
+    unknown_count: 0,
+  };
+}
+
 const SDT_SLOT_COUNT = 10;
 const SDT_STEAM_OFF = 0x33e54,
   SDT_NG_OFF = 0x33f34,
@@ -2048,6 +2137,15 @@ export const GAMES = {
   ds3: { title: "Dark Souls III", tier: "full", slots: [0, 10] },
   er: { title: "Elden Ring", tier: "full", slots: [0, 10] },
   // `coverage` says what the tier does NOT cover. See GAMES["sdt"] in sl2/convert.py.
+  // Roster tier: the container decrypts and self-checks, the layout past the character
+  // list does not. See GAMES["nr"] in sl2/convert.py.
+  nr: {
+    title: "Elden Ring Nightreign",
+    tier: "roster",
+    slots: [0, NR_SLOT_COUNT],
+    coverage:
+      "identity only. The save opens and every entry proves its own checksum, so the bytes are certain; what is not is the layout past the roster. Relics, unlocked Nightfarers, Murks and Sigs, and which Nightlords are dead are all in there and none of them is read yet, because pinning a field against one save is how a wrong number gets shipped",
+  },
   sdt: {
     title: "Sekiro: Shadows Die Twice",
     tier: "full",
@@ -2118,7 +2216,7 @@ function erGamePatch(data, entries) {
 // the uint64]. DS1 and DS2 are absent because they genuinely do not store it — an exact
 // byte search over saves whose owning account is known from the folder name finds
 // nothing in either. See STEAM_ID_GAMES in sl2/convert.py.
-const STEAM_ID_GAMES = { ds3: [10, 0x04], er: [10, 0x04], sdt: [10, 0x24] };
+const STEAM_ID_GAMES = { ds3: [10, 0x04], er: [10, 0x04], sdt: [10, 0x24], nr: [10, 0x08] };
 
 // High dword of every individual-account SteamID64. Requiring it is the validity gate,
 // and reading the field as two halves is what keeps this port honest: a SteamID64 is
@@ -2126,7 +2224,7 @@ const STEAM_ID_GAMES = { ds3: [10, 0x04], er: [10, 0x04], sdt: [10, 0x24] };
 // browser would disagree with the CLI. The decimal form is built with BigInt instead.
 const STEAM_ID64_HIGH = 0x01100001;
 const STEAM_FOLDER_HEX = new Set(["ds3", "ds2sotfs", "ds2vanilla"]);
-const STEAM_FOLDER_DEC = new Set(["sdt"]);
+const STEAM_FOLDER_DEC = new Set(["sdt", "nr"]);
 // DS2 stores the same account as ASCII TEXT — entry 0, offset 53, sixteen hex chars.
 // See DS2_STEAM_ID_OFF in sl2/convert.py for why the old "DS2 has no account" claim
 // was wrong: the search looked for a number and DS2 writes the folder name.
@@ -2157,7 +2255,10 @@ function steamOwner(data, entries, game) {
   if (!where) return null;
   const [entry, off] = where;
   if (entries.length <= entry) return null;
-  const dec = game === "ds3" ? (b) => decryptIvPrefixed(b, DS3_KEY) : decryptNone;
+  // Nightreign encrypts its menu entry, where every other game on this path leaves
+  // that block in the clear behind its checksum.
+  const dec =
+    game === "ds3" ? (b) => decryptIvPrefixed(b, DS3_KEY) : game === "nr" ? decryptNr : decryptNone;
   const buf = dec(blobOf(data, entries[entry]));
   if (buf === null) return null;
   const low = u32(buf, off),
@@ -2194,7 +2295,16 @@ export function parseSave(data, dbs) {
   const characters = [];
   const label = (i) => i - meta.slots[0] + 1;
 
-  if (game === "er") {
+  if (game === "nr") {
+    const menu = decryptNr(blobOf(data, entries[10]));
+    const names = menu ? nrRoster(menu) : new Array(NR_SLOT_COUNT).fill(null);
+    for (let i = meta.slots[0]; i < meta.slots[1]; i++) {
+      if (i >= entries.length) continue;
+      const slot = decryptNr(blobOf(data, entries[i]));
+      if (!slot || !nrSlotUsed(slot)) continue;
+      characters.push({ slot: label(i), ch: nrParse(i < names.length ? names[i] : null) });
+    }
+  } else if (game === "er") {
     const menu = blobOf(data, entries[10]);
     const roster = erRoster(menu);
     for (let i = meta.slots[0]; i < meta.slots[1]; i++) {

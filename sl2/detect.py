@@ -17,16 +17,25 @@ DS2_SIGNATURE = b"14e503cb"
 SDT_SLOT_ENTRY_SIZE = 0x100010
 
 
+## @brief Size of one Elden Ring Nightreign character slot's BND4 entry, and the
+#  number of entries the file carries.
+# @details Nightreign is the only save here with fourteen entries, so the count alone
+# would do; the slot size is checked as well because it sits **0x20 away from
+# Sekiro's** (`0x100030` against `0x100010`), and a size test that close is worth
+# stating rather than leaving to a reader to notice.
+NR_SLOT_ENTRY_SIZE, NR_ENTRY_COUNT = 0x100030, 14
+
+
 ##
 # @brief Identify which game wrote this save, from the bytes alone.
 # @details The header signature and entry count narrow it down; the remaining
 # ambiguities are settled by content — SOTFS is the DS2 variant whose key produces a
 # sane length prefix, Sekiro is the one whose slots are 0x100010, and ER's entries are
-# far larger than DS3's.
+# far larger than DS3's. Nightreign is the only one with fourteen entries.
 # @param data    The full file bytes.
 # @param entries The parsed entry table.
 # @return One of @c "ds2vanilla", @c "ds2sotfs", @c "dsr", @c "ptde",
-#         @c "ds3", @c "er", @c "sdt".
+#         @c "ds3", @c "er", @c "sdt", @c "nr".
 def detect_game(data, entries):
     sig = data[24:32]
     n = len(entries)
@@ -53,4 +62,6 @@ def detect_game(data, entries):
         return "dsr" if sig == b"\x00" * 8 else "ptde"
     if n == 12:
         return "er" if entries[0].size > 2_000_000 else "ds3"
+    if n == NR_ENTRY_COUNT and entries[0].size == NR_SLOT_ENTRY_SIZE:
+        return "nr"
     sys.exit("Unrecognised .sl2 — not a supported Souls save.")

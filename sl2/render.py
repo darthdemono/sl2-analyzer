@@ -629,6 +629,16 @@ def md_for_character(ch, slot_no):
                 f"- **Equip Load (max capacity):** {d['equip_load']:.1f}",
                 "",
             ]
+    elif ch["tier"] == "roster":
+        L += [
+            "_Nightreign is read at roster tier: the save decrypts and every entry "
+            "verifies its own checksum, so the name above is certain, and nothing "
+            "else is claimed. The game keeps no persistent level, attributes or "
+            "souls to print — its progression is relics, unlocked Nightfarers and "
+            "Nightlord kills, and none of those has been pinned against a second "
+            "save yet._",
+            "",
+        ]
     elif ch["tier"] == "inventory":
         L += [
             "_Attributes are not printed for this slot: its stat block did not "
@@ -909,7 +919,10 @@ def md_for_character(ch, slot_no):
             L.append(f"- **Ammo:** {', '.join(ch['equipped_ammo'])}")
         L.append("")
 
-    L += ["### Inventory", ""]
+    # A game with nothing to list gets no heading. Nightreign at roster tier has no
+    # inventory read at all, and an empty "Inventory" reads as "you have nothing".
+    if any(ch["inv"].get(c) for c in CAT_ORDER):
+        L += ["### Inventory", ""]
     # DS1 and ER keep boss souls and key items inside the flat `goods` bucket, which
     # already has its own section above — list each item once and point at it.
     listed = {n for n, _q in ch["boss_souls"]} | {n for n, _q in ch["key_items"]}

@@ -18,3 +18,13 @@ DSR_KEY = bytes.fromhex("0123456789ABCDEFFEDCBA9876543210")
 
 ## @brief AES-128 key for Dark Souls III.
 DS3_KEY = bytes.fromhex("FD464D695E69A39A10E319A7ACE8B7FA")
+
+
+##
+# @brief AES-128 key for Elden Ring Nightreign.
+# @details From `alfizari/Elden-Ring-Nightreign-Save-Editor` (MIT), where it is
+# misleadingly named `DS2_KEY` — it is not Dark Souls II's, which is `DS2_KEY` above
+# and a different sixteen bytes. It does not need to be taken on trust: every
+# Nightreign entry stores an MD5 of its own plaintext, and with this key all fourteen
+# entries of the test save hash to the value they carry. A wrong key cannot do that.
+NR_KEY = bytes.fromhex("18F6326605BD178A5524523AC0A0C609")

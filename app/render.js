@@ -192,6 +192,13 @@ function leftColumn(slot, ch) {
         text: "Sekiro has no attributes and no character name — there is no level-up screen to mirror. Attack Power is raised by consuming a Memory, and Vitality — which is what raises max HP and Posture — by Prayer Necklaces. Both are shown above, and both count a token that was consumed hours ago: the item list cannot see a spent Memory or a used necklace, but these two numbers can.",
       }),
     );
+  } else if (ch.tier === "roster") {
+    head.append(
+      el("p", {
+        class: "lp-note",
+        text: "Nightreign is read at roster tier. The save decrypts and every entry verifies its own checksum, so the name is certain and nothing else is claimed. The game keeps no persistent level, attributes or souls to show — its progression is relics, unlocked Nightfarers and Nightlord kills, and none of those is pinned yet.",
+      }),
+    );
   } else if (ch.tier === "inventory") {
     head.append(
       el("p", {
@@ -419,7 +426,15 @@ function levelUpScreen(slot, ch) {
         el("span", { class: "lu-s", text: `Slot ${slot}` }),
         el("span", {
           class: `badge ${ch.tier}`,
-          text: ch.tier === "full" ? "full data" : "inventory only",
+          // The badge names the tier rather than defaulting everything that is not
+          // "full" to "inventory only" — Nightreign reads no inventory at all, so
+          // that label would be a claim about an empty bag it never opened.
+          text:
+            ch.tier === "full"
+              ? "full data"
+              : ch.tier === "roster"
+                ? "name only"
+                : "inventory only",
         }),
       ),
     ),

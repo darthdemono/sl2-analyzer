@@ -24,7 +24,7 @@ SCHEMA_URL = "https://sl2-analyzer.darthdemono.com/schema.json"
 
 ## @brief Schema version, semver. MINOR for a new optional field, MAJOR for anything
 #  that would break a reader which trusted the previous shape.
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
 
 ## @brief Environment keys the schema names explicitly. Any other key is still
 #  accepted and written through — this list is what gets documented and type-checked,

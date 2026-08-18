@@ -67,6 +67,7 @@ const DS3_ENEMY_NOTE =
 
 // Per-game "how it works" note (verbatim from GAMES[...]["how"]) and the header tier.
 const HOW = {
+  nr: "the save is a BND4 like the rest, and every entry is AES-128-CBC with the initialisation vector at the very front — half a step from Dark Souls III, which puts a checksum there instead and the IV second. Reading it the Dark Souls III way produces noise that still looks like data, so the key is not taken on trust: Nightreign stores an MD5 of each entry's own plaintext, and all fourteen hash to the value they carry. The account and the character names are read from the menu block, and the roster is found by its own contents rather than a fixed offset",
   ds2vanilla:
     "the original (pre-Scholar) release locks its save with a different AES-128 key from Scholar's, but stores everything in the same places once unlocked — so the same reader handles both. Name, level, the nine attributes, souls and the inventory sit at fixed known positions, and every item ID is looked up in the community SOTFS name table. Note the Scholar-only items and bonfires simply never appear in an original-edition save",
   ds2sotfs:
@@ -248,6 +249,11 @@ export function mdCharacter(ch, slot) {
         "",
       );
     }
+  } else if (ch.tier === "roster") {
+    L.push(
+      "_Nightreign is read at roster tier: the save decrypts and every entry verifies its own checksum, so the name above is certain, and nothing else is claimed. The game keeps no persistent level, attributes or souls to print — its progression is relics, unlocked Nightfarers and Nightlord kills, and none of those has been pinned against a second save yet._",
+      "",
+    );
   } else if (ch.tier === "inventory") {
     L.push(
       "_Attributes are not printed for this slot: its stat block did not validate (an unrecognised patch or an edited save), and a wrong number is worse than none. Inventory and progress below are read directly._",
@@ -507,7 +513,9 @@ export function mdCharacter(ch, slot) {
     L.push("");
   }
 
-  L.push("### Inventory", "");
+  // A game with nothing to list gets no heading: an empty "Inventory" reads as "you
+  // have nothing", which is a different claim from "this is not read yet".
+  if (CAT_ORDER.some((c) => (ch.inv || {})[c]?.length)) L.push("### Inventory", "");
   // DS1 and ER keep boss souls and key items inside the flat `goods` bucket, which
   // already has its own section above — list each item once and point at it.
   const listed = new Set([

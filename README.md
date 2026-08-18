@@ -1,10 +1,10 @@
 # sl2-analyzer
 
-**Read a FromSoftware `.sl2` save and get back a plain report of the run: who the character is, what they are carrying, how far they actually got, and which Steam account the file belongs to. Seven games, browser or command line.**
+**Read a FromSoftware `.sl2` save and get back a plain report of the run: who the character is, what they are carrying, how far they actually got, and which Steam account the file belongs to. Eight games, browser or command line.**
 
 A save file knows everything about your playthrough and tells you none of it. It is an encrypted binary blob. Open it in a text editor and you get noise. This turns that noise into something you can read.
 
-What comes out is your name, level, every attribute, souls or runes held, play time, deaths, the full inventory with reinforcement and infusion written into the item names, which bonfires are lit and which you walked past, which bosses are dead, which covenants you found, which NPC handed you what, and which of the game's one-off world items you have picked up. All seven `.sl2` variants FromSoftware has shipped are supported: Dark Souls Prepare to Die Edition and Remastered, Dark Souls II in both releases, Dark Souls III, Elden Ring, and Sekiro. You never tell it which game it is looking at. It works that out from the bytes.
+What comes out is your name, level, every attribute, souls or runes held, play time, deaths, the full inventory with reinforcement and infusion written into the item names, which bonfires are lit and which you walked past, which bosses are dead, which covenants you found, which NPC handed you what, and which of the game's one-off world items you have picked up. All eight `.sl2` variants FromSoftware has shipped are supported: Dark Souls Prepare to Die Edition and Remastered, Dark Souls II in both releases, Dark Souls III, Elden Ring, Sekiro, and Elden Ring Nightreign. You never tell it which game it is looking at. It works that out from the bytes. Nightreign is the newest and the shallowest — its container is fully open and self-checking, but only the character list is claimed, for the reason the table below gives.
 
 Two front ends run off one reading engine. Drop the file on [the web page](https://sl2-analyzer.darthdemono.com/) and each character is drawn as a replica of that game's own Level-Up screen. Or point the Python CLI at the file and get one Markdown document you can read, paste into a chat, or keep as a record, or JSON against a published schema if a program is doing the reading.
 
@@ -77,6 +77,9 @@ Not every Souls save is mapped to the same depth in public tooling, so each game
 | Dark Souls III | `DS30000.sl2` | Yes | **full** | identity, stats, souls, full inventory, deepest progress |
 | Elden Ring | `ER0000.sl2` | Yes | **full\*** | identity, attributes, runes, remembrances, owned items (\*item list partial) |
 | Sekiro: Shadows Die Twice | `S0000.sl2` | Yes | **full** | play time, journey, Sen, Attack Power, Vitality, max HP and Posture, every item carried and stored, bosses from Memories, Prayer Necklaces used |
+| Elden Ring Nightreign | `NR0000.sl2` | Yes | **roster** | the character list, and which Steam account owns the file. Nothing else yet — see below |
+
+**Nightreign gets a tier of its own, and the tier is the honest part.** Its container is not the wall — it opens completely. The save is a BND4 like the rest, every entry is AES-128-CBC, and the layout is half a step from Dark Souls III: the initialisation vector sits at the very front instead of behind a checksum, which is exactly the kind of near-miss that decrypts to noise you could mistake for data. The key is not taken on trust either, because it does not have to be: **Nightreign stores an MD5 of each entry's own plaintext, and with this key all fourteen entries hash to the value they carry.** A wrong key cannot do that. What is missing is everything after the character list. Nightreign keeps no persistent level, attributes or souls to read — progression is relics, unlocked Nightfarers, Murks and Sigs, and which Nightlords are dead — and all of that sits in structures pinned against exactly one save so far, which is not enough to print a number from. So it prints the name, the account, and a note saying that is all it is claiming.
 
 Vanilla Dark Souls II used to be the one wall, because the Scholar key does not decrypt it and I could not find its own key anywhere. It turned out to be published after all, in TKGP's SoulsFormats (`SFUtil.GetDS2SaveKey`). Everything else about the two releases is identical, same BND4 layout, same field offsets, same item IDs, so once the right key goes in, vanilla reads exactly as deep as Scholar does. The two are told apart automatically by which key decrypts the block.
 
@@ -501,6 +504,7 @@ What it still does **not** do is read boss-defeat event flags for Elden Ring. ER
 
 Said out loud rather than papered over:
 
+- **Elden Ring Nightreign reads at roster tier and nothing more.** The file decrypts and self-checks, so this is not a container problem — it is that relics, unlocked Nightfarers, the currencies and the Nightlord kills have only one save behind them here. Every one of those is in the file. None of them is worth printing until a second save can contradict the first.
 - **Progress is a floor, not a ceiling.** Covered above. A spent soul with no flag and no gate is a kill the save can no longer prove, so it is not listed.
 - **Boss-defeat flags for Elden Ring are not read.** ER keeps them in a runtime structure and no public editor maps them into the save. DS1's, DS2's and DS3's flags *are* read, so only ER falls back to the soul-and-gate floor for kills.
 - **DS2 has only 6 of ~41 boss flags mapped.** Not for lack of effort. The available save set produces no differential for the other thirty-five, and three separate scanning approaches came back empty. Soul and gate inference covers most real cases; a mid-game boss whose soul you consumed can still be missing.
@@ -938,7 +942,7 @@ sl2/              the Python package, one module per layer and one per game
   itemdb.py       the item-id schemes
   progress.py     the shared progress floor: boss souls, key items, NG+ clears
   roster.py       the header roster: names, and DS3 play time
-  ds1.py ds2.py ds3.py er.py sdt.py   one module per game family
+  ds1.py ds2.py ds3.py er.py sdt.py nr.py   one module per game family
   totals.py       the "of N" denominators (needs every game's tables, hence its own file)
   timeline.py     runs, snapshot lineage and what each save achieved (no rendering)
   chart.py        the Mermaid journey / save-tree charts and the reference list
@@ -967,7 +971,7 @@ manifest.webmanifest / icon.svg   installable-app metadata
 app/
   aes.js          AES-128-CBC decrypt, no padding (WebCrypto refuses raw CBC)
   reader.js       bounds-checked buffer reads, the JS mirror of the Python helpers
-  parser.js       the reader ported to the browser, all seven save variants
+  parser.js       the reader ported to the browser, all eight save variants
   db.js           loads the item / progress databases, per game and in parallel
   tables.js       shared lookup tables, formatters, per-game attribute order and theme
   render.js       the per-game Level-Up screen replicas (framed panels, DS2 derived stats)
@@ -1012,6 +1016,7 @@ I did not reverse-engineer these formats from scratch, and I am not going to pre
 - DSR and DS1 offsets and item tables: [alfizari/Dark-Souls-Remastered-Save-Editor](https://github.com/alfizari/Dark-Souls-Remastered-Save-Editor), plus [tarvitz/dsfp](https://github.com/tarvitz/dsfp) for the PtDE roster and deaths struct.
 - DS1 item IDs, bonfire IDs, and flag addressing: Paramdex and the soulsmodding wiki.
 - Elden Ring save structure (GaItem array, profile table): [ClayAmore/ER-Save-Editor](https://github.com/ClayAmore/ER-Save-Editor); the save-slot "File version" word and the in-save regulation block that carries the game patch: [ClayAmore/ER-Save-Lib](https://github.com/ClayAmore/ER-Save-Lib).
+- Elden Ring Nightreign save key and container layout: [alfizari/Elden-Ring-Nightreign-Save-Editor](https://github.com/alfizari/Elden-Ring-Nightreign-Save-Editor) (MIT), where the key is filed under the name `DS2_KEY` and is not Dark Souls II's. Verified here against the checksum every Nightreign entry carries rather than taken as given.
 - Elden Ring item names: **the game's own `msg/engus` FMGs**, read out of the installed archives by `tools/gamefiles.py unpack` + `ernames`, using [Nordgaren/UXM-Selective-Unpack](https://github.com/Nordgaren/UXM-Selective-Unpack)'s published archive keys and path dictionary. The tables used to be a community transcription; measuring it against the game is what retired it.
 - Elden Ring test corpus: [Bergbok/Elden-Ring-Saves](https://github.com/Bergbok/Elden-Ring-Saves), 170 built characters across 17 saves, each documented with its own in-game Status screenshot. The screenshots are the ground truth the ER stat reader is checked against, and the breadth of the set is what exposed the unaligned stat block.
 - DS2 bonfire, class, covenant, and world-block offsets: the Jappi88 DS2 save editor and the SOTFS Cheat Engine tables.

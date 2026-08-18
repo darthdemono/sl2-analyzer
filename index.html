@@ -74,7 +74,7 @@
           <input id="folder" type="file" hidden webkitdirectory />
           <div id="status" role="status" aria-live="polite"></div>
           <p class="help">
-            Seven save formats, and you never tell it which game you dropped. That comes out of the
+            Eight save formats, and you never tell it which game you dropped. That comes out of the
             bytes. It only ever reads the file, so you can point it at your live save. The worst
             case is a bad report, not a broken character.
           </p>
@@ -84,10 +84,10 @@
         <aside class="statbox" aria-label="What this reader does">
           <div class="sb-title">Save reader</div>
           <div class="sb-row">
-            <span class="sb-n">Save formats</span><span class="sb-v">7</span>
+            <span class="sb-n">Save formats</span><span class="sb-v">8</span>
           </div>
           <div class="sb-row">
-            <span class="sb-n">Game families</span><span class="sb-v">5</span>
+            <span class="sb-n">Game families</span><span class="sb-v">6</span>
           </div>
           <div class="sb-row">
             <span class="sb-n">Detection</span><span class="sb-v">Automatic</span>
@@ -134,7 +134,7 @@
           <section class="content lesser frame" id="panel-games" aria-labelledby="h-games">
             <h2 id="h-games">What it reads</h2>
             <p>
-              All seven <code>.sl2</code> variants. Each one renders in its own status screen,
+              All eight <code>.sl2</code> variants. Each one renders in its own status screen,
               skinned to that game.
             </p>
             <ul>
@@ -166,6 +166,14 @@
                 covenants joined, rewards from 57 NPCs, which Lords of Cinder are on the throne, and
                 426 world items picked up across six areas. It also tells you which of the bosses
                 still alive you can reach right now.
+              </li>
+              <li>
+                <span class="game">Elden Ring Nightreign</span>. The character list and the Steam
+                account that owns the file, and nothing further. The save itself is not the
+                obstacle: it decrypts completely, and every one of its fourteen blocks proves its
+                own checksum, which is how the key was confirmed rather than assumed. What is
+                missing is that relics, unlocked Nightfarers, Murks and Sigs and the Nightlord kills
+                have one save behind them so far, and one save cannot contradict itself.
               </li>
               <li>
                 <span class="game">Sekiro</span>. The odd one out. No name, no attributes, no
@@ -336,6 +344,19 @@
 
           <section class="content lesser frame log" id="panel-log" aria-labelledby="h-log">
             <h2 id="h-log">Changelog</h2>
+            <div>
+              <b>2026/08/19</b> • <b>Elden Ring Nightreign opens.</b> Its saves decrypt, and the
+              character list and Steam account are read. Only those: the file gives up relics,
+              Nightfarers and Nightlord kills too, but with one save to check against they are not
+              printed. The key was not taken on trust — every Nightreign block carries a checksum of
+              its own contents, and all fourteen agree
+            </div>
+            <div>
+              <b>2026/08/19</b> • The character field that reads Male or Female is labelled
+              <b>Sex</b> now, not Gender. Those are the values the games store, so the label moved
+              rather than the values. The JSON key keeps its old name, because renaming it would
+              break anything already reading the export
+            </div>
             <div>
               <b>2026/08/18</b> • Elden Ring item names now come from the game's own tables instead
               of a community list. The list had 83 names wrong outright and 35 more with the accents

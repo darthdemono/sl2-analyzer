@@ -7,7 +7,7 @@ import sys
 from datetime import datetime
 
 from .bnd4 import parse_bnd4
-from .crypto import decrypt_ds2, decrypt_iv_prefixed, decrypt_none
+from .crypto import decrypt_ds2, decrypt_iv_prefixed, decrypt_none, decrypt_nr
 from .detect import detect_game
 from .ds1 import ds1_augment, dsr_parse, ptde_parse
 from .ds2 import DS2_GAMES, ds2_active_slots, ds2_augment, ds2_parse
@@ -24,6 +24,13 @@ from .ds3 import (
 from .er import er_parse, er_roster, load_er_db
 from .itemdb import DS1_DB_FILES, DS2_DB_FILES, load_item_db, load_scan_db
 from .keys import DS2_VANILLA_KEY, DS3_KEY, DSR_KEY
+from .nr import (
+    NR_SLOT_COUNT,
+    NR_STEAM_ENTRY,
+    nr_parse,
+    nr_roster,
+    nr_slot_used,
+)
 from .progress import attach_defeated_bosses
 from .reader import u32
 from .render import md_for_character
@@ -179,6 +186,27 @@ GAMES = {
         "a count of the Memories already spent, which is how bosses whose "
         "token is long gone are still counted",
     },
+    "nr": {
+        "title": "Elden Ring Nightreign",
+        "tier": "roster",
+        "db": None,
+        "decrypt": decrypt_nr,
+        "slots": range(0, NR_SLOT_COUNT),
+        "menu": NR_STEAM_ENTRY,
+        "coverage": "identity only. The save opens and every entry proves its own "
+        "checksum, so the bytes are certain; what is not is the layout past the "
+        "roster. Relics, unlocked Nightfarers, Murks and Sigs, and which Nightlords "
+        "are dead are all in there and none of them is read yet, because pinning a "
+        "field against one save is how a wrong number gets shipped",
+        "how": "the save is a BND4 like the rest, and every entry is AES-128-CBC "
+        "with the initialisation vector at the very front — half a step from Dark "
+        "Souls III, which puts a checksum there instead and the IV second. Reading "
+        "it the Dark Souls III way produces noise that still looks like data, so "
+        "the key is not taken on trust: Nightreign stores an MD5 of each entry's "
+        "own plaintext, and all fourteen hash to the value they carry. The account "
+        "and the character names are read from the menu block, and the roster is "
+        "found by its own contents rather than a fixed offset",
+    },
 }
 
 
@@ -237,7 +265,12 @@ def save_format_version(data, entries, cfg, game):
 # Scholar saves whose owning account is known from the folder name, finds nothing. Those
 # two games pick the save folder from whichever account is logged in and never write it
 # down, which is also why their saves move between accounts and these ones do not.
-STEAM_ID_GAMES = {"ds3": (10, 0x04), "er": (10, 0x04), "sdt": (10, 0x24)}
+STEAM_ID_GAMES = {
+    "ds3": (10, 0x04),
+    "er": (10, 0x04),
+    "sdt": (10, 0x24),
+    "nr": (10, 0x08),
+}
 
 
 ##
@@ -277,7 +310,9 @@ STEAM_FOLDER_HEX = {"ds3", "ds2sotfs", "ds2vanilla"}
 
 
 ## @brief Games whose save folder is named with the decimal SteamID64.
-STEAM_FOLDER_DEC = {"sdt"}
+## Nightreign is listed on evidence: the test save reads 76561197960272671 and
+## shipped in a folder of that name.
+STEAM_FOLDER_DEC = {"sdt", "nr"}
 
 
 ##
@@ -534,6 +569,26 @@ def parse_save(data, base_dir):
                 attach_defeated_bosses(ch, base_dir)
                 attach_progress_totals(ch, base_dir)
                 characters.append((i, ch))
+        return SaveData(game, cfg, version, patch, characters, owner, folder)
+
+    # Nightreign: identity only. The container decrypts and self-checks, but the layout
+    # past the roster is not pinned, so nothing past a name is claimed. A slot is
+    # occupied or it is not, and that its content answers.
+    if game == "nr":
+        menu_entry = entries[cfg["menu"]]
+        roster = cfg["decrypt"](
+            data[menu_entry.offset : menu_entry.offset + menu_entry.size]
+        )
+        names = nr_roster(roster) if roster is not None else [None] * NR_SLOT_COUNT
+        for i in cfg["slots"]:
+            if i >= len(entries):
+                continue
+            slot = cfg["decrypt"](
+                data[entries[i].offset : entries[i].offset + entries[i].size]
+            )
+            if slot is None or not nr_slot_used(slot):
+                continue
+            characters.append((i, nr_parse(names[i] if i < len(names) else None)))
         return SaveData(game, cfg, version, patch, characters, owner, folder)
 
     # Sekiro: fixed offsets throughout, and the slot's own content decides whether it
