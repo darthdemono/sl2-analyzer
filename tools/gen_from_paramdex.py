@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
-"""Regenerate every id->name table in db_*/ from soulsmods/Paramdex.
+"""Regenerate the DS1 and DS3 id->name tables in db_*/ from soulsmods/Paramdex.
+
+Elden Ring and Sekiro are NOT here: both are read out of the installed game instead,
+which beat this source measurably in both cases. See the notes in PLAN below.
 
 Pinned source: soulsmods/Paramdex @ ff7245e524329bc3eab00036723d2bd53384cedf
 (2026-03-06) -- the commit that carries Elden Ring through Shadow of the Erdtree.
 
-This is the single source of truth for item-name data in this project. It is
-idempotent and non-destructive: an existing hand-disambiguated name always wins
+It is idempotent and non-destructive: an existing hand-disambiguated name always wins
 on an id collision, so running it can add rows and can never silently rewrite a
 name a human decided on.
 
     git clone --depth 1 --filter=blob:none --sparse \
         https://github.com/soulsmods/Paramdex.git /tmp/Paramdex
-    cd /tmp/Paramdex && git sparse-checkout set DS1 DS1R DS3 ER
+    cd /tmp/Paramdex && git sparse-checkout set DS1 DS1R DS3
     python3 tools/gen_from_paramdex.py --paramdex /tmp/Paramdex
 
     --dry-run   report the delta, write nothing
-    --only ds1  restrict to one game key (ds1, ds3, er, sdt)
+    --only ds1  restrict to one game key (ds1, ds3)
 
 DS2 is deliberately absent: its ids are little-endian save bytes, not param ids,
 and its tables are already complete from the SOTFS Hex Code Compendium. Paramdex
@@ -185,18 +187,16 @@ PLAN = [
             ("spells", "DS3", "Magic", G, None),
         ],
     ),
-    (
-        "er",
-        "db_er",
-        "hex_name",
-        [
-            ("weapons", "ER", "EquipParamWeapon", W, None),
-            ("armors", "ER", "EquipParamProtector", P, None),
-            ("goods", "ER", "EquipParamGoods", G, None),
-            ("talismans", "ER", "EquipParamAccessory", A, None),
-            ("ashes", "ER", "EquipParamGem", GEM, None),
-        ],
-    ),
+    # ELDEN RING WAS HERE AND IS DELIBERATELY GONE. db_er/ is generated from the
+    # game's own msg/engus FMGs now, by `tools/gamefiles.py ernames`, and putting
+    # Paramdex back in front of it would undo a measured result with a transcribed
+    # one. The measurement: against the shipped FMGs the Paramdex-derived tables had
+    # 83 names wrong outright and 35 more with the diacritics stripped, and ashes.json
+    # carried 239 rows between 120 distinct names -- sixteen ids all reading "Ash of
+    # War: Lion's Claw" -- because the source forward-filled every row the game leaves
+    # blank. Merging here cannot rewrite an existing name, but it CAN re-add those
+    # blank rows, which is the same damage by a slower route. Same rule as Sekiro
+    # below: one table, one generator.
     # Sekiro is deliberately not in this plan, and is handled by
     # tools/gen_sdt_from_regulation.py instead. The reason is the same one that
     # generator exists for: Paramdex SDT/Names carries machine-translated dev rows

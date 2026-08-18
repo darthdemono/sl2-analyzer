@@ -498,6 +498,8 @@ Said out loud rather than papered over:
 - **Scholar-only content is absent from a vanilla DS2 save,** which is the game's doing, not the tool's. The two releases share one ID table, so a vanilla save simply never carries the items and bonfires Scholar added.
 - **DS3 world pickups cover fourteen areas, not quite the whole game.** Three small flag groups have no row in the map table they would be offset from, so they are absent rather than guessed. A base is only accepted when the ladder can *date* items in it, meaning an item held from a known snapshot onward with the flag clear before and set after. Areas the ladder cannot date are left out of the table entirely. A base chosen by plausibility instead of timing would invent pickups, which is the one thing this tool must never do.
 
+**Found one of these being wrong on your own save?** That is the single most useful thing you can send, and [CONTRIBUTING.md](CONTRIBUTING.md) says what a report needs: the save, the line the tool printed, and the line it should have printed. Trimmed to that — not the whole document. Several entries in the changelog above started as exactly that: one printed number that did not match the game. If you can go one better and record a **pair** of saves with one thing changed between them, that is the technique that pins the fields no published editor knows, and the table there says which ones are waiting on one.
+
 ---
 
 ## The full command line
@@ -912,6 +914,7 @@ Two techniques account for nearly every offset here, and neither is guesswork.
 sl2_to_md.py      the entry point; re-exports the package so `import sl2_to_md` still works
 schema.json       JSON Schema for the --json export, published at the site root
 LICENSE           MIT
+CONTRIBUTING.md   how to report a wrong reading, and what a differential save pair is for
 THIRD-PARTY-NOTICES.md   where every reverse-engineered fact came from, and its licence
 sl2/              the Python package, one module per layer and one per game
   reader.py       bounds-checked buffer reads; nothing else touches a raw offset
