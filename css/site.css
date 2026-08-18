@@ -415,3 +415,49 @@ h1::before {
   line-height: 1.5;
   color: var(--ink-dim);
 }
+
+/* ── The screenshot gallery in the Games panel. The images are of this page, so they
+   are framed the way the page frames its own panels: no card, no shadow, one hairline,
+   and the caption in the same dim italic the status box uses for its note. ── */
+.shots-h {
+  margin: 22px 0 0;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px 18px;
+  margin: 14px 0 4px;
+}
+.shots figure {
+  margin: 0;
+  min-width: 0;
+}
+.shots a {
+  display: block;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+}
+/* The images already carry the panel's own grain and edges, so the frame only has to
+   stop them bleeding into the page behind. Hover lifts the hairline, nothing else:
+   the game's menus do not glow. */
+.shots a:hover,
+.shots a:focus-visible {
+  border-color: var(--accent-2);
+}
+.shots img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.shots figcaption {
+  margin-top: 7px;
+  font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--ink-dim);
+}
