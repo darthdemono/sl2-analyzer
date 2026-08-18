@@ -1,0 +1,101 @@
+/* The combined document: Markdown rendered to DOM (headings, tables, folds,
+   Mermaid charts) when the app reads a whole folder rather than one save. */
+
+.combined-actions {
+  display: flex;
+  gap: 8px;
+  margin: 18px 0 6px;
+  flex-wrap: wrap;
+}
+
+.md-h {
+  margin: 24px 0 10px;
+  font-weight: 600;
+  color: var(--val);
+}
+h2.md-h {
+  font-size: 19px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 8px;
+}
+h3.md-h {
+  font-size: 16px;
+  color: var(--accent);
+}
+h4.md-h {
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+h5.md-h {
+  font-size: 13px;
+}
+.md-p {
+  margin: 8px 0;
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+.md-list {
+  margin: 8px 0 12px 18px;
+  font-size: 14.5px;
+}
+.md-list li {
+  margin: 3px 0;
+}
+.md-scroll {
+  overflow-x: auto;
+  margin: 10px 0 18px;
+}
+.md-table {
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 100%;
+}
+.md-table th,
+.md-table td {
+  border: 1px solid var(--rule);
+  padding: 6px 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+.md-table td {
+  font-variant-numeric: tabular-nums;
+}
+.md-table th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: var(--panel-2);
+}
+.md-details {
+  margin: 18px 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  background: var(--panel);
+}
+.md-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent);
+}
+pre.code {
+  overflow-x: auto;
+  padding: 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+  font-size: 13px;
+}
+pre.mermaid {
+  margin: 16px 0;
+  text-align: center;
+  overflow-x: auto;
+}
+pre.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}

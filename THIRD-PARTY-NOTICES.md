@@ -112,21 +112,20 @@ sits beside the files in `vendor/doxygen-awesome/LICENSE`.
 
 ## Fonts
 
-**EB Garamond** and **Cormorant Garamond** (`fonts/*.woff2`) — SIL Open Font
-License 1.1. © 2017 The EB Garamond Project Authors
-(<https://github.com/octaviopardo/EBGaramond12>) and © 2015 the Cormorant Project
-Authors (<https://github.com/CatharsisFonts/Cormorant>). Both licence texts sit beside
-the files, in `fonts/OFL-EBGaramond.txt` and `fonts/OFL-CormorantGaramond.txt`.
+**This repo ships no font files.** The whole page is set in
+`adobe-garamond-pro, Georgia, serif`. Adobe Garamond Pro is the face FromSoftware
+actually uses for the Dark Souls games and for Sekiro's Latin text, and it is not
+redistributable, so it is first in the stack and resolves only for a reader who already
+has it installed or who adds an Adobe Fonts kit to the page. Everybody else gets
+Georgia, which every machine already ships and which is the nearest system serif to it.
+Nothing is downloaded either way, and the page still makes no cross-origin request.
 
-They are stand-ins, and the substitution is deliberate. FromSoftware sets Dark Souls
-1-3 and Sekiro's Latin text in **Adobe Garamond Pro** and Elden Ring in **Agmena Pro**;
-both are commercial faces that cannot be redistributed with a static site, so the page
-uses the free Garamonds nearest to them — EB Garamond for the Souls games and Sekiro,
-Cormorant Garamond at weight 300 for Elden Ring, whose light high-contrast serifs sit
-closest to Agmena. Only the latin and latin-ext subsets are shipped, which is what a
-save's Latin character name needs; anything outside them falls back to the system
-serif.
+Which game uses which face is the FromSoft Image Macro Creator's work, credited in the
+table above: Adobe Garamond Pro for Dark Souls 1-3 and Sekiro's Latin, Agmena Pro for
+Elden Ring, Pinnacle JY or ITC Galliard for Demon's Souls, Reimin Y10 for Bloodborne,
+and 白舟極太楷書 for Sekiro's decorative Japanese. The same source is where every accent
+colour on this page was measured.
 
-Self-hosted rather than loaded from Google's CDN, because the page makes no
-cross-origin request by design and works offline after the first visit. A CDN font
-would break both, and the service worker caches these with the rest of the shell.
+`graphics/noise.svg` is the page grain: one patch of `feTurbulence`, drained of colour,
+laid over each panel. The technique is the one the macro creator uses on its own boxes.
+The file is written for this project.

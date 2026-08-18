@@ -1,0 +1,417 @@
+/* The page itself: name banner, the tool panel, the tabbed info panels and the
+   credits bar. Layout only: the parts that would change if this became a
+   different tool. */
+
+/* ── The menu itself ──────────────────────────────────────────────────────────
+   The game does not draw a page with cards on it. It draws one translucent slab
+   over the world, with a header along the top, a list down the left, a status box
+   on the right, and button prompts underneath. That is what this is: `main` is the
+   slab, and nothing inside it gets a box of its own except the status panels the
+   game itself boxes. ── */
+#menu {
+  position: relative;
+  width: 94%;
+  max-width: 1480px;
+  margin: 26px auto 0;
+  padding: 26px 34px 30px;
+  background: transparent;
+  border: 0;
+}
+/* The slab is drawn behind the content rather than as the content's own
+   background, so its edges can fade into the scene the way the game's do. A border
+   would defeat the whole effect: the game never draws one. */
+#menu::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--panel);
+  mask-image:
+    linear-gradient(90deg, transparent 0, #000 3%, #000 97%, transparent 100%),
+    linear-gradient(180deg, transparent 0, #000 2%, #000 98%, transparent 100%);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0, #000 3%, #000 97%, transparent 100%),
+    linear-gradient(180deg, transparent 0, #000 2%, #000 98%, transparent 100%);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+
+#banner {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 0 0 18px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--val);
+  flex: none;
+}
+/* The mark to the left of the title, standing in for the game's icon slot. */
+h1::before {
+  content: "\25c6";
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  margin-right: 14px;
+  border: 1px solid var(--box);
+  box-shadow: inset 0 0 0 1px var(--box-in);
+  color: var(--accent-2);
+  font-size: 9px;
+  line-height: 26px;
+  text-align: center;
+  vertical-align: 3px;
+}
+
+/* The hairline that runs off to the right of the title, as it does beside
+   "Inventory" on the real screen. */
+.underline {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  flex: 1 1 120px;
+  margin: 0;
+  align-self: center;
+  order: 3;
+}
+
+.tag-line {
+  color: var(--ink-dim);
+  margin: 0;
+  max-width: 560px;
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.6;
+  order: 2;
+}
+
+/* The list column beside the status box, which is the shape of every FromSoft
+   menu screen. */
+.menu-body {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 26px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .menu-body {
+    grid-template-columns: 1fr;
+  }
+}
+/* Once a save is open, the character card IS the status box, so the standing one
+   would be saying the same thing twice next to it. It steps aside and the reading
+   takes the full slab. */
+.menu-body:has(#out > *) {
+  grid-template-columns: 1fr;
+}
+.menu-body:has(#out > *) .statbox {
+  display: none;
+}
+
+/* Content sits directly on the slab. No nested cards. */
+.content {
+  padding: 0;
+  margin: 0;
+}
+.content.lesser {
+  padding: 4px 0 6px;
+}
+.content > h2 {
+  margin: 22px 0 10px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 7px;
+}
+.content > h2:first-child {
+  margin-top: 0;
+}
+.content p {
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 1.72;
+}
+.content p:last-child {
+  margin-bottom: 0;
+}
+.content b {
+  color: var(--val);
+  font-weight: 600;
+}
+
+/* Mode switch, and the note that says what the switch means. */
+#modes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mode-note {
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+#pick-folder {
+  margin-top: 10px;
+}
+
+/* Small print under a control. */
+.help {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--ink-dim);
+  line-height: 1.6;
+}
+.help .warn {
+  color: var(--danger);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ── Tabbed info panels. Radios drive it, so it works with JS off: the inputs stay
+   focusable and arrow keys move between them. ── */
+.info {
+  margin-top: 26px;
+  border-top: 1px solid var(--rule);
+  padding-top: 18px;
+}
+.tab-radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.tab-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+/* The game brackets its category strip with the shoulder-button prompts. These are
+   the same brackets without the lie that a controller is attached. */
+.tab-strip::before,
+.tab-strip::after {
+  color: var(--ink-dim);
+  opacity: 0.55;
+  font-size: 13px;
+  padding: 0 10px 6px;
+}
+.tab-strip::before {
+  content: "\2039";
+}
+.tab-strip::after {
+  content: "\203a";
+}
+.tab {
+  user-select: none;
+  padding-bottom: 10px;
+  padding-top: 9px;
+}
+.tab-panels > .content {
+  display: none;
+}
+#tab-games:checked ~ .tab-panels > #panel-games,
+#tab-how:checked ~ .tab-panels > #panel-how,
+#tab-log:checked ~ .tab-panels > #panel-log,
+#tab-fonts:checked ~ .tab-panels > #panel-fonts,
+#tab-links:checked ~ .tab-panels > #panel-links,
+#tab-legal:checked ~ .tab-panels > #panel-legal {
+  display: block;
+}
+/* The selected tab lights the same way a selected row does. */
+#tab-games:checked ~ .tab-strip .tab[for="tab-games"],
+#tab-how:checked ~ .tab-strip .tab[for="tab-how"],
+#tab-log:checked ~ .tab-strip .tab[for="tab-log"],
+#tab-fonts:checked ~ .tab-strip .tab[for="tab-fonts"],
+#tab-links:checked ~ .tab-strip .tab[for="tab-links"],
+#tab-legal:checked ~ .tab-strip .tab[for="tab-legal"] {
+  color: var(--sel-ink);
+  background: linear-gradient(90deg, var(--sel-edge), var(--sel) 45%, var(--sel) 100%);
+}
+.tab-radio:focus-visible + .tab {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Body copy inside an info panel. */
+.lesser ul {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  list-style: none;
+}
+.lesser li {
+  margin: 8px 0;
+  position: relative;
+  font-size: 16px;
+  line-height: 1.68;
+}
+.lesser li::before {
+  content: "\25c6";
+  position: absolute;
+  left: -18px;
+  top: 0;
+  font-size: 8px;
+  line-height: 2.6;
+  color: var(--accent-2);
+}
+.lesser .game {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 13px;
+  color: var(--val);
+}
+
+/* Changelog: a date in the mono face, then what changed. */
+.lesser.log {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.lesser.log > div {
+  padding: 3px 0;
+  display: flex;
+  gap: 14px;
+}
+.lesser.log b {
+  flex: none;
+  min-width: 96px;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Credits bar. Pinned, but it lets clicks through everywhere except its own
+   links, so it never eats a long result page. ── */
+#footer {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 22px;
+  pointer-events: none;
+  font-size: 13px;
+  color: var(--ink-dim);
+  /* Solid, not a fade: a translucent bar over a long result page leaves the text
+     underneath showing through its own credits. */
+  background: var(--bg);
+  border-top: 1px solid var(--rule-soft);
+}
+#footer > * {
+  pointer-events: auto;
+}
+#footer .credit.right {
+  letter-spacing: 0.04em;
+}
+#footer .credit.right a {
+  color: var(--ink);
+}
+#footer .credit.right a:hover {
+  color: var(--sel-ink);
+  text-decoration: none;
+}
+#footer .sep {
+  color: var(--ink-dim);
+  opacity: 0.5;
+  margin: 0 10px;
+}
+
+@media (max-width: 760px) {
+  #footer {
+    position: static;
+    justify-content: center;
+    text-align: center;
+    background: none;
+    border-top: 0;
+    padding-bottom: 24px;
+  }
+  main {
+    padding-bottom: 32px;
+  }
+}
+
+@media (max-width: 560px) {
+  h1 {
+    font-size: 24px;
+  }
+  .underline {
+    display: none;
+  }
+  .content {
+    padding: 16px 14px;
+  }
+  #banner {
+    padding-top: 34px;
+  }
+}
+
+/* ── The status box ───────────────────────────────────────────────────────────
+   The panel the game parks on the right of every menu screen: a dark engraved
+   edge, a centred title over a rule, then label-and-value rows. Same shape as the
+   character card a parsed save renders into, because it is the same object. ── */
+.statbox {
+  border: 2px solid var(--box);
+  box-shadow: inset 0 0 0 1px var(--box-in);
+  background: var(--panel-2);
+  padding: 10px 12px 12px;
+}
+.sb-title {
+  text-align: center;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--rule);
+}
+.sb-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 2px;
+  font-size: 15px;
+}
+.sb-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.sb-n {
+  color: var(--ink);
+}
+.sb-v {
+  color: var(--val);
+  white-space: nowrap;
+}
+.sb-div {
+  height: 1px;
+  background: var(--rule);
+  margin: 7px 2px;
+}
+.sb-note {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--rule);
+  font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}

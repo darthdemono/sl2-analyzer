@@ -1,0 +1,589 @@
+/* The status screen a parsed save renders into: the game header, the character
+   panel and its sub-panels, progress lists, inventory and slot tabs. Everything
+   under `#out` for a single save. Flat surfaces, hairline rules, one accent; the
+   numbers are set in the mono face because they came out of a binary. */
+
+#status {
+  text-align: center;
+  color: var(--ink-dim);
+  min-height: 20px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-top: 14px;
+}
+
+.error {
+  background: var(--panel-2);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--danger);
+  color: var(--ink);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin: 16px 0;
+}
+.error b,
+.error strong {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* ── Result header: which file, which game, and what you can export. ── */
+.gamebar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid var(--rule);
+  padding: 18px 0 12px;
+  margin: 18px 0 8px;
+  flex-wrap: wrap;
+}
+.gb-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 5px;
+}
+.gamebar h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--val);
+}
+.gamebar .src {
+  margin: 4px 0 0;
+  color: var(--ink-dim);
+  font-size: 13px;
+  font-style: italic;
+}
+.gb-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.gamebar .count {
+  color: var(--ink-dim);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ── The character panel: a titled card with sub-panels inside it. ── */
+.status {
+  margin: 20px 0;
+}
+.lvlup {
+  position: relative;
+  background: var(--panel-2);
+  padding: 12px;
+  border-radius: 0;
+  background: var(--panel);
+  border: 2px solid var(--box);
+  box-shadow: inset 0 0 0 1px var(--box-in);
+}
+/* Same corner ticks as the framed panels, one size up. */
+.lvlup::before,
+.lvlup::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--accent);
+  opacity: 0.3;
+  pointer-events: none;
+}
+.lvlup::before {
+  top: 4px;
+  left: 4px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.lvlup::after {
+  bottom: 4px;
+  right: 4px;
+  border-left: 0;
+  border-top: 0;
+}
+
+/* the title bar: character name, slot, and how much of it could be verified */
+.lvlup-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 6px 10px 9px;
+  margin: 0 2px 10px;
+  border-radius: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+}
+.lvlup-bar .lu-t {
+  font-size: 19px;
+  letter-spacing: 0.03em;
+  color: var(--val);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lvlup-bar .lu-r {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+.lvlup-bar .lu-s {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.lvlup-body {
+  display: grid;
+  grid-template-columns: minmax(216px, 0.85fr) 1.15fr;
+  gap: 12px;
+  align-items: start;
+}
+.lvlup-body.solo {
+  grid-template-columns: 1fr;
+}
+@media (max-width: 720px) {
+  .lvlup-body {
+    grid-template-columns: 1fr;
+  }
+}
+.lp-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* a sub-panel with a label on its top rule */
+.lp {
+  position: relative;
+  padding: 4px 12px 8px;
+  border-radius: 0;
+  background: none;
+  border: 0;
+}
+.lp-h {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  padding-bottom: 7px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--rule);
+}
+.lp-div {
+  height: 1px;
+  background: var(--rule);
+  margin: 8px 2px;
+}
+.lp-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 24px;
+}
+@media (max-width: 520px) {
+  .lp-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lp-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 2px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.lp-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.lp-row:last-child {
+  border-bottom: 0;
+}
+.lp-row .ic {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--ink-dim);
+  opacity: 0.5;
+}
+.lp-row .arw {
+  font-size: 8px;
+  letter-spacing: -2px;
+  color: var(--ink-dim);
+  opacity: 0.4;
+  width: 8px;
+  text-align: center;
+}
+.lp-row .nm {
+  color: var(--ink);
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lp-row .vl {
+  font-size: 16px;
+  color: var(--val);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.lp-row.big .nm {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.lp-row.big .vl {
+  font-size: 19px;
+  color: var(--accent);
+}
+
+/* the stat icons: HP red, stamina green, loads and defences colour-coded */
+.ic.souls {
+  background: var(--accent);
+  opacity: 0.9;
+}
+.ic.mem {
+  background: var(--ink-dim);
+  opacity: 0.6;
+}
+.ic.hp {
+  background: #b5473a;
+  opacity: 0.9;
+}
+.ic.stam {
+  background: #5f8f43;
+  opacity: 0.9;
+}
+.ic.load {
+  background: #4f7bb5;
+  opacity: 0.85;
+}
+.ic.atk {
+  background: #9a8a6a;
+  opacity: 0.85;
+}
+.ic.mag {
+  background: #5f7bd6;
+  opacity: 0.9;
+}
+.ic.fire {
+  background: #c9733a;
+  opacity: 0.9;
+}
+.ic.lit {
+  background: #d6b93a;
+  opacity: 0.9;
+}
+.ic.dark {
+  background: #8f5fc0;
+  opacity: 0.9;
+}
+.ic.agl {
+  background: #7fa15a;
+  opacity: 0.85;
+}
+.ic.poise {
+  background: #8a8f6a;
+  opacity: 0.85;
+}
+
+.lp-note {
+  margin: 10px 0 0;
+  color: var(--ink-dim);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+/* A foldable sub-panel: its summary is the header rule, so it reads as a panel
+   that opens rather than a widget bolted on. */
+.lp-fold > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.lp-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.lp-fold > summary::after {
+  content: "+";
+  float: right;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--accent);
+}
+.lp-fold[open] > summary::after {
+  content: "−";
+}
+.lp-fold > summary:hover {
+  color: var(--val);
+}
+.lp-foldbody {
+  padding-top: 4px;
+}
+
+/* Attribute scaling: the stat, your value, what it governs, where it caps. */
+.lp-scale {
+  padding: 7px 2px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.lp-scale:last-of-type {
+  border-bottom: 0;
+}
+.lp-scale .sc-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.lp-scale .sc-n {
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.lp-scale .sc-v {
+  font-size: 14px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.lp-scale .sc-g {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 2px;
+}
+.lp-scale .sc-c {
+  color: var(--ink-dim);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Slot tabs, only rendered when a save holds more than one character. */
+.slot-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 4px;
+}
+.slot-tab {
+  position: relative;
+  font-family: var(--font-ui);
+  text-align: left;
+  cursor: pointer;
+  padding: 7px 16px;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  transition:
+    color 0.12s,
+    background 0.12s;
+}
+.slot-tab:hover {
+  color: var(--val);
+  background: rgba(255, 255, 255, 0.05);
+}
+.slot-tab.on {
+  color: var(--sel-ink);
+  background: linear-gradient(90deg, var(--sel-edge), var(--sel) 45%, var(--sel) 100%);
+}
+.slot-tab.on::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--sel-edge);
+}
+.slot-tab .st-n {
+  display: block;
+  font-size: 16px;
+}
+.slot-tab .st-s {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-top: 2px;
+}
+.slot-tab.on .st-s {
+  color: var(--sel-ink);
+  opacity: 0.75;
+}
+
+/* ── Sub-sections (souls held, bonfires, bosses, inventory). ── */
+.sec {
+  margin: 24px 0 4px;
+}
+.sec h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 8px;
+}
+.hint {
+  margin: -4px 0 12px;
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+
+ul.items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+ul.items li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px;
+  font-size: 16px;
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule-soft);
+}
+ul.items li:hover {
+  color: var(--val);
+  background: rgba(255, 255, 255, 0.035);
+}
+/* The icon slot the game puts at the head of every inventory row. There are no
+   item thumbnails here, so the slot holds the mark instead of a picture. */
+ul.items li.noimg {
+  position: relative;
+  padding-left: 34px;
+}
+ul.items li.noimg::before {
+  content: "\25c6";
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--box);
+  box-shadow: inset 0 0 0 1px var(--box-in);
+  font-size: 7px;
+  line-height: 18px;
+  text-align: center;
+  color: var(--accent-2);
+}
+ul.items.cols {
+  columns: 2;
+}
+@media (max-width: 560px) {
+  ul.items.cols {
+    columns: 1;
+  }
+}
+ul.items.cols li {
+  break-inside: avoid;
+}
+
+/* Progress areas (bonfires / idols / minibosses / world pickups). One block per
+   area: the name on its own line with a leader out to its tally, then the names
+   underneath. */
+ul.areas {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+ul.areas > li {
+  padding: 8px 8px;
+  border-bottom: 1px solid var(--rule-soft);
+  break-inside: avoid;
+}
+ul.areas > li:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+ul.areas > li:last-child {
+  border-bottom: 0;
+}
+.area-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.area-head .area {
+  color: var(--val);
+  font-size: 16px;
+  white-space: nowrap;
+}
+.area-head .lead {
+  flex: 1 1 auto;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.area-head .tally {
+  font-size: 13.5px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.area-names {
+  margin-top: 3px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.area-missing {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+ul.areas.two {
+  columns: 2;
+  column-gap: 30px;
+}
+ul.areas.two > li {
+  break-inside: avoid;
+}
+@media (max-width: 700px) {
+  ul.areas.two {
+    columns: 1;
+  }
+}
+
+.inv h5 {
+  margin: 16px 0 6px;
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.inv h5:first-child {
+  margin-top: 0;
+}
+
+/* A caveat the reader has to see: why a list is short, what is not stored. */
+.note {
+  color: var(--ink-dim);
+  font-size: 13.5px;
+  background: var(--panel-2);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--accent-2);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  margin: 14px 0;
+}
+.foot {
+  color: var(--ink-dim);
+  font-size: 12.5px;
+  text-align: center;
+  margin: 36px 0 0;
+}

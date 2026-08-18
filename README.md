@@ -905,7 +905,16 @@ sl2/              the Python package, one module per layer and one per game
   jsonout.py      JSON rendering and the --meta environment block
   convert.py      the driver: parse_save, then either writer
   cli.py          argument parsing and main()
-index.html        the web app: markup and styling
+index.html        the web app: markup only, no inline styles
+css/
+  theme.css       colour tokens, plus one accent override per game
+  normal.css      element defaults: reset, body surface, links, focus ring
+  controls.css    panels, buttons, the drop target, chips and the progress bar
+  site.css        the menu slab: header block, list column, status box, tabs, prompts
+  status.css      the status screen a parsed save renders into
+  document.css    the combined document (Markdown to DOM, Mermaid charts)
+graphics/noise.svg   the panel grain, one patch of feTurbulence. No font files: the
+                  page is Georgia, with adobe-garamond-pro in front of it
 vendor/mermaid.min.js   the chart library, vendored (MIT) so the page needs no CDN
 sw.js             service worker: caches the app + used tables so it runs offline
 manifest.webmanifest / icon.svg   installable-app metadata

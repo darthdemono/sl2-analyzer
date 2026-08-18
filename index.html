@@ -23,7 +23,7 @@
     <meta property="og:image" content="https://sl2-analyzer.darthdemono.com/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="SL2 Analyzer — a bonfire with the coiled sword" />
+    <meta property="og:image:alt" content="SL2 Analyzer, a bonfire with the coiled sword" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="SL2 Analyzer · FromSoftware save viewer" />
     <meta
@@ -31,1629 +31,571 @@
       content="A Souls save is a locked box. Drop one in and read the playthrough."
     />
     <meta name="twitter:image" content="https://sl2-analyzer.darthdemono.com/og.png" />
-    <link
-      rel="preload"
-      href="fonts/eb-garamond-latin.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
-    <style>
-      /* ── Typefaces ────────────────────────────────────────────────────────────────
-         FromSoftware has never published the fonts its menus use, but the community
-         has matched them closely enough to work from, and the FromSoft Image Macro
-         Creator (rezuaq.be/new-area/image-creator) is where that matching was done:
-         Dark Souls 1-3 and Sekiro's Latin text are Adobe Garamond Pro, Elden Ring is
-         Agmena Pro, Demon's Souls is Pinnacle JY / ITC Galliard. All three are
-         licensed faces nobody can ship on a static site, so this uses the free
-         Garamonds they are nearest to — EB Garamond for the Souls games and Sekiro,
-         Cormorant Garamond (light) for Elden Ring, whose delicate high-contrast
-         serifs sit closest to Agmena.
-
-         They are served from this repo rather than from Google's CDN, because the
-         page makes NO cross-origin request by design and works offline after the
-         first visit — an external font would break both. Both are SIL OFL 1.1; see
-         THIRD-PARTY-NOTICES.md. */
-      @font-face {
-        font-family: "EB Garamond";
-        font-style: normal;
-        font-weight: 400 600;
-        font-display: swap;
-        src: url(fonts/eb-garamond-latin.woff2) format("woff2");
-        unicode-range:
-          U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
-          U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-      }
-      @font-face {
-        font-family: "EB Garamond";
-        font-style: normal;
-        font-weight: 400 600;
-        font-display: swap;
-        src: url(fonts/eb-garamond-latin-ext.woff2) format("woff2");
-        unicode-range:
-          U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
-          U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
-          U+2C60-2C7F, U+A720-A7FF;
-      }
-      @font-face {
-        font-family: "EB Garamond";
-        font-style: italic;
-        font-weight: 400 600;
-        font-display: swap;
-        src: url(fonts/eb-garamond-italic-latin.woff2) format("woff2");
-        unicode-range:
-          U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
-          U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-      }
-      @font-face {
-        font-family: "EB Garamond";
-        font-style: italic;
-        font-weight: 400 600;
-        font-display: swap;
-        src: url(fonts/eb-garamond-italic-latin-ext.woff2) format("woff2");
-        unicode-range:
-          U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
-          U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
-          U+2C60-2C7F, U+A720-A7FF;
-      }
-      @font-face {
-        font-family: "Cormorant Garamond";
-        font-style: normal;
-        font-weight: 300 600;
-        font-display: swap;
-        src: url(fonts/cormorant-garamond-latin.woff2) format("woff2");
-        unicode-range:
-          U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
-          U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-      }
-      @font-face {
-        font-family: "Cormorant Garamond";
-        font-style: normal;
-        font-weight: 300 600;
-        font-display: swap;
-        src: url(fonts/cormorant-garamond-latin-ext.woff2) format("woff2");
-        unicode-range:
-          U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
-          U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
-          U+2C60-2C7F, U+A720-A7FF;
-      }
-
-      /* ── Base tokens = Dark Souls: the bonfire-lit gold on black, engraved caps,
-         hairline gold rule. Every colour here is one the game itself puts on screen —
-         the accents are the RGB values the macro creator measured off the real
-         "BONFIRE LIT" and "YOU DIED" overlays, not a designer's guess at them:
-           bonfire gold  rgb(255,228,92)   ember bloom rgb(251,149,131)
-           YOU DIED red  rgb(100,10,10)
-         --ember is that bloom: the games draw their text with a warm zoom-blur behind
-         it, which is what the button underglows below are imitating. Each game theme
-         overrides the lot. ── */
-      :root {
-        --bg: #08070a;
-        --bg2: #0d0c0a;
-        --panel: rgba(9, 8, 6, 0.62);
-        /* --ink-dim carries 11.5-14px text (notes, hints, eyebrows), so it is held at
-           >= 4.6:1 on --bg — WCAG AA for small text. It was 4.15:1 once and failed. */
-        --ink: #cbb98d;
-        --ink-dim: #8a7e5e;
-        --accent: #dcbf6a;
-        --accent-2: #9b7f3c;
-        --hi: #ffe45c;
-        --ember: 251, 149, 131;
-        --val: #f4ead2;
-        --rule: rgba(220, 191, 106, 0.3);
-        --rule-soft: rgba(220, 191, 106, 0.13);
-        --danger: #c8564b;
-        --died: #640a0a;
-        --ok: #8aa15a;
-        --soul: #7fa8c9;
-        --gate: #c9a94b;
-        --font-body: "EB Garamond", Georgia, "Times New Roman", serif;
-        --font-title: "EB Garamond", Georgia, serif;
-        /* Small engraved caps stay on Garamond even where the display face changes:
-           Elden Ring sets its titles in a 300-weight Cormorant that disappears at
-           11px. Display face for announcements, label face for labels. */
-        --font-label: "EB Garamond", Georgia, serif;
-        --title-weight: 500;
-        --title-track: 0.16em;
-        /* The games stretch their overlay text vertically — the macro creator calls it
-           vScale, and it runs 1.3-1.5 on every Souls title. Applied to the two places
-           that are announcements rather than labels: the page title and the game bar. */
-        --title-scaley: 1.18;
-        --glow: 0 0 26px rgba(255, 228, 92, 0.16);
-        --wash: radial-gradient(120% 90% at 50% -10%, rgba(255, 228, 92, 0.06), transparent 60%);
-        --radius: 2px;
-        /* Film grain over every panel, the way the in-game menus sit on a dirty
-           parchment wash. Inline so it costs no request. */
-        --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
-      }
-      /* Dark Souls II — its overlays are amber (BONFIRE LIT rgb(255,177,68)) with a
-         mint-green counterpoint nothing else here uses (HUMANITY RESTORED
-         rgb(169,254,236)), so the amber carries the frame and the mint carries the
-         tags. */
-      .t-ds2 {
-        --panel: rgba(7, 9, 10, 0.64);
-        --ink: #c5b7a2;
-        --ink-dim: #8c8168;
-        --accent: #f0a648;
-        --accent-2: #96602a;
-        --hi: #ffb144;
-        --ember: 255, 198, 168;
-        --val: #fff2d8;
-        --rule: rgba(240, 166, 72, 0.28);
-        --rule-soft: rgba(240, 166, 72, 0.12);
-        --soul: #a9feec;
-        --gate: #a9f0fe;
-        --died: #641010;
-        --title-scaley: 1.22;
-        --glow: 0 0 26px rgba(255, 177, 68, 0.15);
-        --wash: radial-gradient(120% 90% at 50% -10%, rgba(255, 177, 68, 0.06), transparent 60%);
-      }
-      /* Dark Souls III — ash and cinder: a neutral grey field, one ember accent
-         (BONFIRE LIT rgb(255,206,86), bloom rgb(227,166,146)), and no ornament at all.
-         Its menus are the plainest FromSoft has shipped. */
-      .t-ds3 {
-        --panel: rgba(11, 11, 12, 0.6);
-        --ink: #bdb8ac;
-        --ink-dim: #837e72;
-        --accent: #d8ab4e;
-        --accent-2: #7c5a27;
-        --hi: #ffce56;
-        --ember: 227, 166, 146;
-        --val: #ece9e0;
-        --rule: rgba(189, 184, 172, 0.17);
-        --rule-soft: rgba(189, 184, 172, 0.08);
-        --title-scaley: 1.2;
-        --glow: 0 0 22px rgba(255, 206, 86, 0.1);
-        --wash: radial-gradient(120% 90% at 50% -10%, rgba(227, 166, 146, 0.05), transparent 55%);
-      }
-      /* Elden Ring — the grace orange, exactly as the game prints LOST GRACE
-         DISCOVERED (rgb(220,135,56)) over a bloom of rgb(237,140,29). Its face is
-         Agmena, a light high-contrast serif, so this theme is the one that switches
-         to Cormorant and drops the vertical stretch: Elden Ring sets its titles at
-         vScale 1, wide and thin rather than tall. */
-      .t-er {
-        --panel: rgba(10, 8, 6, 0.68);
-        --ink: #cdb489;
-        --ink-dim: #93815a;
-        --accent: #dc8738;
-        --accent-2: #8d5722;
-        --hi: #edb45c;
-        --ember: 237, 140, 29;
-        --val: #f3e4c2;
-        --rule: rgba(220, 135, 56, 0.3);
-        --rule-soft: rgba(220, 135, 56, 0.13);
-        --gate: #dc8738;
-        --font-title: "Cormorant Garamond", "EB Garamond", Georgia, serif;
-        --title-weight: 300;
-        --title-track: 0.2em;
-        --title-scaley: 1;
-        --glow: 0 0 34px rgba(237, 140, 29, 0.18);
-        --wash: radial-gradient(120% 100% at 50% -5%, rgba(237, 140, 29, 0.08), transparent 62%);
-      }
-      /* Sekiro — sumi ink and washi. Its text is pure white (SHINOBI EXECUTION is
-         rgb(255,255,255)), its one warm note is the idol prompt rgb(253,237,182), and
-         its one colour is the death seal rgb(183,48,44), which here becomes the
-         underglow: the only theme whose buttons bloom red instead of gold. Sekiro
-         also sets its titles at vScale 1 with charSpacing 12 on a 37px line — wide
-         tracking, no stretch — which is what --title-track carries. */
-      .t-sdt {
-        --panel: rgba(10, 10, 11, 0.66);
-        --ink: #cfc7b8;
-        --ink-dim: #8f887b;
-        --accent: #e0c98f;
-        --accent-2: #8a7a52;
-        --hi: #fdedb6;
-        --ember: 183, 48, 44;
-        --val: #ffffff;
-        --rule: rgba(224, 201, 143, 0.22);
-        --rule-soft: rgba(224, 201, 143, 0.1);
-        --danger: #b7302c;
-        --died: #6d001f;
-        --title-track: 0.3em;
-        --title-scaley: 1;
-        --glow: 0 0 24px rgba(183, 48, 44, 0.18);
-        --wash: radial-gradient(120% 90% at 50% -10%, rgba(183, 48, 44, 0.06), transparent 58%);
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--ink);
-        font-family: var(--font-body);
-        font-size: 17px;
-        line-height: 1.6;
-        overflow-x: hidden;
-        background-image: var(--noise), var(--wash);
-        background-attachment: fixed;
-        text-rendering: optimizeLegibility;
-      }
-      /* faint vignette so the screen darkens at the edges like the in-game menu */
-      body::after {
-        content: "";
-        position: fixed;
-        inset: 0;
-        z-index: -1;
-        pointer-events: none;
-        background: radial-gradient(130% 100% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.68));
-      }
-      ::selection {
-        background: rgba(var(--ember), 0.28);
-        color: var(--val);
-      }
-      a {
-        color: var(--accent);
-        text-decoration: none;
-      }
-      a:hover {
-        color: var(--hi);
-        text-shadow: var(--glow);
-      }
-      code {
-        font-family: var(--font-body);
-        font-style: italic;
-        color: var(--accent);
-      }
-      h1,
-      h2,
-      h3,
-      h4 {
-        font-family: var(--font-title);
-        font-weight: var(--title-weight);
-      }
-
-      /* Engraved caps, the shape every FromSoft menu header takes. */
-      .caps {
-        font-family: var(--font-label);
-        font-weight: var(--title-weight);
-        letter-spacing: var(--title-track);
-        text-transform: uppercase;
-      }
-
-      header {
-        width: 90%;
-        max-width: 1600px;
-        margin: 0 auto;
-        padding: 64px 20px 4px;
-        text-align: center;
-      }
-      h1 {
-        display: inline-block;
-        font-family: var(--font-title);
-        font-size: 40px;
-        font-weight: var(--title-weight);
-        letter-spacing: 0.22em;
-        text-transform: uppercase;
-        margin: 0 0 26px;
-        color: var(--val);
-        /* the announcement stretch, plus the warm bloom the game draws behind it */
-        transform: scaleY(var(--title-scaley));
-        transform-origin: 50% 60%;
-        text-shadow:
-          0 0 30px rgba(var(--ember), 0.3),
-          0 2px 6px rgba(0, 0, 0, 0.9);
-      }
-      h1 .dot {
-        color: var(--accent);
-        font-weight: 400;
-      }
-      .tag-line {
-        color: var(--ink-dim);
-        margin: 0 auto;
-        max-width: 620px;
-        font-size: 16px;
-        font-style: italic;
-      }
-      .privacy {
-        display: inline-block;
-        margin-top: 18px;
-        font-family: var(--font-label);
-        font-size: 12px;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: var(--accent);
-      }
-      .privacy::before,
-      .privacy::after {
-        content: "—";
-        color: var(--rule);
-        margin: 0 10px;
-      }
-      main {
-        width: 90%;
-        max-width: 1600px;
-        margin: 0 auto;
-        padding: 20px 20px 96px;
-      }
-
-      /* Framed menu panel — the recurring FromSoft status box (hairline + corner ticks). */
-      .frame {
-        position: relative;
-        background: var(--noise), var(--panel);
-        border: 1px solid var(--rule);
-        border-radius: var(--radius);
-      }
-      .frame::before,
-      .frame::after {
-        content: "";
-        position: absolute;
-        width: 12px;
-        height: 12px;
-        border: 1px solid var(--accent);
-        opacity: 0.7;
-        pointer-events: none;
-      }
-      .frame::before {
-        top: -1px;
-        left: -1px;
-        border-right: 0;
-        border-bottom: 0;
-      }
-      .frame::after {
-        bottom: -1px;
-        right: -1px;
-        border-left: 0;
-        border-top: 0;
-      }
-      .t-ds3 .frame::before,
-      .t-ds3 .frame::after {
-        display: none;
-      } /* DS3 is unadorned */
-      .t-er .frame {
-        border-width: 1px;
-        box-shadow: inset 0 0 0 3px rgba(237, 140, 29, 0.06);
-      }
-
-      /* ── The menu button, lifted in shape from the Souls UI: no box, no fill, just a
-         warm glow welling up from the bottom edge and a rule underneath it that fades
-         out at both ends. Hover brightens the glow, press brightens it again — the
-         same three-state ramp the games use. ── */
-      .souls-btn,
-      .mode {
-        position: relative;
-        font-family: var(--font-label);
-        font-weight: var(--title-weight);
-        font-size: 12px;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        padding: 9px 18px;
-        color: var(--ink);
-        cursor: pointer;
-        border: 0;
-        border-radius: 0;
-        background: radial-gradient(
-          ellipse farthest-side at 50% 100%,
-          rgba(var(--ember), 0.16) 0%,
-          rgba(var(--ember), 0.07) 50%,
-          transparent
-        );
-        transition:
-          background 0.18s,
-          color 0.18s;
-      }
-      .souls-btn::after,
-      .mode::after {
-        content: "";
-        position: absolute;
-        left: -8%;
-        bottom: 0;
-        width: 116%;
-        border-bottom: 2px solid var(--rule);
-        pointer-events: none;
-        mask-image: radial-gradient(
-          ellipse 50% 20px at 50% 100%,
-          #000 0,
-          #000 50%,
-          transparent 100%
-        );
-        -webkit-mask-image: radial-gradient(
-          ellipse 50% 20px at 50% 100%,
-          #000 0,
-          #000 50%,
-          transparent 100%
-        );
-      }
-      .souls-btn:hover,
-      .mode:hover {
-        color: var(--val);
-        background: radial-gradient(
-          ellipse farthest-side at 50% 100%,
-          rgba(var(--ember), 0.42) 0%,
-          rgba(var(--ember), 0.18) 50%,
-          transparent
-        );
-      }
-      .souls-btn:hover::after,
-      .mode:hover::after {
-        border-bottom-color: var(--accent);
-      }
-      .souls-btn:active,
-      .mode:active {
-        background: radial-gradient(
-          ellipse farthest-side at 50% 100%,
-          rgba(var(--ember), 0.62) 0%,
-          rgba(var(--ember), 0.28) 50%,
-          transparent
-        );
-      }
-      .souls-btn:active::after,
-      .mode:active::after {
-        border-bottom-color: var(--hi);
-      }
-      /* The selected state is the same glow held on, not an inverted chip: the games
-         light the option you are on, they do not repaint it. */
-      .souls-btn.on,
-      .mode.on {
-        color: var(--val);
-        background: radial-gradient(
-          ellipse farthest-side at 50% 100%,
-          rgba(var(--ember), 0.38) 0%,
-          rgba(var(--ember), 0.15) 50%,
-          transparent
-        );
-      }
-      .souls-btn.on::after,
-      .mode.on::after {
-        border-bottom-color: var(--hi);
-      }
-
-      /* One visible focus ring for every interactive element. :focus-visible so a mouse
-         click does not leave it behind, but a keyboard Tab always shows it. */
-      :focus-visible {
-        outline: 2px solid var(--accent);
-        outline-offset: 3px;
-      }
-
-      /* A real <button>, so Tab reaches it and Enter/Space activate it for free. The
-         resets below undo the UA button styling; everything else is as it was. */
-      #drop {
-        display: block;
-        width: 100%;
-        margin: 30px 0 6px;
-        padding: 52px 24px;
-        text-align: center;
-        cursor: pointer;
-        border-style: dashed;
-        font: inherit;
-        color: inherit;
-        -webkit-appearance: none;
-        transition:
-          border-color 0.15s,
-          box-shadow 0.15s,
-          background 0.15s;
-      }
-      #drop:hover,
-      #drop.over {
-        border-color: var(--accent);
-        box-shadow: var(--glow);
-        background:
-          radial-gradient(
-            ellipse farthest-side at 50% 100%,
-            rgba(var(--ember), 0.16) 0%,
-            rgba(var(--ember), 0.06) 55%,
-            transparent
-          ),
-          var(--noise), var(--panel);
-      }
-      #drop .big {
-        display: block;
-        font-family: var(--font-label);
-        font-weight: var(--title-weight);
-        font-size: 19px;
-        letter-spacing: var(--title-track);
-        text-transform: uppercase;
-        color: var(--val);
-      }
-      #drop .small {
-        display: block;
-        color: var(--ink-dim);
-        font-size: 14px;
-        font-style: italic;
-        margin-top: 8px;
-      }
-
-      /* Mode switch. Two real buttons, so Tab and Enter work without help. */
-      #modes {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 26px;
-        flex-wrap: wrap;
-      }
-      .mode-note {
-        color: var(--ink-dim);
-        font-size: 13px;
-        font-style: italic;
-      }
-      #pick-folder {
-        margin-top: 10px;
-      }
-      .combined-actions {
-        display: flex;
-        gap: 10px;
-        margin: 22px 0 6px;
-        flex-wrap: wrap;
-      }
-
-      /* The combined document, rendered from its own Markdown. */
-      .md-h {
-        font-family: var(--font-title);
-        letter-spacing: 0.06em;
-        margin: 26px 0 10px;
-      }
-      h2.md-h {
-        font-size: 22px;
-        border-bottom: 1px solid var(--rule);
-        padding-bottom: 8px;
-      }
-      h3.md-h {
-        font-size: 18px;
-        color: var(--accent);
-      }
-      h4.md-h {
-        font-size: 15px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--ink-dim);
-      }
-      h5.md-h {
-        font-size: 14px;
-      }
-      .md-p {
-        margin: 8px 0;
-        line-height: 1.65;
-      }
-      .md-list {
-        margin: 8px 0 12px 18px;
-      }
-      .md-list li {
-        margin: 3px 0;
-      }
-      .md-scroll {
-        overflow-x: auto;
-        margin: 10px 0 18px;
-      }
-      .md-table {
-        border-collapse: collapse;
-        font-size: 14px;
-        min-width: 100%;
-      }
-      .md-table th,
-      .md-table td {
-        border: 1px solid var(--rule-soft);
-        padding: 6px 10px;
-        text-align: left;
-        white-space: nowrap;
-      }
-      .md-table th {
-        font-family: var(--font-label);
-        font-size: 12px;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--ink-dim);
-        border-bottom-color: var(--rule);
-      }
-      .md-details {
-        margin: 20px 0;
-        border: 1px solid var(--rule);
-        padding: 12px 16px;
-        background: var(--noise), var(--panel);
-      }
-      .md-details summary {
-        cursor: pointer;
-        font-family: var(--font-label);
-        letter-spacing: 0.08em;
-        color: var(--accent);
-      }
-      .ref {
-        font-variant-numeric: tabular-nums;
-        color: var(--accent);
-      }
-      pre.code {
-        overflow-x: auto;
-        padding: 12px;
-        border: 1px solid var(--rule-soft);
-        background: rgba(0, 0, 0, 0.35);
-        font-size: 13px;
-      }
-      pre.mermaid {
-        margin: 16px 0;
-        text-align: center;
-        overflow-x: auto;
-      }
-      pre.mermaid svg {
-        max-width: 100%;
-        height: auto;
-      }
-      #status {
-        text-align: center;
-        color: var(--ink-dim);
-        min-height: 22px;
-        font-size: 13px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        margin-top: 14px;
-      }
-      /* The failure state is the one screen every Souls player knows. Blood red on
-         black, stretched Garamond — rgb(100,10,10) is the colour the game draws it in. */
-      .error {
-        background:
-          radial-gradient(
-            120% 140% at 50% 0%,
-            color-mix(in srgb, var(--died) 60%, transparent),
-            transparent 70%
-          ),
-          var(--noise), var(--panel);
-        border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
-        border-left: 3px solid var(--danger);
-        color: var(--val);
-        border-radius: var(--radius);
-        padding: 16px 18px;
-        margin: 16px 0;
-      }
-      .error b,
-      .error strong {
-        font-family: var(--font-label);
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--danger);
-      }
-
-      .btn {
-        font-family: var(--font-label);
-        font-weight: var(--title-weight);
-        font-size: 12px;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        padding: 0.55rem 1.1rem;
-        border-radius: 0;
-        cursor: pointer;
-        transition: 0.18s;
-        /* the double rule is the Souls dialogue box: two hairlines with a gap between */
-        border: double 5px rgba(var(--ember), 0.22);
-        background: rgba(20, 17, 14, 0.7);
-        color: var(--accent);
-      }
-      .btn:hover,
-      .btn-ghost:hover {
-        color: var(--val);
-        border-color: rgba(var(--ember), 0.4);
-        background: radial-gradient(
-          ellipse 90% 0.95em,
-          rgba(24, 20, 17, 0.9) 0%,
-          rgba(var(--ember), 0.12) 60%,
-          rgba(var(--ember), 0.22)
-        );
-      }
-      .btn:active {
-        border-color: rgba(var(--ember), 0.55);
-        background: radial-gradient(
-          ellipse 90% 0.95em,
-          rgba(24, 20, 17, 0.9) 0%,
-          rgba(var(--ember), 0.18) 35%,
-          rgba(var(--ember), 0.35) 70%,
-          rgba(var(--ember), 0.6) 100%
-        );
-      }
-
-      /* ── Result header: the "now viewing" banner, themed to the detected game. ── */
-      .gamebar {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 18px;
-        border-bottom: 1px solid var(--accent-2);
-        padding: 26px 2px 14px;
-        margin: 38px 0 8px;
-        flex-wrap: wrap;
-      }
-      .gb-eyebrow {
-        font-family: var(--font-label);
-        font-size: 11px;
-        letter-spacing: 0.24em;
-        text-transform: uppercase;
-        color: var(--ink-dim);
-        margin-bottom: 6px;
-      }
-      /* The game's name announced the way the game announces things: stretched caps
-         with the zoom-blur bloom behind them. */
-      .gamebar h2 {
-        display: inline-block;
-        margin: 0;
-        font-size: 24px;
-        letter-spacing: var(--title-track);
-        color: var(--val);
-        text-transform: uppercase;
-        font-weight: var(--title-weight);
-        transform: scaleY(var(--title-scaley));
-        transform-origin: 0 65%;
-        text-shadow: 0 0 22px rgba(var(--ember), 0.28);
-      }
-      .t-er .gamebar h2 {
-        text-shadow: 0 0 26px rgba(237, 140, 29, 0.35);
-      }
-      .gamebar .src {
-        margin: 5px 0 0;
-        color: var(--ink-dim);
-        font-size: 13px;
-        font-style: italic;
-      }
-      .gb-right {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-      }
-      .gamebar .count {
-        color: var(--ink-dim);
-        font-size: 12px;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        white-space: nowrap;
-      }
-
-      /* ── The in-game Level-Up screen: stone frame, title bar, boxed panels. ── */
-      .status {
-        margin: 24px 0;
-      }
-      .lvlup {
-        position: relative;
-        padding: 13px;
-        border-radius: 7px;
-        background: var(--noise), linear-gradient(180deg, #14130f, #0a0908);
-        border: 1px solid rgba(0, 0, 0, 0.7);
-        box-shadow:
-          0 0 0 1px var(--rule),
-          inset 0 0 0 1px rgba(255, 255, 255, 0.045),
-          inset 0 0 46px rgba(0, 0, 0, 0.6),
-          0 20px 52px rgba(0, 0, 0, 0.55);
-      }
-      .t-ds2 .lvlup {
-        background: var(--noise), linear-gradient(180deg, #131108, #0a0806);
-      }
-      .t-ds3 .lvlup {
-        background: var(--noise), linear-gradient(180deg, #111110, #090909);
-      }
-      .t-er .lvlup {
-        background: var(--noise), linear-gradient(180deg, #16110a, #0a0806);
-      }
-      .t-sdt .lvlup {
-        background: var(--noise), linear-gradient(180deg, #121111, #090909);
-      }
-      /* ornate corner ticks (DS3 keeps them faint & grey — its screen is plainer) */
-      .lvlup::before,
-      .lvlup::after {
-        content: "";
-        position: absolute;
-        width: 18px;
-        height: 18px;
-        border: 2px solid var(--accent);
-        opacity: 0.45;
-        pointer-events: none;
-      }
-      .lvlup::before {
-        top: 5px;
-        left: 5px;
-        border-right: 0;
-        border-bottom: 0;
-      }
-      .lvlup::after {
-        bottom: 5px;
-        right: 5px;
-        border-left: 0;
-        border-top: 0;
-      }
-      .t-ds3 .lvlup::before,
-      .t-ds3 .lvlup::after {
-        opacity: 0.22;
-        border-color: var(--ink-dim);
-      }
-
-      /* the "Level up" title bar — metallic sheen, character name + slot + tier */
-      .lvlup-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 14px;
-        padding: 10px 16px;
-        margin: 2px 2px 12px;
-        border-radius: 3px;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0.32));
-        border: 1px solid var(--rule);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-      }
-      .t-ds2 .lvlup-bar {
-        background: linear-gradient(180deg, rgba(240, 166, 72, 0.22), rgba(28, 18, 8, 0.42));
-      }
-      .t-er .lvlup-bar {
-        background: linear-gradient(180deg, rgba(220, 135, 56, 0.22), rgba(28, 20, 8, 0.42));
-      }
-      .t-sdt .lvlup-bar {
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(0, 0, 0, 0.38));
-      }
-      .lvlup-bar .lu-t {
-        font-family: var(--font-title);
-        font-size: 18px;
-        letter-spacing: 0.1em;
-        color: var(--val);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .t-er .lvlup-bar .lu-t {
-        text-shadow: 0 0 18px rgba(237, 140, 29, 0.32);
-      }
-      .lvlup-bar .lu-r {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex: none;
-      }
-      .lvlup-bar .lu-s {
-        font-family: var(--font-label);
-        font-size: 11px;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: var(--ink-dim);
-      }
-
-      .lvlup-body {
-        display: grid;
-        grid-template-columns: minmax(216px, 0.85fr) 1.15fr;
-        gap: 12px;
-        align-items: start;
-      }
-      .lvlup-body.solo {
-        grid-template-columns: 1fr;
-      }
-      @media (max-width: 720px) {
-        .lvlup-body {
-          grid-template-columns: 1fr;
-        }
-      }
-      .lp-stack {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      /* a carved sub-panel with a header label on its top rule */
-      .lp {
-        position: relative;
-        padding: 13px 15px 11px;
-        border-radius: 4px;
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid var(--rule-soft);
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-      }
-      .lp-h {
-        font-family: var(--font-label);
-        font-size: 11px;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        color: var(--accent);
-        padding-bottom: 8px;
-        margin-bottom: 5px;
-        border-bottom: 1px solid var(--rule);
-      }
-      .lp-div {
-        height: 1px;
-        background: var(--rule);
-        margin: 8px 2px;
-      }
-      .lp-cols {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0 24px;
-      }
-      @media (max-width: 520px) {
-        .lp-cols {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      .lp-row {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        align-items: center;
-        gap: 9px;
-        padding: 6px 2px;
-        border-bottom: 1px dotted var(--rule-soft);
-      }
-      .t-ds3 .lp-row {
-        border-bottom: 0;
-        padding: 7px 2px;
-      }
-      .lp-row .ic {
-        width: 11px;
-        height: 11px;
-        border-radius: 2px;
-        background: var(--ink-dim);
-        opacity: 0.35;
-      }
-      .lp-row .arw {
-        font-size: 8px;
-        letter-spacing: -2px;
-        color: var(--ink-dim);
-        opacity: 0.4;
-        width: 11px;
-        text-align: center;
-      }
-      .lp-row .nm {
-        color: var(--ink);
-        font-size: 14.5px;
-        letter-spacing: 0.02em;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .t-ds3 .lp-row.attr .nm {
-        letter-spacing: 0.1em;
-      }
-      .lp-row .vl {
-        font-weight: 600;
-        font-size: 16px;
-        color: var(--val);
-        font-variant-numeric: tabular-nums;
-        text-align: right;
-      }
-      .lp-row.big .nm {
-        font-family: var(--font-label);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        font-size: 12px;
-      }
-      .lp-row.big .vl {
-        font-size: 22px;
-        color: var(--hi);
-        text-shadow: 0 0 18px rgba(var(--ember), 0.22);
-      }
-      .t-er .lp-row.attr .vl,
-      .t-ds2 .lp-row.attr .vl {
-        color: var(--accent);
-      }
-
-      /* the level-up screen's stat icons: HP red, stamina green, loads/defences colour-coded */
-      .ic.souls {
-        background: var(--accent);
-        opacity: 0.8;
-      }
-      .ic.mem {
-        background: var(--ink-dim);
-        opacity: 0.6;
-      }
-      .ic.hp {
-        background: #b5473a;
-        opacity: 0.85;
-      }
-      .ic.stam {
-        background: #5f8f43;
-        opacity: 0.85;
-      }
-      .ic.load {
-        background: #4f7bb5;
-        opacity: 0.8;
-      }
-      .ic.atk {
-        background: #9a8a6a;
-        opacity: 0.8;
-      }
-      .ic.mag {
-        background: #5f7bd6;
-        opacity: 0.85;
-      }
-      .ic.fire {
-        background: #c9733a;
-        opacity: 0.85;
-      }
-      .ic.lit {
-        background: #d6b93a;
-        opacity: 0.85;
-      }
-      .ic.dark {
-        background: #8f5fc0;
-        opacity: 0.85;
-      }
-      .ic.agl {
-        background: #7fa15a;
-        opacity: 0.8;
-      }
-      .ic.poise {
-        background: #8a8f6a;
-        opacity: 0.8;
-      }
-
-      .lp-note {
-        margin: 11px 0 0;
-        color: var(--ink-dim);
-        font-size: 11.5px;
-        font-style: italic;
-        line-height: 1.55;
-      }
-
-      /* A foldable sub-panel. Its summary IS the header rule, so it reads as a panel
-         that opens rather than a widget bolted on. */
-      .lp-fold > summary {
-        list-style: none;
-        cursor: pointer;
-      }
-      .lp-fold > summary::-webkit-details-marker {
-        display: none;
-      }
-      .lp-fold > summary::after {
-        content: "+";
-        float: right;
-        font-size: 13px;
-        line-height: 1;
-        color: var(--accent);
-        opacity: 0.8;
-      }
-      .lp-fold[open] > summary::after {
-        content: "−";
-      }
-      .lp-fold > summary:hover {
-        color: var(--val);
-      }
-      .lp-foldbody {
-        padding-top: 4px;
-      }
-
-      /* Attribute Scaling rows — the stat, your value, what it governs, where it caps. */
-      .lp-scale {
-        padding: 7px 2px;
-        border-bottom: 1px dotted var(--rule-soft);
-      }
-      .lp-scale:last-of-type {
-        border-bottom: 0;
-      }
-      .lp-scale .sc-h {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 10px;
-      }
-      .lp-scale .sc-n {
-        font-family: var(--font-label);
-        font-size: 11.5px;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--ink);
-      }
-      .lp-scale .sc-v {
-        font-weight: 600;
-        font-size: 14px;
-        color: var(--accent);
-        font-variant-numeric: tabular-nums;
-        flex: none;
-      }
-      .lp-scale .sc-g {
-        color: var(--ink);
-        font-size: 13px;
-        line-height: 1.45;
-        margin-top: 2px;
-      }
-      .lp-scale .sc-c {
-        color: var(--ink-dim);
-        font-size: 12px;
-        line-height: 1.45;
-        font-style: italic;
-      }
-
-      /* Bonfire completion bar. Only drawn where the table holds every bonfire. The
-         fill is the ember gradient, so it reads as a flame guttering along the bar. */
-      .pbar {
-        height: 6px;
-        margin: 0 0 12px;
-        border-radius: 3px;
-        overflow: hidden;
-        background: rgba(0, 0, 0, 0.45);
-        border: 1px solid var(--rule-soft);
-      }
-      .pbar-f {
-        display: block;
-        height: 100%;
-        background: linear-gradient(90deg, var(--accent-2), var(--hi));
-        box-shadow: 0 0 12px rgba(var(--ember), 0.4);
-      }
-
-      /* Slot tabs — only rendered when a save holds more than one character. */
-      .slot-tabs {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin: 22px 0 4px;
-      }
-      .slot-tab {
-        font-family: var(--font-body);
-        text-align: left;
-        cursor: pointer;
-        padding: 8px 14px;
-        border-radius: var(--radius);
-        border: 1px solid var(--rule-soft);
-        background: var(--panel);
-        color: var(--ink-dim);
-        transition: 0.15s;
-      }
-      .slot-tab:hover {
-        border-color: var(--accent);
-        color: var(--ink);
-      }
-      .slot-tab.on {
-        border-color: var(--accent);
-        color: var(--val);
-        box-shadow: var(--glow);
-        background:
-          radial-gradient(
-            ellipse farthest-side at 50% 100%,
-            rgba(var(--ember), 0.22) 0%,
-            rgba(var(--ember), 0.08) 55%,
-            transparent
-          ),
-          var(--panel);
-      }
-      .slot-tab .st-n {
-        display: block;
-        font-family: var(--font-title);
-        font-size: 14px;
-        letter-spacing: 0.06em;
-      }
-      .slot-tab .st-s {
-        display: block;
-        font-size: 11px;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--ink-dim);
-        margin-top: 2px;
-      }
-      .slot-tab.on .st-s {
-        color: var(--accent);
-      }
-      [hidden] {
-        display: none !important;
-      }
-
-      .badge {
-        display: inline-block;
-        font-family: var(--font-label);
-        font-size: 9.5px;
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        padding: 4px 11px;
-        border-radius: var(--radius);
-        border: 1px solid var(--rule-soft);
-        color: var(--ink-dim);
-      }
-      .badge.full {
-        color: var(--accent);
-        border-color: var(--rule);
-        box-shadow: var(--glow);
-      }
-
-      /* ── Sub-sections (souls held, bonfires, bosses, inventory). ── */
-      .sec {
-        margin: 26px 0 4px;
-      }
-      .sec h4 {
-        margin: 0 0 12px;
-        font-size: 15px;
-        letter-spacing: var(--title-track);
-        text-transform: uppercase;
-        color: var(--accent);
-        border-bottom: 1px solid var(--rule);
-        padding-bottom: 8px;
-        font-weight: var(--title-weight);
-      }
-      .hint {
-        margin: -6px 0 12px;
-        color: var(--ink-dim);
-        font-size: 14px;
-        font-style: italic;
-      }
-
-      ul.items {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-      }
-      ul.items li {
-        display: flex;
-        align-items: center;
-        gap: 9px;
-        padding: 4px 0;
-        font-size: 16px;
-        color: var(--ink);
-      }
-      /* every item row leads with the ◆ bullet — item rows are text, no thumbnails */
-      ul.items li.noimg {
-        padding-left: 18px;
-        position: relative;
-      }
-      ul.items li.noimg::before {
-        content: "◆";
-        position: absolute;
-        left: 0;
-        top: 0;
-        color: var(--accent-2);
-        font-size: 9px;
-        line-height: 2.1;
-      }
-      ul.items.cols {
-        columns: 2;
-      }
-      @media (max-width: 560px) {
-        ul.items.cols {
-          columns: 1;
-        }
-      }
-      ul.items.cols li {
-        break-inside: avoid;
-      }
-
-      /* Progress areas (bonfires / idols / minibosses / world pickups). One block per
-         area: the name on its own line with a dotted leader out to its tally, then the
-         names underneath. The old shape ran the label inline with the name list inside a
-         two-column list, which wrapped mid-label and left nothing to scan down. */
-      ul.areas {
-        list-style: none;
-        margin: 10px 0 0;
-        padding: 0;
-      }
-      ul.areas > li {
-        padding: 7px 0;
-        border-bottom: 1px solid var(--rule-soft);
-        break-inside: avoid;
-      }
-      ul.areas > li:last-child {
-        border-bottom: 0;
-      }
-      .area-head {
-        display: flex;
-        align-items: baseline;
-        gap: 10px;
-      }
-      .area-head .area {
-        font-family: var(--font-label);
-        color: var(--val);
-        letter-spacing: 0.04em;
-        white-space: nowrap;
-      }
-      /* The leader is what lets the eye run from a long area name to its number. */
-      .area-head .lead {
-        flex: 1 1 auto;
-        border-bottom: 1px dotted var(--rule);
-      }
-      .area-head .tally {
-        color: var(--accent);
-        font-variant-numeric: tabular-nums;
-        white-space: nowrap;
-      }
-      .area-names {
-        margin-top: 3px;
-        font-size: 15px;
-        line-height: 1.5;
-      }
-      .area-missing {
-        margin-top: 3px;
-        font-size: 13px;
-        color: var(--ink-dim);
-        line-height: 1.5;
-      }
-      /* Rows with no name line are short enough to pair up. */
-      ul.areas.two {
-        columns: 2;
-        column-gap: 30px;
-      }
-      ul.areas.two > li {
-        break-inside: avoid;
-      }
-      @media (max-width: 700px) {
-        ul.areas.two {
-          columns: 1;
-        }
-      }
-      .tag {
-        font-family: var(--font-label);
-        font-size: 9.5px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        padding: 2px 8px;
-        border-radius: 2px;
-        margin-left: 6px;
-        vertical-align: middle;
-      }
-      .tag.flag {
-        background: color-mix(in srgb, var(--ok) 20%, transparent);
-        color: var(--ok);
-      }
-      .tag.soul {
-        background: color-mix(in srgb, var(--soul) 20%, transparent);
-        color: var(--soul);
-      }
-      .tag.gate {
-        background: color-mix(in srgb, var(--gate) 22%, transparent);
-        color: var(--gate);
-      }
-      .tag.clear {
-        background: color-mix(in srgb, var(--accent) 24%, transparent);
-        color: var(--hi);
-      }
-
-      .inv h5 {
-        font-family: var(--font-label);
-        margin: 18px 0 6px;
-        font-size: 12px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--ink);
-        font-weight: var(--title-weight);
-      }
-      .inv h5:first-child {
-        margin-top: 0;
-      }
-      .note {
-        color: var(--ink-dim);
-        font-size: 14px;
-        font-style: italic;
-        background: color-mix(in srgb, var(--accent) 4%, var(--panel));
-        border-left: 2px solid var(--rule);
-        padding: 10px 14px;
-        border-radius: var(--radius);
-        margin: 14px 0;
-      }
-      .foot {
-        color: var(--ink-dim);
-        font-size: 13px;
-        font-style: italic;
-        text-align: center;
-        margin: 40px 0 0;
-      }
-      footer {
-        text-align: center;
-        color: var(--ink-dim);
-        font-size: 13px;
-        padding: 0 20px 52px;
-        letter-spacing: 0.02em;
-        font-style: italic;
-        max-width: 720px;
-        margin: 0 auto;
-      }
-
-      /* "How it works" panels, styled as menu scrolls. */
-      .how {
-        margin: 18px 0 0;
-        padding: 22px 26px;
-      }
-      .how > summary {
-        font-family: var(--font-label);
-        font-weight: var(--title-weight);
-        text-transform: uppercase;
-        letter-spacing: 0.18em;
-        font-size: 13px;
-        color: var(--accent);
-        list-style: none;
-        cursor: default;
-        pointer-events: none;
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--rule);
-      }
-      .how > summary::-webkit-details-marker {
-        display: none;
-      }
-      .how-body {
-        padding: 16px 0 2px;
-        color: var(--ink-dim);
-        font-size: 15.5px;
-        line-height: 1.7;
-      }
-      .how-body p {
-        margin: 0 0 13px;
-      }
-      .how-body p:last-child {
-        margin-bottom: 0;
-      }
-      .how-body ul {
-        margin: 0 0 13px;
-        padding-left: 20px;
-        list-style: none;
-      }
-      .how-body li {
-        margin: 7px 0;
-        position: relative;
-      }
-      .how-body li::before {
-        content: "◆";
-        position: absolute;
-        left: -16px;
-        top: 0;
-        color: var(--accent-2);
-        font-size: 8px;
-        line-height: 2.4;
-      }
-      .how-body b {
-        color: var(--ink);
-        font-weight: 600;
-      }
-
-      /* Motion is decoration here, so it goes when the user asks for it to. */
-      @media (prefers-reduced-motion: reduce) {
-        * {
-          transition: none !important;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/normal.css" />
+    <link rel="stylesheet" href="css/controls.css" />
+    <link rel="stylesheet" href="css/site.css" />
+    <link rel="stylesheet" href="css/status.css" />
+    <link rel="stylesheet" href="css/document.css" />
   </head>
   <body>
-    <header>
-      <h1>SL2<span class="dot"> · </span>Analyzer</h1>
-      <p class="tag-line">
-        A Souls save is a locked box. Encrypted, undocumented, and useless to you as a file. Drop
-        one here and it opens into the screen the game would have shown you: level and attributes,
-        souls held, every item carried, every bonfire lit, and every boss the save can still prove
-        is dead.
-      </p>
-      <span class="privacy">Seven save formats · reads the file, never writes to it</span>
-    </header>
-    <main>
-      <details class="how frame" open>
-        <summary>What it supports</summary>
-        <div class="how-body">
-          <p>
-            All seven <code>.sl2</code> variants, and you never tell it which game it is — that
-            comes out of the bytes. Each one renders in its own status screen, skinned to that game.
+    <main id="menu">
+      <header id="banner">
+        <h1 id="name">SL2 Analyzer</h1>
+        <hr class="underline" />
+        <p class="tag-line">
+          A Souls save is a locked box. Drop one in and it opens into the screen the game would have
+          shown you: level and attributes, souls held, everything carried, every bonfire lit, and
+          every boss the file can still prove is dead.
+        </p>
+      </header>
+
+      <div class="menu-body">
+        <section id="tool" class="content main" aria-label="Read a save">
+          <div id="modes" role="group" aria-label="What to read">
+            <button type="button" id="mode-single" class="mode on" aria-pressed="true">
+              One save
+            </button>
+            <button type="button" id="mode-combined" class="mode" aria-pressed="false">
+              Combined
+            </button>
+            <span class="mode-note" id="mode-note">One save, read in full.</span>
+          </div>
+          <button type="button" id="drop" class="frame" aria-describedby="drop-note">
+            <span class="big" id="drop-big">Drop a .sl2 save here, or click to choose</span>
+            <span class="small" id="drop-note"
+              >Read on this machine. Nothing is sent anywhere.</span
+            >
+          </button>
+          <button type="button" id="pick-folder" class="mode" hidden>
+            Choose a folder instead
+          </button>
+          <input id="file" type="file" accept=".sl2" hidden />
+          <input id="folder" type="file" hidden webkitdirectory />
+          <div id="status" role="status" aria-live="polite"></div>
+          <p class="help">
+            Seven save formats, and you never tell it which game you dropped. That comes out of the
+            bytes. It only ever reads the file, so you can point it at your live save. The worst
+            case is a bad report, not a broken character.
           </p>
-          <ul>
-            <li>
-              <b>Dark Souls Remastered</b> — identity, class, gender, every attribute, souls,
-              humanity, play time, deaths, the full inventory, held boss souls, twelve boss-defeat
-              flags, and all 43 bonfires with how far each one is kindled. Dark Souls is the only
-              game here that records a bonfire you found but never lit, so it is the only one that
-              can tell you.
-            </li>
-            <li>
-              <b>Dark Souls: Prepare to Die</b> — the same, at the same depth. The two releases keep
-              the same stat block; only where it sits differs.
-            </li>
-            <li>
-              <b>Dark Souls II: Scholar of the First Sin</b> — attributes, class, covenant with
-              rank, gender, hollowing, deaths, play time, and an inventory that names infusions and
-              reinforcement levels. All 77 bonfires by area, and bosses defeated from three separate
-              signals that have to agree.
-            </li>
-            <li>
-              <b>Dark Souls II (vanilla, pre-Scholar)</b> — the same depth as Scholar. The two
-              releases differ by one encryption key and nothing else; everything inside sits in the
-              same place.
-            </li>
-            <li>
-              <b>Dark Souls III</b> — the deepest read here. Attributes, souls, play time, embered
-              state, NG+, the full inventory, equipped weapons with their infusion and
-              <code>+N</code>, armour, rings and ammo. All 77 bonfires by name. Bosses from two
-              independent flag sets, so a New Game+ character still reads correctly. Covenants
-              joined, rewards from 57 NPCs, which Lords of Cinder are on the throne, 426 world items
-              picked up across six areas — and, of the bosses still alive, which ones you can
-              actually reach right now.
-            </li>
-            <li>
-              <b>Sekiro: Shadows Die Twice</b> — the odd one out. No character name, no attributes,
-              no levelling: the game has none of them, so none appear. What it does have is the one
-              thing nothing else here can do — Attack Power goes up by exactly one per Memory
-              consumed, so the bosses whose token you spent hours ago are still counted. Play time,
-              journey, Sen, max HP and Posture, everything carried, the key items and the storage
-              box, each named against its own type table. Boss kills and Sculptor's Idols are read
-              from their own event flags, which matters more here than anywhere else: a Memory still
-              sitting in your bag does not say which boss it came off, and the flag does. Both reset
-              when you start a new journey, so an NG+ save honestly reports fewer than the character
-              has earned — Attack Power carries over and the flags do not.
-            </li>
-            <li>
-              <b>Elden Ring</b> — identity, attributes and runes in full; owned weapons, armour and
-              ashes named by type, so an armour can never resolve to a weapon; remembrances held and
-              the bosses they prove dead. Talismans, spells and goods live in a part of the save
-              that shifts between patches and is not parsed, so the item list is partial. It says so
-              where the list is.
-            </li>
-          </ul>
-          <p>
-            A slot drops to <b>inventory only</b> rather than print an attribute it cannot verify. A
-            save holding several characters gets a tab each, and every export button writes the
-            whole file — every slot, not the one you happen to be looking at.
-          </p>
-        </div>
-      </details>
-      <details class="how frame" open>
-        <summary>How it works</summary>
-        <div class="how-body">
-          <p>
-            A <code>.sl2</code> is one packed archive of blocks — most of them encrypted, one per
-            character, a few more for the world. The page unpacks the archive, decrypts each block
-            with the key the game itself ships, and reads the fields off positions the community
-            mapped over years. It only ever reads: point it at your live save if you like, the worst
-            case is a bad report rather than a broken character.
-          </p>
-          <p>
-            The parsing runs on a background thread, so a nine-megabyte save does not freeze the
-            page, and only the tables for the game you dropped get fetched instead of every game's
-            worth. After the first visit it works <b>offline</b> — the page, its code and the tables
-            it has already used are cached, so you can read a save on a plane.
-          </p>
-          <p>
-            Three ways to take the reading with you. <b>Copy Markdown</b> puts all of it on your
-            clipboard, which is the format to paste into an LLM — it cannot open a
-            <code>.sl2</code>, but it reads Markdown fine. <b>Download .md</b> is that same text as
-            a file. <b>Download .json</b> is the same data written for a program instead of a
-            person, against a <a href="schema.json">published schema</a>, and byte-for-byte
-            identical to what the command-line tool writes. A harness holds those two together on
-            every save, so nothing can tell which one produced a file. One thing to know before you
-            consume it: a field is there only if it was read. Dark Souls III keeps no death counter,
-            so a DS3 character has no <code>deaths</code> key at all — not a zero, not a null. That
-            way you can always tell "the game does not record this" from "it really is none".
-          </p>
-          <p>Every game hides its data somewhere else, so each one is read differently.</p>
-          <ul>
-            <li>
-              <b>Dark Souls II (both releases):</b> vanilla and Scholar use different keys over an
-              identical layout, so the page tries both and reads whichever one opens. Which release
-              you have is decided by which key works, not by a guess. Bonfires and boss kills come
-              from a second world block the game keeps well away from the character.
-            </li>
-            <li>
-              <b>Dark Souls Remastered / Prepare to Die:</b> the character block moves as the save
-              grows, so a fixed offset is worthless. Remastered is found by a marker that always
-              sits beside it; Prepare to Die has no such marker, so it is found by your character's
-              own name.
-            </li>
-            <li>
-              <b>Dark Souls III:</b> the stats move between patches, so the block is located by
-              content rather than position — the nine numbers that add up to your level. That is the
-              game's own formula, so a false match is close to impossible.
-            </li>
-            <li>
-              <b>Elden Ring:</b> the same trick with eight numbers, plus every owned item read
-              straight out of the game's item array.
-            </li>
-            <li>
-              <b>Sekiro:</b> the easy one, for once. Nothing is encrypted and nothing moves between
-              patches, so the fields are read where they are. Each item record carries a type code
-              beside its ID, which is why a piece of armour can never come back named as a weapon.
-            </li>
-          </ul>
-          <p>Two rules, and neither one bends.</p>
-          <p>
-            <b>It never prints a number it cannot verify.</b> If a stat block fails its own check,
-            that slot drops to inventory-only and the attributes are simply gone. A missing field
-            costs you nothing. A wrong one quietly tells you your character is something it is not,
-            and you would have no way of knowing. So the field goes.
-          </p>
-          <p>
-            <b>Progress is a floor, not a ceiling.</b> A boss counts as dead only when the save
-            still proves it: the soul sitting in your pack, a defeat flag, or a place past it you
-            could not have reached with the boss alive. Kill a boss and spend the soul, with no flag
-            and no gate behind it, and it stays off the list. The tool under-claims on purpose.
-            Everything it shows you happened. There is simply more that it cannot see.
-          </p>
-        </div>
-      </details>
-      <div id="modes" role="group" aria-label="What to read">
-        <button type="button" id="mode-single" class="mode on" aria-pressed="true">One save</button>
-        <button type="button" id="mode-combined" class="mode" aria-pressed="false">Combined</button>
-        <span class="mode-note" id="mode-note">One save, read in full.</span>
+          <div id="out"></div>
+        </section>
+
+        <aside class="statbox" aria-label="What this reader does">
+          <div class="sb-title">Save reader</div>
+          <div class="sb-row">
+            <span class="sb-n">Save formats</span><span class="sb-v">7</span>
+          </div>
+          <div class="sb-row">
+            <span class="sb-n">Game families</span><span class="sb-v">5</span>
+          </div>
+          <div class="sb-row">
+            <span class="sb-n">Detection</span><span class="sb-v">Automatic</span>
+          </div>
+          <div class="sb-div"></div>
+          <div class="sb-row">
+            <span class="sb-n">Reads</span><span class="sb-v">In this tab</span>
+          </div>
+          <div class="sb-row"><span class="sb-n">Uploads</span><span class="sb-v">Never</span></div>
+          <div class="sb-row">
+            <span class="sb-n">Writes to save</span><span class="sb-v">Never</span>
+          </div>
+          <div class="sb-div"></div>
+          <div class="sb-row">
+            <span class="sb-n">Exports</span><span class="sb-v">MD · JSON</span>
+          </div>
+          <div class="sb-row">
+            <span class="sb-n">Offline</span><span class="sb-v">After first load</span>
+          </div>
+          <div class="sb-note">
+            A slot that cannot verify its own stat block drops to inventory only. Nothing here is
+            printed unless the file proves it.
+          </div>
+        </aside>
       </div>
-      <button type="button" id="drop" class="frame" aria-describedby="drop-note">
-        <span class="big" id="drop-big">Drop a .sl2 save here, or click to choose</span>
-        <span class="small" id="drop-note">Read on this machine. Nothing is sent anywhere.</span>
-      </button>
-      <button type="button" id="pick-folder" class="mode" hidden>Choose a folder instead</button>
-      <input id="file" type="file" accept=".sl2" hidden />
-      <input id="folder" type="file" hidden webkitdirectory />
-      <div id="status" role="status" aria-live="polite"></div>
-      <div id="out"></div>
+
+      <section class="info" aria-label="About this tool">
+        <input type="radio" name="info-tabs" id="tab-games" class="tab-radio" checked />
+        <input type="radio" name="info-tabs" id="tab-how" class="tab-radio" />
+        <input type="radio" name="info-tabs" id="tab-log" class="tab-radio" />
+        <input type="radio" name="info-tabs" id="tab-fonts" class="tab-radio" />
+        <input type="radio" name="info-tabs" id="tab-links" class="tab-radio" />
+        <input type="radio" name="info-tabs" id="tab-legal" class="tab-radio" />
+        <div class="tab-strip">
+          <label class="tab mode" for="tab-games">Games</label>
+          <label class="tab mode" for="tab-how">How it works</label>
+          <label class="tab mode" for="tab-log">Changelog</label>
+          <label class="tab mode" for="tab-fonts">Type</label>
+          <label class="tab mode" for="tab-links">Links</label>
+          <label class="tab mode" for="tab-legal">Legal</label>
+        </div>
+
+        <div class="tab-panels">
+          <section class="content lesser frame" id="panel-games" aria-labelledby="h-games">
+            <h2 id="h-games">What it reads</h2>
+            <p>
+              All seven <code>.sl2</code> variants. Each one renders in its own status screen,
+              skinned to that game.
+            </p>
+            <ul>
+              <li>
+                <span class="game">Dark Souls Remastered</span>. Identity, class, gender, every
+                attribute, souls, humanity, play time, deaths, the full inventory, held boss souls,
+                twelve boss-defeat flags, and all 43 bonfires with how far each one is kindled. Dark
+                Souls is the only game here that records a bonfire you found but never lit, so it is
+                the only one that can tell you.
+              </li>
+              <li>
+                <span class="game">Dark Souls: Prepare to Die</span>. The same, at the same depth.
+                Both releases keep the same stat block. Only its position differs.
+              </li>
+              <li>
+                <span class="game">Dark Souls II: Scholar of the First Sin</span>. Attributes,
+                class, covenant with rank, gender, hollowing, deaths, play time, and an inventory
+                that names infusions and reinforcement levels. All 77 bonfires by area, and bosses
+                counted from three separate signals that have to agree.
+              </li>
+              <li>
+                <span class="game">Dark Souls II, vanilla</span>. The same depth as Scholar. The two
+                releases differ by one encryption key and nothing else.
+              </li>
+              <li>
+                <span class="game">Dark Souls III</span>. The deepest read here. Attributes, souls,
+                play time, embered state, NG+, the full inventory with infusions and
+                <code>+N</code>, all 77 bonfires by name, bosses from two independent flag sets,
+                covenants joined, rewards from 57 NPCs, which Lords of Cinder are on the throne, and
+                426 world items picked up across six areas. It also tells you which of the bosses
+                still alive you can reach right now.
+              </li>
+              <li>
+                <span class="game">Sekiro</span>. The odd one out. No name, no attributes, no
+                levelling, because the game has none of them. What it does have is the one thing
+                nothing else here can do: Attack Power rises by exactly one per Memory consumed, so
+                a boss whose token you spent hours ago is still counted. Play time, journey, Sen,
+                max HP and Posture, everything carried, key items, the storage box, boss kills and
+                Sculptor's Idols from their own event flags. Both flag sets reset when you start a
+                new journey, so an NG+ save honestly reports fewer than the character earned.
+              </li>
+              <li>
+                <span class="game">Elden Ring</span>. Identity, attributes and runes in full.
+                Weapons, armour and ashes named by type, so armour can never come back as a weapon.
+                Remembrances held, and the bosses they prove dead. Talismans, spells and goods sit
+                in a part of the save that moves between patches and is not parsed, so that item
+                list is partial. The page says so where the list is.
+              </li>
+            </ul>
+            <p>
+              A slot drops to <b>inventory only</b> rather than print an attribute it cannot verify.
+              A save holding several characters gets a tab each, and every export button writes the
+              whole file: every slot, not the one you happen to be looking at.
+            </p>
+          </section>
+
+          <section class="content lesser frame" id="panel-how" aria-labelledby="h-how">
+            <h2 id="h-how">How it works</h2>
+            <p>
+              A <code>.sl2</code> is one packed archive of blocks. Most of them are encrypted, one
+              per character, and a few more hold the world. The page unpacks the archive, decrypts
+              each block with the key the game itself ships, and reads fields off positions the
+              community mapped over years.
+            </p>
+            <p>
+              Parsing runs on a background thread, so a nine megabyte save does not freeze the page,
+              and only the tables for the game you dropped get fetched. After the first visit it
+              works <b>offline</b>. The page, its code, its font and the tables it has already used
+              are cached, so you can read a save on a plane.
+            </p>
+            <p>
+              There are three ways to take the reading with you. <b>Copy Markdown</b> is the one to
+              paste into an LLM, since it cannot open a <code>.sl2</code> but reads Markdown fine.
+              <b>Download .md</b> is that same text as a file. <b>Download .json</b> is the same
+              data written for a program, against a <a href="schema.json">published schema</a>, and
+              byte for byte identical to what the command line tool writes. One thing to know before
+              you consume it: a field is there only if it was read. Dark Souls III keeps no death
+              counter, so a DS3 character has no <code>deaths</code> key at all. Not a zero, not a
+              null.
+            </p>
+            <h2>Every game hides its data somewhere else</h2>
+            <ul>
+              <li>
+                <span class="game">Dark Souls II</span>. Vanilla and Scholar use different keys over
+                an identical layout, so the page tries both and reads whichever one opens. Which
+                release you have is decided by which key works, not by a guess. Bonfires and boss
+                kills come from a second world block the game keeps well away from the character.
+              </li>
+              <li>
+                <span class="game">Dark Souls, both releases</span>. The character block moves as
+                the save grows, so a fixed offset is worthless. Remastered is found by a marker that
+                always sits beside it. Prepare to Die has no such marker, so it is found by your
+                character's own name.
+              </li>
+              <li>
+                <span class="game">Dark Souls III</span>. The stats move between patches, so the
+                block is located by content instead of position: the nine numbers that add up to
+                your level. That is the game's own formula, so a false match is close to impossible.
+              </li>
+              <li>
+                <span class="game">Elden Ring</span>. The same trick with eight numbers, plus every
+                owned item read straight out of the game's item array.
+              </li>
+              <li>
+                <span class="game">Sekiro</span>. The easy one, for once. Nothing is encrypted and
+                nothing moves between patches. Each item record carries a type code beside its ID,
+                which is why a piece of armour can never come back named as a weapon.
+              </li>
+            </ul>
+            <h2>Two rules, and neither one bends</h2>
+            <p>
+              <b>It never prints a number it cannot verify.</b> If a stat block fails its own check,
+              that slot drops to inventory only and the attributes are simply gone. A missing field
+              costs you nothing. A wrong one quietly tells you your character is something it is
+              not, and you would have no way of knowing. So the field goes.
+            </p>
+            <p>
+              <b>Progress is a floor, not a ceiling.</b> A boss counts as dead only when the save
+              still proves it: the soul sitting in your pack, a defeat flag, or a place past it you
+              could not have reached with the boss alive. Kill a boss, spend the soul, leave no flag
+              and no gate behind you, and it stays off the list. The tool under-claims on purpose.
+              Everything it shows you happened. There is simply more that it cannot see.
+            </p>
+          </section>
+
+          <section class="content lesser frame log" id="panel-log" aria-labelledby="h-log">
+            <h2 id="h-log">Changelog</h2>
+            <div>
+              <b>2026/08/18</b> • Interface rebuilt against a screenshot of the Dark Souls III
+              inventory screen, with its plate colour, its barely-there separators and its burnt
+              orange selection bar sampled straight off the image. Georgia throughout, with
+              adobe-garamond-pro first in the stack for anyone who owns it
+            </div>
+            <div>
+              <b>2026/08/18</b> • Page rebuilt as the menu itself: one slab over the scene with its
+              edges feathered, the list down the left, the status box on the right, the category
+              strip across the top and the button prompts along the bottom
+            </div>
+            <div>
+              <b>2026/08/18</b> • Sekiro world pickups. The <code>5xxxxxxx</code> pickup flags live
+              at category <code>k = map_k + 66</code>, which makes 589 of 826 curated rows readable
+            </div>
+            <div>
+              <b>2026/08/17</b> • Sekiro miniboss roster regenerated from the installed game instead
+              of a community list. It came back with 37 rows where the list had 33, including all
+              five Headless
+            </div>
+            <div>
+              <b>2026/08/17</b> • Local game-file reader added: archive unpack, MSB maps, EMEVD
+              events, roster. Sekiro needs Oodle Kraken, DS1 to DS3 need nothing
+            </div>
+            <div><b>2026/08/15</b> • More DS3 event flags wired in</div>
+            <div><b>2026/08/14</b> • Doxygen documentation, themed and deployed with the site</div>
+            <div>
+              <b>2026/08/14</b> • Sekiro event flags solved and shipped. Boss kills and Sculptor's
+              Idols now come from their own flags rather than from what is in your bag
+            </div>
+            <div><b>2026/08/13</b> • Sekiro key items, the storage box, and minibosses</div>
+            <div>
+              <b>2026/08/12</b> • Sekiro Vitality found at <code>0x34498</code>. Ten candidates were
+              killed by arithmetic before that one survived
+            </div>
+            <div>
+              <b>2026/08/12</b> • Four saves scanned for a field that turned out not to be in them,
+              and nothing shipped. That is the honest outcome and it gets a line too
+            </div>
+            <div>
+              <b>2026/08/10</b> • The Steam account that owns the file, read from the save itself
+            </div>
+            <div>
+              <b>2026/08/10</b> • Longer item lists in every game, and a restructured README
+            </div>
+            <div>
+              <b>2026/08/09</b> • Sekiro support: play time, journey, Sen, Attack Power, max HP and
+              Posture, and everything carried, each item named against its own type table
+            </div>
+            <div><b>2026/08/09</b> • All 426 DS3 world pickups across six areas</div>
+            <div>
+              <b>2026/08/09</b> • Six regressions from the previous session found and fixed before
+              anything new went in
+            </div>
+            <div>
+              <b>2026/08/08</b> • Combined mode. Point it at a folder and get one cross-game history
+              with a journey chart and a save tree per run
+            </div>
+            <div><b>2026/08/08</b> • DS3 endings</div>
+            <div><b>2026/08/04</b> • Bug fixes</div>
+            <div>
+              <b>2026/08/01</b> • JSON export against a published schema, byte for byte identical to
+              the command line tool
+            </div>
+            <div>
+              <b>2026/08/01</b> • Codebase split into the <code>sl2</code> package, with
+              <code>sl2_to_md.py</code> left as the entry point
+            </div>
+            <div><b>2026/08/01</b> • MIT licence added</div>
+            <div><b>2026/07/28</b> • New icon and social card</div>
+            <div><b>2026/07/27</b> • GitHub Actions deploys the site on every push</div>
+            <div>
+              <b>2026/07/27</b> • Dark Souls Remastered and Prepare to Die read in full: gender,
+              deaths, play time, derived stats
+            </div>
+            <div>
+              <b>2026/07/26</b> • The DS3 flag addressing formula, which is what made bonfires,
+              bosses and pickups readable at all
+            </div>
+            <div>
+              <b>2026/07/26</b> • Vanilla Dark Souls II reaches full tier, and DS2 bonfires group by
+              area
+            </div>
+            <div><b>2026/07/23</b> • DS3 embered state, and three rounds of flag-scan speedups</div>
+            <div><b>2026/07/14</b> • Website overhaul</div>
+            <div><b>2026/07/13</b> • Attributes on the web app</div>
+            <div>
+              <b>2026/07/12</b> • Ported to the browser. Before this it was a Python script and
+              nothing else
+            </div>
+            <div><b>2026/07/11</b> • All five game families curated</div>
+            <div><b>2026/07/08</b> • Support for every game in the command line tool</div>
+            <div><b>2026/07/07</b> • First commit</div>
+          </section>
+
+          <section class="content lesser frame" id="panel-fonts" aria-labelledby="h-fonts">
+            <h2 id="h-fonts">Type and colour</h2>
+            <p>
+              The whole page is set in one face:
+              <b>adobe-garamond-pro</b> if you have it, and <b>Georgia</b> if you do not. Adobe
+              Garamond Pro is what FromSoftware actually uses for the Dark Souls games and for
+              Sekiro's Latin text. It is not redistributable, so it sits first in the stack and
+              resolves only when it is already installed on your machine or an Adobe Fonts kit is
+              added to the page. Georgia carries everyone else. Nothing is downloaded either way,
+              which is part of why this page still makes no cross-origin request at all.
+            </p>
+            <p>
+              Elden Ring uses Agmena, which is a Garamond with squarer serifs. Demon's Souls is
+              closer to Pinnacle JY or ITC Galliard. Sekiro's decorative Japanese, including the 死
+              pop-up, is 白舟極太楷書. None of those are free either, and the fallback for all of
+              them is the same system serif.
+            </p>
+            <h2>Where the colours come from</h2>
+            <p>
+              Every accent here is the colour that game prints its own overlays in, measured by the
+              <a href="https://rezuaq.be/new-area/image-creator/">FromSoft Image Macro Creator</a>.
+              Dark Souls lights a bonfire in <code>rgb(255,228,92)</code>, Dark Souls II in
+              <code>rgb(255,177,68)</code>, Dark Souls III in <code>rgb(255,206,86)</code>. Elden
+              Ring finds a lost grace in <code>rgb(220,135,56)</code>. Sekiro writes in white and
+              kills you in <code>rgb(183,48,44)</code>. They are used flat and pulled down a stop
+              for a dark room, as rules and values and one filled chip, with none of the bloom the
+              games draw behind their text. The colour is there to tell you which game you are
+              reading. Nothing else has to.
+            </p>
+            <p>
+              The grain on the page and on every panel is one patch of fractal noise drained of
+              colour, which is the same trick the macro creator uses on its own boxes.
+            </p>
+          </section>
+
+          <section class="content lesser frame" id="panel-links" aria-labelledby="h-links">
+            <h2 id="h-links">This project</h2>
+            <ul>
+              <li>
+                <a href="https://github.com/darthdemono/sl2-analyzer">sl2-analyzer on GitHub</a>.
+                The same reader as a Python command line tool, which also writes the combined
+                document across a whole folder of saves.
+              </li>
+              <li>
+                <a href="schema.json">schema.json</a>. What the JSON export is written against.
+              </li>
+              <li><a href="documentation/">Documentation</a>. Generated from the source.</li>
+              <li>
+                <a href="https://github.com/darthdemono/sl2-analyzer/issues">Issues</a>. If a field
+                reads wrong, say which game, which patch, and what the save shows in game. A wrong
+                field is a bug. A missing field is usually the tool refusing to guess.
+              </li>
+            </ul>
+
+            <h2>Fan tools worth your time</h2>
+            <ul>
+              <li>
+                <a href="https://rezuaq.be/new-area/image-creator/">FromSoft Image Macro Creator</a
+                >. Puts convincing YOU DIED text on any image. This site's colours and its grain
+                came from there.
+              </li>
+              <li>
+                <a href="https://rezuaq.be/new-area/">Area Name Generator</a>. The same author's
+                earlier toy, for randomised FromSoft area names.
+              </li>
+              <li>
+                <a href="https://deathgenerator.com/">The Death Generator</a>. Pixel accurate image
+                macros from a pile of classic games.
+              </li>
+              <li>
+                <a href="https://reddit.com/r/fromSoftMacroCreator">r/fromSoftMacroCreator</a>.
+                Where people post what they make with it.
+              </li>
+            </ul>
+
+            <h2>The work this stands on</h2>
+            <ul>
+              <li>
+                <a href="https://github.com/JKAnderson/SoulsFormats">SoulsFormats</a>. The format
+                library every FromSoft tool leans on, this one included.
+              </li>
+              <li>
+                <a href="https://github.com/soulsmods/Paramdex">Paramdex</a> and the
+                <a href="http://soulsmodding.wikidot.com/">soulsmodding wiki</a>. ID tables and the
+                event flag arithmetic.
+              </li>
+              <li>
+                <a href="https://github.com/soulsmods/DSMapStudio">DSMapStudio</a> and
+                <a href="https://github.com/vawser/Smithbox">Smithbox</a>. Map and param editors.
+                Useful when you want to see what a flag is actually attached to.
+              </li>
+              <li>
+                <a href="https://github.com/JKAnderson/UXM">UXM</a> and
+                <a href="https://github.com/ividyon/WitchyBND">WitchyBND</a>. Unpacking the game
+                archives.
+              </li>
+              <li>
+                <a href="https://github.com/thefifthmatt/DarkScript3">DarkScript3</a>. Reads the
+                event scripts, and its EMEDF is where the instruction definitions come from.
+              </li>
+              <li>
+                <a href="https://github.com/FrankvdStam/SoulSplitter">SoulSplitter</a>. Speedrun
+                splitter, and a well kept list of boss, bonfire and item flags.
+              </li>
+              <li>
+                <a href="https://github.com/jtesta/souls_givifier">souls_givifier</a>. Where the
+                save encryption keys and the block layout are written down.
+              </li>
+              <li>
+                <a href="https://github.com/The-Grand-Archives/Dark-Souls-III-CT-TGA"
+                  >The Grand Archives tables</a
+                >. Cheat Engine tables for DS3 and Elden Ring, useful as ID dropdowns.
+              </li>
+              <li>
+                <a href="https://github.com/ClayAmore/ER-Save-Editor">ER-Save-Editor</a>. Where the
+                Elden Ring save structure is documented.
+              </li>
+              <li>
+                <a href="https://darksouls.wiki.fextralife.com/">Fextralife</a> and the
+                <a href="http://darksouls.wikidot.com/">Dark Souls wikidot</a>. Derived stat
+                formulas, bonfire to area mappings, boss ordering.
+              </li>
+              <li>
+                <a href="https://speedsouls.com/">SpeedSouls</a>. Route knowledge, which is what
+                tells you a place is unreachable with a boss alive.
+              </li>
+            </ul>
+          </section>
+
+          <section class="content lesser frame" id="panel-legal" aria-labelledby="h-legal">
+            <h2 id="h-legal">Disclaimer</h2>
+            <p>
+              This is a fan project and it is not affiliated with anyone. DARK SOULS, SEKIRO:
+              SHADOWS DIE TWICE and ELDEN RING belong to FromSoftware, Bandai Namco Entertainment
+              and their respective owners. Item, boss, bonfire and area names appear here as lookup
+              tables so that a save file can be read at all, which is interoperability, not
+              republication. No game assets ship with this page and nothing here helps you obtain a
+              game.
+            </p>
+
+            <h2>Your save</h2>
+            <p>
+              Everything happens in this tab. The file is read with the browser's own file API,
+              parsed in a worker, and never uploaded. There is no server to upload it to, and the
+              page makes no cross-origin request of any kind. It is also opened read only, so
+              nothing is ever written back to your save.
+            </p>
+
+            <h2>Licence</h2>
+            <p>
+              The code is
+              <a href="https://github.com/darthdemono/sl2-analyzer?tab=License-1-ov-file">MIT</a>.
+              Every line of the Python and the JavaScript was written for this project, and no
+              third-party source is bundled. Two libraries are vendored rather than loaded from a
+              CDN, so the page stays self-contained: <b>Mermaid</b> (MIT) for the charts in the
+              combined view, and <b>doxygen-awesome-css</b> (MIT) for the generated documentation.
+            </p>
+
+            <h2>Where the facts came from</h2>
+            <p>
+              The keys, the offsets and the flag IDs were worked out by other people first, and they
+              deserve the credit whether or not a licence demands it. Three of those projects are
+              GPL-3.0, which is worth addressing rather than hoping nobody checks.
+            </p>
+            <ul>
+              <li>
+                <b>GPL-3.0.</b>
+                <a href="https://github.com/jtesta/souls_givifier">souls_givifier</a>
+                for the DSR, DS3 and Elden Ring keys and the block layout.
+                <a href="https://github.com/JKAnderson/SoulsFormats">SoulsFormats</a> for the
+                vanilla DS2 key.
+                <a href="https://github.com/FrankvdStam/SoulSplitter">SoulSplitter</a> for DS3 and
+                Sekiro flag IDs.
+                <a href="https://github.com/thefifthmatt/SoulsRandomizers">SoulsRandomizers</a> for
+                the DS3 item lot annotations.
+              </li>
+              <li>
+                <b>MIT.</b> alfizari's DS3 and DS2 save editors for stat offsets and item tables,
+                <a href="https://github.com/tarvitz/dsfp">dsfp</a> for the PtDE roster record, and
+                <a href="https://github.com/uberhalit/simplesekirosavegamehelper"
+                  >SimpleSekiroSavegameHelper</a
+                >
+                for the Sekiro container layout.
+              </li>
+              <li>
+                <b>Apache-2.0.</b> alfizari's Dark Souls Remastered and Sekiro editors, for offsets,
+                item type nibbles and English item names.
+              </li>
+              <li>
+                <b>No licence stated.</b> ER-Save-Lib and ER-Save-Editor for the Elden Ring
+                structure, Paramdex and the soulsmodding wiki for ID sets and the flag formula, the
+                Grand Archives Cheat Engine tables, and the wikis for derived stat formulas and area
+                mappings.
+              </li>
+              <li>
+                <b>Colour and type.</b> The
+                <a href="https://rezuaq.be/new-area/image-creator/">FromSoft Image Macro Creator</a>
+                for which typeface each game uses and for the measured RGB of its overlays.
+              </li>
+            </ul>
+            <p>
+              <b>No GPL-licensed code is in this repository.</b> What was taken from those projects
+              is factual information about a file format FromSoftware defined. A key is a number. It
+              is discovered, not authored, and it is the same number no matter who writes it down.
+              "The death counter is a uint32 at +104" is a fact about Dark Souls II, not a creative
+              work belonging to whoever measured it. Copyright protects expression, not facts, which
+              in US law is the holding of <i>Feist v. Rural Telephone</i>: an exhaustive compilation
+              of facts with no creative selection is not protectable, and sweat of the brow earns no
+              copyright however much of it went in. The flag lists used here are exhaustive by
+              nature, every bonfire and every boss, so there is no creative selection to infringe.
+            </p>
+            <p>
+              Two caveats, stated plainly, because the point is honesty rather than reassurance. The
+              EU's <i>sui generis</i> database right is a separate regime from copyright and
+              protects investment in compiling a database, so a European reading could differ from
+              the American one. And none of this is legal advice. It is the reasoning behind the
+              choice, offered so you can check it rather than trust it. The full version, with the
+              per-project table and the list of files to delete if you want to avoid the question
+              entirely, is in
+              <a href="https://github.com/darthdemono/sl2-analyzer/blob/main/THIRD-PARTY-NOTICES.md"
+                >THIRD-PARTY-NOTICES.md</a
+              >.
+            </p>
+          </section>
+        </div>
+      </section>
     </main>
-    <footer>
-      <a href="documentation/">Documentation</a>
-      · <a href="https://github.com/darthdemono/sl2-analyzer?tab=readme-ov-file">GitHub</a> ·
-      <a href="https://github.com/darthdemono/sl2-analyzer?tab=License-1-ov-file">MIT License</a> ·
-      <a href="https://darthdemono.com/">DarthDemono</a>
+
+    <footer id="footer">
+      <div class="credit left">
+        Parsing happens in this tab. No save file is ever uploaded, and none is written to.
+      </div>
+      <nav class="credit right" aria-label="Project links">
+        <a href="https://darthdemono.com/">By DarthDemono</a><span class="sep">·</span
+        ><a href="documentation/">Docs</a><span class="sep">·</span
+        ><a href="https://github.com/darthdemono/sl2-analyzer?tab=readme-ov-file">On GitHub</a
+        ><span class="sep">·</span
+        ><a href="https://github.com/darthdemono/sl2-analyzer?tab=License-1-ov-file">MIT</a>
+      </nav>
     </footer>
     <script type="module" src="app/main.js"></script>
   </body>

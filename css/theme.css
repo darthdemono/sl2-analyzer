@@ -1,0 +1,80 @@
+/* Colour and type tokens, measured off the Dark Souls III inventory screen rather
+   than guessed at. Sampling that screen: the panel plate averages rgb(17,15,17), the
+   separators between rows sit around rgb(20,20,20) so they are barely there, the
+   status box is bordered in a dark rgb(33,26,20) rather than bright brass, and the
+   highlighted row is a burnt orange bar averaging rgb(78,33,9) with the text on it in
+   a warm cream near rgb(247,211,189).
+
+   So: near-black plates, almost invisible rules, no bright borders anywhere, and one
+   loud thing on the screen, which is the row you are on. Each game keeps its own
+   accent, and its selection bar is that accent burnt down to the same value DS3 uses.
+   `renderSave` puts `t-<game>` on the result wrapper. */
+
+:root {
+  --bg: #030304;
+  /* The selected row, which is the only bright surface the game's menus have. */
+  --sel: color-mix(in srgb, var(--accent) 40%, #170800);
+  --sel-edge: color-mix(in srgb, var(--accent) 62%, #200b00);
+  --sel-ink: #f7d3bd;
+  /* Panels are the grain image with a colour under it, the way the game's menu
+     boxes sit on a dirty plate rather than a flat fill. */
+  --panel: url(../graphics/noise.svg) repeat, #0d0c0d;
+  --panel-2: url(../graphics/noise.svg) repeat, #100f10;
+  /* --ink-dim carries 11-13px text (notes, hints, labels), so it is held above
+     4.5:1 on --bg, which is WCAG AA for small text. */
+  --ink: #c6bfb3;
+  --ink-dim: #857f74;
+  --val: #ece6da;
+  /* DS3's separators are neutral and nearly invisible. They are not brass. */
+  --rule: rgba(255, 255, 255, 0.08);
+  --rule-soft: rgba(255, 255, 255, 0.045);
+  /* The status box edge: dark, engraved, with one lighter hairline inside it. */
+  --box: #211a14;
+  --box-in: rgba(255, 255, 255, 0.055);
+
+  --accent: #c4ab5c;
+  --accent-2: #7a6430;
+
+  --danger: #b64c42;
+  --ok: #6f8f4f;
+  --soul: #628bab;
+  --gate: #b09342;
+
+  /* One face for the whole page. adobe-garamond-pro is what FromSoftware sets its
+     menus in; it is not redistributable, so it resolves only for a reader who has it
+     installed or who adds an Adobe Fonts kit, and Georgia carries everyone else.
+     Nothing is downloaded for either. */
+  --font-ui: "adobe-garamond-pro", Georgia, "Times New Roman", serif;
+  --radius: 3px;
+}
+
+/* Dark Souls II. BONFIRE LIT rgb(255,177,68), and the mint it alone uses for
+   HUMANITY RESTORED rgb(169,254,236), which is what its tags are keyed to. */
+.t-ds2 {
+  --accent: #c98a36;
+  --accent-2: #77521f;
+  --soul: #7bbdad;
+  --gate: #7bb0c2;
+}
+
+/* Dark Souls III. BONFIRE LIT rgb(255,206,86). */
+.t-ds3 {
+  --accent: #bd9241;
+  --accent-2: #6c4e21;
+}
+
+/* Elden Ring. LOST GRACE DISCOVERED rgb(220,135,56). */
+.t-er {
+  --accent: #c0752e;
+  --accent-2: #7a4b1d;
+  --gate: #c0752e;
+}
+
+/* Sekiro. White text, the idol prompt rgb(253,237,182), and DEATH rgb(183,48,44).
+   The seal red is the accent; the parchment is what values are printed in. */
+.t-sdt {
+  --accent: #a63f36;
+  --accent-2: #6c2a23;
+  --val: #ffffff;
+  --gate: #c4ae79;
+}

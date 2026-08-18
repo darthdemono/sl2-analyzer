@@ -1,0 +1,166 @@
+/* The controls, and the plate they sit on, copied from the Dark Souls III inventory
+   screen. That screen has almost no borders: a near-black plate, separators you can
+   barely see, and one bright thing on it, which is the row you are on. So the menu
+   button here is not a chip. It is a row that lights up. */
+
+.frame {
+  position: relative;
+  background: transparent;
+  border: 1px solid var(--rule-soft);
+  border-radius: 0;
+}
+
+/* Menu button. `.mode` is the class the app's switches and the info tabs both carry.
+   Unselected it is text on the plate. Selected it is the burnt orange bar, brighter
+   at the leading edge, with the game's own warm cream on top of it. */
+.mode {
+  position: relative;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  padding: 7px 18px;
+  color: var(--ink-dim);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  transition:
+    color 0.12s,
+    background 0.12s;
+}
+.mode:hover {
+  color: var(--val);
+  background: rgba(255, 255, 255, 0.05);
+}
+.mode.on {
+  color: var(--sel-ink);
+  background: linear-gradient(90deg, var(--sel-edge), var(--sel) 45%, var(--sel) 100%);
+}
+/* The lit edge on the left of a selected row. */
+.mode.on::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--sel-edge);
+}
+
+/* Action button: download, copy. The same row, boxed, because it does something
+   rather than selecting a view. */
+.btn {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  padding: 0.4rem 1.05rem;
+  border-radius: 0;
+  cursor: pointer;
+  transition:
+    color 0.12s,
+    background 0.12s,
+    border-color 0.12s;
+  border: 1px solid var(--box);
+  box-shadow: inset 0 0 0 1px var(--box-in);
+  background: var(--panel-2);
+  color: var(--ink);
+}
+.btn:hover,
+.btn-ghost:hover {
+  color: var(--sel-ink);
+  background: linear-gradient(90deg, var(--sel-edge), var(--sel) 55%);
+  border-color: var(--sel);
+}
+
+/* The drop target: a wide plate with a hairline, the way the game frames an empty
+   slot. It fills with the selection bar when a file is over it. */
+#drop {
+  display: block;
+  position: relative;
+  width: 100%;
+  margin: 20px 0 6px;
+  padding: 44px 24px;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.25);
+  font: inherit;
+  color: inherit;
+  -webkit-appearance: none;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+#drop:hover,
+#drop.over {
+  border-color: var(--sel);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, var(--sel) 400%), var(--panel-2);
+}
+#drop .big {
+  display: block;
+  font-size: 21px;
+  letter-spacing: 0.02em;
+  color: var(--val);
+}
+#drop .small {
+  display: block;
+  color: var(--ink-dim);
+  font-size: 14px;
+  font-style: italic;
+  margin-top: 6px;
+}
+
+/* Completion bar (bonfires found, idols lit). */
+.pbar {
+  height: 3px;
+  margin: 0 0 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+.pbar-f {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  opacity: 0.75;
+}
+
+/* Small status chips: the read tier on a slot, the reason a boss counts as dead. */
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 3px 9px;
+  border-radius: 0;
+  border: 1px solid var(--box);
+  box-shadow: inset 0 0 0 1px var(--box-in);
+  color: var(--ink-dim);
+}
+.badge.full {
+  color: var(--accent);
+}
+
+.tag {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 1px 7px;
+  border-radius: 0;
+  margin-left: 6px;
+  vertical-align: middle;
+  border: 1px solid currentColor;
+  opacity: 0.85;
+}
+.tag.flag {
+  color: var(--ok);
+}
+.tag.soul {
+  color: var(--soul);
+}
+.tag.gate {
+  color: var(--gate);
+}
+.tag.clear {
+  color: var(--accent);
+}

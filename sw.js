@@ -1,11 +1,11 @@
-// Offline support. The app already does all its work locally once loaded — the only
-// reason it needs the network at all is to fetch itself and its item tables — so
+// Offline support. The app already does all its work locally once loaded, and the
+// only reason it needs the network at all is to fetch itself and its item tables, so
 // caching those makes it work with no connection, which suits a save analyzer.
 //
 // There is nothing cross-origin to think about: the page fetches only itself and its
 // own tables, so everything it asks for is cacheable.
 
-const VERSION = "v20";
+const VERSION = "v25";
 const CACHE = `sl2-analyzer-${VERSION}`;
 
 // The app shell. Item tables are not listed: there are ~50 of them across five game
@@ -30,14 +30,16 @@ const SHELL = [
   "app/timeline.js",
   "app/chart.js",
   "app/mdview.js",
-  // The two Garamonds the page draws in. Self-hosted, so they are part of the
-  // shell rather than a third-party request that would fail offline anyway.
-  "fonts/eb-garamond-latin.woff2",
-  "fonts/eb-garamond-latin-ext.woff2",
-  "fonts/eb-garamond-italic-latin.woff2",
-  "fonts/eb-garamond-italic-latin-ext.woff2",
-  "fonts/cormorant-garamond-latin.woff2",
-  "fonts/cormorant-garamond-latin-ext.woff2",
+  // The stylesheet, split by concern the way the page's own sections are.
+  "css/theme.css",
+  "css/normal.css",
+  "css/controls.css",
+  "css/site.css",
+  "css/status.css",
+  "css/document.css",
+  // The page grain. No font files: the whole page is Georgia, which every machine
+  // already has, with adobe-garamond-pro in front of it for whoever owns that.
+  "graphics/noise.svg",
 ];
 
 self.addEventListener("install", (e) => {
@@ -64,8 +66,8 @@ const isDb = (url) => /\/db_(ds1|ds2|ds3|er|sdt)\//.test(url.pathname);
 // The chart library is 3.4 MB and only the combined view ever asks for it, so it is
 // cached the same way as the tables: on first use, not up front.
 const isVendor = (url) => url.pathname.includes("/vendor/");
-// Fonts never change without a filename change, so they follow the same rule.
-const isFont = (url) => url.pathname.includes("/fonts/");
+// The grain never changes without a filename change, so it follows the same rule.
+const isAsset = (url) => url.pathname.includes("/graphics/");
 const isDocs = (url) => url.pathname.includes("/documentation/");
 
 self.addEventListener("fetch", (e) => {
@@ -74,10 +76,10 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // same-origin only, by design
 
-  // Item tables are content-addressed in practice — a name/id table only changes
-  // when the repo does — so serve them from cache and only hit the network on a
+  // Item tables are content-addressed in practice, since a name/id table only
+  // changes when the repo does, so serve them from cache and hit the network on a
   // miss. This is what makes a second save of the same game load instantly.
-  if (isDb(url) || isVendor(url) || isFont(url)) {
+  if (isDb(url) || isVendor(url) || isAsset(url)) {
     e.respondWith(
       caches.match(req).then(
         (hit) =>
@@ -108,7 +110,8 @@ self.addEventListener("fetch", (e) => {
       })
       // The index.html fallback is for the APP being opened offline. The generated
       // documentation is a separate site under /documentation/, so serving it the app
-      // shell would answer "where are the docs" with the analyzer — worse than failing.
+      // shell would answer "where are the docs" with the analyzer, which is worse than
+      // failing.
       // Once visited online it is cached by the same network-first path above, so this
       // only bites on a page never opened.
       .catch(() =>
