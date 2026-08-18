@@ -13,6 +13,7 @@ WHAT THIS IS FOR
         msb      read a map layout: every enemy placement, its entity id and model
         emevd    read the event scripts: instruction by instruction, arguments unpacked
         roster   the payoff — check db_sdt/minibosses.json against the scripts themselves
+        ernames  the other payoff — write db_er's item names from Elden Ring's own FMGs
 
     It is a READER. It never writes into a game folder, never patches an executable, and
     the one subcommand that can write a `db_*` table only does so when asked (`--write`).
@@ -47,14 +48,17 @@ THE TWO TRAPS, BOTH FOUND THE HARD WAY
     zeroes; the real values arrive through `2000[6] Initialize Common Event`. Scan only
     the inline calls and Sekiro reports one miniboss instead of thirty-seven.
 
-ELDEN RING: WHAT IS WIRED AND WHAT IS NOT
-    Target is **Shadow of the Erdtree Deluxe, v1.16.1**. No install on this machine yet, so
-    everything ER here is written from UXM's key list and SoulsFormats' `Game.EldenRing` and
-    is **UNTESTED** — treat the first run as a measurement, not a formality.
+ELDEN RING: WHAT WORKS AND WHAT IS NOT WIRED
+    Target is **Shadow of the Erdtree Deluxe, v1.16**. This was written blind from UXM's key
+    list and SoulsFormats' `Game.EldenRing`, and it has now been RUN: the first attempt
+    against a real install indexed **120,332 entries** and pulled `/msg/` without a change
+    to any of it. Both ER-only differences below were right the first time.
 
-      * `unpack --game er` — ready. Archives `Data0..Data3` + `DLC`; keys `EldenRingKeys`;
-        dictionary `EldenRingDictionary.txt` (9 MB, so expect the index step to be slower
-        than Sekiro's).
+      * `unpack --game er` — works. Archives `Data0..Data3` + `DLC`; keys `EldenRingKeys`;
+        dictionary `EldenRingDictionary.txt` (9 MB, and the RSA header pass over ~14 MB of
+        `.bhd` is the slow step — minutes, not seconds).
+      * `ernames` — works, and `db_er/`'s item-name tables are its output now. It reads the
+        unpacked `msg/engus` rather than params, so `regulation.bin` stays untouched.
       * **Two ER-only differences are already handled, and both fail SILENTLY if missed.**
         The filename hash widened to **uint64 with multiplier 0x85** (@ref HASH_PRIME), and
         the archive entry keeps DS3's 40-byte stride while laying its fields out differently
@@ -62,7 +66,8 @@ ELDEN RING: WHAT IS WIRED AND WHAT IS NOT
         archive that simply contains nothing you asked for.
       * `DCX/ZSTD` is handled as well as `KRAK`, because ER's later patches use it.
       * `regulation.bin` is loose at the install root and is ER-encrypted; nothing here
-        decrypts it, and nothing needs to — `db_er/`'s names come from Paramdex.
+        decrypts it, and nothing needs to — `db_er/`'s names come from the `msg/engus`
+        FMGs, which are plain files once the archive is open.
       * **`msb` will NOT read ER maps.** ER is `MSBE`, whose part struct differs from
         Sekiro's `MSBS`; the reader asserts rather than guesses (@ref read_msb).
       * **`roster` is Sekiro-specific and stays that way.** The instruction ids in
@@ -1141,6 +1146,121 @@ def cmd_emevd(args) -> int:
     return 0
 
 
+## @brief The five `item.msgbnd` name tables that back a `db_er/` file, and the category
+#  nibble Elden Ring's save ids carry on top of the bare param row id.
+#  @details `db_er/` is keyed by the id as the SAVE stores it, so the nibble goes back on
+#  before writing. Weapons are nibble 0, which is why they are the one category whose db
+#  keys already match the game's row ids one for one.
+ER_NAME_FMGS = {
+    "WeaponName": ("weapons", 0x00000000),
+    "ProtectorName": ("armors", 0x10000000),
+    "AccessoryName": ("talismans", 0x20000000),
+    "GoodsName": ("goods", 0x40000000),
+    "GemName": ("ashes", 0x80000000),
+}
+
+
+## @brief FromSoft's marker for a row that exists but carries no player-facing name.
+#  @details It appears either alone or in front of a real string. A bare one means the
+#  row is not an item the player ever sees named; a prefixed one is a real name with a
+#  development marker still on it, so the marker comes off and the name stays.
+ER_FMG_PLACEHOLDER = "[ERROR]"
+
+
+##
+# @brief Read Elden Ring's own English item names out of an unpacked `msg/engus`.
+# @details Three binders are merged in patch order — base, then each DLC layer — and a
+# real name never loses to a placeholder or a blank, whichever binder it came from. The
+# result is split into `named` (what the game calls the row) and `blank` (rows the game
+# lists and deliberately leaves nameless), because the difference between those two is
+# what decides whether a `db_er` row that the game does not name is worth keeping.
+# @param msg_dir The unpacked `msg/engus` directory.
+# @return `(named, blank)`, both keyed by category then bare row id.
+def er_read_names(msg_dir):
+    named: dict[str, dict[int, str]] = {c: {} for c, _ in ER_NAME_FMGS.values()}
+    blank: dict[str, set] = {c: set() for c, _ in ER_NAME_FMGS.values()}
+    seen = 0
+    for binder in ("item.msgbnd", "item_dlc01.msgbnd", "item_dlc02.msgbnd"):
+        path = Path(msg_dir) / binder
+        if not path.is_file():
+            print(f"{binder}: absent, skipped")
+            continue
+        seen += 1
+        for bf in fs.read_bnd4(path.read_bytes()):
+            stem = bf.name.split("\\")[-1].removesuffix(".fmg")
+            entry = ER_NAME_FMGS.get(stem.split("_dlc")[0])
+            if entry is None:
+                continue
+            cat = entry[0]
+            for rid, text in fs.read_fmg(bf.data).items():
+                text = (text or "").strip()
+                real = text.replace(ER_FMG_PLACEHOLDER, "").strip()
+                if real:
+                    named[cat][rid] = real
+                    blank[cat].discard(rid)
+                elif rid not in named[cat]:
+                    blank[cat].add(rid)
+    if not seen:
+        print(f"no item.msgbnd under {msg_dir}", file=sys.stderr)
+    return named, blank
+
+
+##
+# @brief Regenerate `db_er/`'s item-name tables from the game's own FMGs.
+# @details The tables were transcribed from a community id list, and this is what checks
+# them against the game that owns them. The merge rule turns on a distinction the FMGs
+# make and a flat id list cannot:
+#
+#   * the game names the row      → the game wins, always;
+#   * the game lists it, nameless → DROP it, whatever the old table said. This is what
+#     clears `db_er/ashes.json`'s forward-filled junk: 123 rows the game leaves blank,
+#     which the old table had filled by repeating the previous name — sixteen separate
+#     ids all reading "Ash of War: Lion's Claw", and seven reading "Ash of War:";
+#   * the game has no such row    → KEEP the old name. These are the `[NPC]`-prefixed
+#     weapons and the NPC flask variants, real rows the shipped FMGs simply do not name.
+#
+# The split is clean rather than convenient: across `db_er` every db-only ash falls in
+# the second case and every db-only weapon and good in the third, with nothing straddling.
+# @param args Parsed CLI arguments.
+# @return Process exit status.
+def cmd_ernames(args) -> int:
+    named, blank = er_read_names(args.msg)
+    if not any(named.values()):
+        return 2
+    for cat, nib in sorted({c: n for c, n in ER_NAME_FMGS.values()}.items()):
+        path = Path(args.db) / f"{cat}.json"
+        old = {}
+        if path.is_file():
+            old = {
+                int(k, 16): v for k, v in json.loads(path.read_text("utf-8")).items()
+            }
+        out = {rid | nib: nm for rid, nm in named[cat].items()}
+        kept = 0
+        for key, nm in old.items():
+            rid = key & 0x0FFFFFFF
+            if rid in named[cat] or rid in blank[cat]:
+                continue
+            out[key] = nm
+            kept += 1
+        dropped = sum(1 for k in old if (k & 0x0FFFFFFF) in blank[cat])
+        changed = sum(1 for k, v in out.items() if k in old and old[k] != v)
+        print(
+            f"{cat:<10} {len(out):>5} rows  (game {len(named[cat])}, kept {kept} the "
+            f"game does not list, dropped {dropped} it lists blank, renamed {changed})"
+        )
+        if not args.write:
+            continue
+        text = json.dumps(
+            {f"{k:X}": out[k] for k in sorted(out)},
+            indent=DB_INDENT,
+            ensure_ascii=False,
+        )
+        path.write_text(text + "\n", encoding="utf-8")
+    if not args.write:
+        print("\n(dry run — pass --write to update the tables)")
+    return 0
+
+
 ##
 # @brief Print the roster, compare it with the shipped table, optionally rewrite it.
 # @details The comparison is the point. It reports three kinds of disagreement separately,
@@ -1334,6 +1454,12 @@ def main() -> int:
     r.add_argument("--json", help="write the full roster here")
     r.add_argument("--write", help="regenerate a minibosses.json at this path")
     r.set_defaults(func=cmd_roster)
+
+    n = sub.add_parser("ernames", help="regenerate db_er's item names from the game")
+    n.add_argument("--msg", required=True, help="unpacked msg/engus directory")
+    n.add_argument("--db", default="db_er", help="the db_er directory to update")
+    n.add_argument("--write", action="store_true", help="write; otherwise dry-run")
+    n.set_defaults(func=cmd_ernames)
 
     args = ap.parse_args()
     if args.ooz:

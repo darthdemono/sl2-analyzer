@@ -71,6 +71,18 @@ turn themselves off — leaving a parser with no relationship to any GPL project
 | [alfizari/Dark-Souls-Remastered-Save-Editor](https://github.com/alfizari/Dark-Souls-Remastered-Save-Editor) | DSR and DS1 offsets, the gender byte, and item tables. |
 | [alfizari/Sekiro-Save-Editor](https://github.com/alfizari/Sekiro-Save-Editor) | Sekiro slot field offsets, the GaItem and item-list region offsets and record shapes, the item type nibbles, and English item names. **Its licence is ambiguous** — the repository carries Apache-2.0 while its README claims MIT — so it is listed under the more restrictive of the two rather than the more convenient one. Nothing here depends on which it is: what was taken is byte offsets and record sizes, which are measurements of a file format FromSoftware defined, and no code from it is reproduced. |
 
+### WTFPL
+
+| Project | What was used |
+|---|---|
+| [Bergbok/Elden-Ring-Saves](https://github.com/Bergbok/Elden-Ring-Saves) | Elden Ring **test input**, not code and not data that ships: 17 saves of ten built characters each, every one documented with its own in-game Status screenshot. Those screenshots are the ground truth the ER stat reader is verified against, and the breadth of the set is what exposed the stat block's alignment. Nothing from it is redistributed here — the saves live in the git-ignored `test/`. |
+
+### MIT (tooling, not vendored)
+
+| Project | What was used |
+|---|---|
+| [Nordgaren/UXM-Selective-Unpack](https://github.com/Nordgaren/UXM-Selective-Unpack) | `ArchiveKeys.cs` (the published RSA keys that open Elden Ring's `.bhd` headers) and `res/EldenRingDictionary.txt` (the archive path list). **Neither is vendored here** — `tools/gamefiles.py` takes both as arguments, and they were fetched at the point of use. What came out of them is Elden Ring's own English item names, which is what `db_er/`'s tables are now generated from rather than transcribed. The RSA step itself is `CryptographyUtility.DecryptRsa`, credited above. |
+
 ### No licence stated
 
 These publish no licence, which means no permission is granted for their *code*. Only
@@ -79,7 +91,7 @@ factual information was taken from them, and none of their source is reproduced 
 | Source | What was used |
 |---|---|
 | [ClayAmore/ER-Save-Lib](https://github.com/ClayAmore/ER-Save-Lib) and [ER-Save-Editor](https://github.com/ClayAmore/ER-Save-Editor) | Elden Ring save structure: the GaItem array, the profile table, the "File version" word, and the in-save regulation block that carries the game patch. |
-| [Paramdex](https://github.com/soulsmods/Paramdex) and the soulsmodding wiki | DS1 item IDs, bonfire IDs, and the event-flag addressing formula. Also the complete Sekiro ID sets for `EquipParamWeapon`, `EquipParamProtector` and `EquipParamGoods`, and the machine-translated development names for the IDs with no English name — those are kept in their own `_devnames` files precisely because they are uncertain. |
+| [Paramdex](https://github.com/soulsmods/Paramdex) and the soulsmodding wiki | DS1 item IDs, bonfire IDs, and the event-flag addressing formula. It used to back `db_er/`'s item names too; those are now read from Elden Ring's own `msg/engus` FMGs instead, and the rows the game has no entry for are all that is left of the transcription. Also the complete Sekiro ID sets for `EquipParamWeapon`, `EquipParamProtector` and `EquipParamGoods`, and the machine-translated development names for the IDs with no English name — those are kept in their own `_devnames` files precisely because they are uncertain. |
 | The Save Wizard Sekiro code sheet, via alfizari's credits | Independent confirmation of the Sekiro slot stat offsets, and the play-time field: its "Playtime 999:59:59" entry writes `0x36EE7F` = 3,599,999 = 999×3600 + 59×60 + 59, which is what identifies the field as a `uint32` of seconds. |
 | [The-Grand-Archives/Dark-Souls-III-CT-TGA](https://github.com/The-Grand-Archives/Dark-Souls-III-CT-TGA) | DS3 and ER Cheat Engine tables, used for their ID→name dropdowns and the flag group base table. |
 | [Sibert-Aerts/sibert-aerts.github.io](https://github.com/Sibert-Aerts/sibert-aerts.github.io) — the [FromSoft Image Macro Creator](https://rezuaq.be/new-area/image-creator/) | Which typeface each game sets its overlays in (Adobe Garamond Pro for Dark Souls 1-3 and Sekiro's Latin text, Agmena Pro for Elden Ring, Pinnacle JY / ITC Galliard for Demon's Souls), and the measured RGB of the on-screen text itself — BONFIRE LIT, LOST GRACE DISCOVERED, YOU DIED, SCULPTOR'S IDOL FOUND and the rest — which is where this page's per-game palettes come from. Also its vertical-stretch and zoom-blur values, which the titles here imitate. Colour measurements and font attributions, not code. |

@@ -1536,7 +1536,11 @@ function parseRosterDs3(menu) {
 }
 
 // ── Elden Ring ────────────────────────────────────────────────────────────
-const ER_GAITEM_START = 0x20,
+// 0x30, not 0x20: entries are variable-length (weapon 21 bytes, armour 16, else 8),
+// so a 16-byte error makes the walk take its tail from a misread id and drift for the
+// whole array. From 0x30 the handle column runs strictly sequential, and the category
+// nibble is legal for every entry — at 0x20, 148 of 182 characters read illegal ones.
+const ER_GAITEM_START = 0x30,
   ER_GAITEM_COUNT = 0x1400;
 const ER_MENU_LEN_OFF = 352,
   ER_MENU_DATA_OFF = 356,
@@ -1558,7 +1562,8 @@ const ER_HP_D = -40,
   ER_STAM_D = -12,
   ER_LEVEL_D = 44,
   ER_RUNES_D = 48,
-  ER_LEVEL_BASE = 79;
+  ER_LEVEL_BASE = 79,
+  ER_LEVEL_MAX = 8 * 99 - 79;
 const ER_CAT = { 0x0: "weapons", 0x1: "armors", 0x2: "talismans", 0x4: "goods", 0x8: "ashes" };
 // id = base + affinity*100 + level: `% 100` is the reinforcement level, `- % 100` the
 // affinity row the table names, `- % 10000` the plain base. +25 is the ceiling, so a
@@ -1612,30 +1617,46 @@ function erResolve(iid, db) {
   }
   return [null, cat];
 }
-function erFindStats(buf) {
+// The stat block sits at a different offset in every slot and is NOT 4-aligned —
+// variable-length data precedes it, the character name among it. So the search is
+// anchored on the level field: every place the slot stores `level` as a LE uint32 is
+// a candidate, and the block is accepted only where the eight attributes are each
+// 1..99 and sum minus ER_LEVEL_BASE equals that level. The roster level is required:
+// the identity alone false-positives megabytes past the real block. See er.py.
+function erFindStats(buf, level) {
+  if (level == null || level < 1 || level > ER_LEVEL_MAX) return null;
   const dists = ER_STAT_D.map(([, d]) => d);
-  const end = buf.length - ER_RUNES_D - 4;
-  for (let v = 0; v < end; v += 4) {
-    const first = u32(buf, v);
-    if (first != null && first >= 1 && first <= 99) {
+  const pat = new Uint8Array([
+    level & 0xff,
+    (level >>> 8) & 0xff,
+    (level >>> 16) & 0xff,
+    (level >>> 24) & 0xff,
+  ]);
+  let at = indexOf(buf, pat, 0);
+  while (at >= 0) {
+    const v = at - ER_LEVEL_D;
+    if (v >= 0) {
       const vals = dists.map((d) => u32(buf, v + d));
-      const lvl = u32(buf, v + ER_LEVEL_D);
       if (
         vals.every((x) => x != null && x >= 1 && x <= 99) &&
-        lvl != null &&
-        lvl >= 1 &&
-        lvl <= 713 &&
-        vals.reduce((a, b) => a + b, 0) - ER_LEVEL_BASE === lvl
+        vals.reduce((a, b) => a + b, 0) - ER_LEVEL_BASE === level
       )
         return v;
     }
+    at = indexOf(buf, pat, at + 1);
   }
   return null;
 }
+// The ids that mean "this slot is empty", not "the character owns this": weapon row
+// 110000 is Unarmed, armour rows 10000/10100/10200/10300 are the bare Head/Body/Arms/
+// Legs. Every living character has them, so listing them reads as "carries: Unarmed,
+// Arms, Legs". Skipped, and not counted as unrecognised. See er.py.
+const ER_EMPTY_SLOT_IDS = new Set([0x0001adb0, 0x10002710, 0x10002774, 0x100027d8, 0x1000283c]);
 function erParse(buf, iddb, name, level) {
   const buckets = {};
   let unknown = 0;
   for (const iid of erGaitems(buf)) {
+    if (ER_EMPTY_SLOT_IDS.has(iid)) continue;
     const [nm, cat] = erResolve(iid, iddb);
     if (nm) (buckets[cat] || (buckets[cat] = new Set())).add(nm);
     else if (cat) unknown++;
@@ -1647,7 +1668,7 @@ function erParse(buf, iddb, name, level) {
   for (const c in buckets)
     for (const n of [...buckets[c]].sort())
       if (n.includes("Remembrance")) remembrances.push([n, null]);
-  const v = erFindStats(buf);
+  const v = erFindStats(buf, level);
   const stats = {};
   if (v != null) for (const [k, d] of ER_STAT_D) stats[k] = u32(buf, v + d);
   const has = v != null;
