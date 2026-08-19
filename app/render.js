@@ -28,6 +28,7 @@ import {
 } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
 import { buildJsonText } from "./jsonout.js";
+import { runValidation, summaryLine, CLASS_DB } from "./validators.js";
 
 function el(tag, props, ...kids) {
   const n = document.createElement(tag);
@@ -715,7 +716,7 @@ function characterCard(slot, ch, bonfireTotal) {
           class: "hint",
           text:
             ch.game === "sdt"
-              ? "One-off world items picked up, from each area's item-lot flags. Nine areas have a mapped flag bank, which is 589 of the 826 lots the table knows — the rest are untracked, not empty."
+              ? "One-off world items picked up, from each area's item-lot flags. Nine areas have a mapped flag bank, which is 583 of the 826 lots the table knows — the rest are untracked, not empty."
               : "One-off world items picked up, from each area's pickup flags. Only the areas whose flag group is mapped are counted — an area not listed is untracked, not empty.",
         }),
         bar,
@@ -956,6 +957,90 @@ function copyButton(result, filename) {
   return btn;
 }
 
+// ── Validation ───────────────────────────────────────────────────────────────
+// Off by default and lazily loaded: nothing is fetched and no rule runs until the
+// reader asks. The section says what a state contradicts, never what it means — see
+// app/validators.js, and validators/__init__.py for why there is no verdict.
+
+/** One character's findings as a section, or the "nothing found" note. */
+function validationSection(report) {
+  const kids = [];
+  if (report.rules_run === 0) {
+    kids.push(
+      el("p", {
+        class: "note",
+        text: `No rules are implemented for this game. ${summaryLine(report)}`,
+      }),
+    );
+    return section("Validation", kids);
+  }
+  if (!report.findings.length)
+    kids.push(el("p", { class: "note", text: "Nothing contradictory found." }));
+  for (const f of report.findings) {
+    const item = el(
+      "li",
+      { class: `finding tier-${f.tier}` },
+      el("span", { class: "tier", text: f.tier }),
+      el("strong", { text: f.title }),
+      el("div", { class: "pair", text: `expected  ${f.expected}` }),
+      el("div", { class: "pair", text: `found     ${f.found}` }),
+    );
+    if (f.note) item.append(el("div", { class: "why", text: f.note }));
+    kids.push(item);
+  }
+  const list =
+    kids.length && kids[0].tagName === "LI" ? el("ul", { class: "findings" }, ...kids) : null;
+  return section("Validation", [
+    list || kids[0],
+    el("p", { class: "note", text: summaryLine(report) }),
+  ]);
+}
+
+/**
+ * The toggle. One fetch of db_<game>/classes.json on first use, then a section added to
+ * (or removed from) every character card. The parse is untouched either way: this reads
+ * the character objects that are already on screen.
+ */
+function validateToggle(result, cards) {
+  const btn = el("button", {
+    class: "btn btn-ghost validate",
+    type: "button",
+    text: "Validate",
+    "aria-pressed": "false",
+  });
+  let table = null,
+    loaded = false;
+  btn.addEventListener("click", async () => {
+    const on = btn.getAttribute("aria-pressed") === "true";
+    if (on) {
+      for (const c of cards) c.querySelectorAll("section.validation").forEach((n) => n.remove());
+      btn.setAttribute("aria-pressed", "false");
+      btn.classList.remove("on");
+      return;
+    }
+    if (!loaded) {
+      const dir = CLASS_DB[result.game];
+      if (dir) {
+        try {
+          const r = await fetch(`${dir}/classes.json`);
+          if (r.ok) table = await r.json();
+        } catch {
+          table = null; // no table: every rule that needs one returns nothing
+        }
+      }
+      loaded = true;
+    }
+    result.characters.forEach(({ ch }, i) => {
+      const sec = validationSection(runValidation(ch, result.game, table));
+      sec.classList.add("validation");
+      cards[i].append(sec);
+    });
+    btn.setAttribute("aria-pressed", "true");
+    btn.classList.add("on");
+  });
+  return btn;
+}
+
 /**
  * A tab strip for a save holding more than one character. A 10-slot mule otherwise
  * renders as ten full sheets stacked, which is unreadable — so all cards are built
@@ -1030,6 +1115,10 @@ let uidSeq = 0;
 export function renderSave(result, filename) {
   const theme = GAME_THEME[result.game] || "ds1";
   const root = el("div", { class: `result t-${theme}` });
+  // Built before the bar because the Validate toggle appends into them.
+  const cards = result.characters.map(({ slot, ch }) =>
+    characterCard(slot, ch, result.bonfireTotal),
+  );
   root.append(
     el(
       "div",
@@ -1051,6 +1140,7 @@ export function renderSave(result, filename) {
         downloadButton(result, filename),
         downloadJsonButton(result, filename),
         copyButton(result, filename),
+        validateToggle(result, cards),
       ),
     ),
   );
@@ -1058,9 +1148,6 @@ export function renderSave(result, filename) {
     root.append(el("p", { class: "note", text: "No populated character slots found." }));
 
   const uid = `slot${++uidSeq}`;
-  const cards = result.characters.map(({ slot, ch }) =>
-    characterCard(slot, ch, result.bonfireTotal),
-  );
   if (cards.length > 1) {
     cards.forEach((c, i) => {
       c.setAttribute("role", "tabpanel");

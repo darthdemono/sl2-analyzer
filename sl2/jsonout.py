@@ -16,6 +16,10 @@ import os
 from collections import OrderedDict
 from datetime import datetime, timezone
 
+from validators import run_validation
+from validators.file_rules import run_file_validation
+
+from .bnd4 import checksum_ok, parse_bnd4
 from .convert import REPO_URL
 
 ## @brief Where the schema is published. Static file at the site root, so a consumer
@@ -24,7 +28,7 @@ SCHEMA_URL = "https://sl2-analyzer.darthdemono.com/schema.json"
 
 ## @brief Schema version, semver. MINOR for a new optional field, MAJOR for anything
 #  that would break a reader which trusted the previous shape.
-SCHEMA_VERSION = "1.1.0"
+SCHEMA_VERSION = "1.2.0"
 
 ## @brief Environment keys the schema names explicitly. Any other key is still
 #  accepted and written through — this list is what gets documented and type-checked,
@@ -109,12 +113,18 @@ def jsonable(value):
 # @details Absent stays absent. The keys are the parser's own, which is deliberate —
 #  the Markdown, the web app and this document all name a field the same thing.
 # @param slot_no 1-based slot number. @param ch The character dict.
-def character_json(slot_no, ch):
+# @param report  A validation @ref validators.models.Report, or None when the caller
+#        did not ask for one. It is emitted whole — findings, the rule count and the
+#        unimplemented list — because a consumer reading "no findings" is entitled to
+#        the same caveat the Markdown prints.
+def character_json(slot_no, ch, report=None):
     out = OrderedDict([("slot", slot_no)])
     for key, value in ch.items():
         if value is None or value == [] or value == {}:
             continue
         out[key] = jsonable(value)
+    if report is not None:
+        out["validation"] = report.as_dict()
     return out
 
 
@@ -123,8 +133,11 @@ def character_json(slot_no, ch):
 # @param save     A @ref sl2.convert.SaveData.
 # @param filename The source filename, recorded so an export can be traced back.
 # @param meta     The environment block from @ref parse_meta, or None.
+# @param validate Attach each character's validation report (off by default).
+# @param data     The file bytes, when the caller has them: the file-level rules read
+#                 the container rather than a character.
 # @return A dict ready for json.dump.
-def build_json(save, filename, meta=None):
+def build_json(save, filename, meta=None, validate=False, data=None):
     cfg = save.cfg
     source = OrderedDict(
         [
@@ -166,6 +179,16 @@ def build_json(save, filename, meta=None):
     if meta:
         doc["environment"] = OrderedDict(meta)
     doc["characters"] = [
-        character_json(i - cfg["slots"].start + 1, ch) for i, ch in save.characters
+        character_json(
+            i - cfg["slots"].start + 1,
+            ch,
+            run_validation(ch, save.game) if validate else None,
+        )
+        for i, ch in save.characters
     ]
+    if validate and data is not None:
+        entries = parse_bnd4(data) or []
+        doc["file_validation"] = run_file_validation(
+            save.game, entries, data, checksum_ok
+        ).as_dict()
     return doc

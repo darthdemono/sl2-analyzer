@@ -381,11 +381,12 @@ DS3_PICKUP_NOTE = (
 
 # Sekiro counts the same thing off its own item-lot flags, and its gap is the reverse
 # shape: the addressing is solved, but 237 of the 826 known lots sit in families that no
-# idol names, so they have no category to be read from. The nine areas here are the ones
-# that do, which is why the denominator is 589 and not 826.
+# idol names, and six more are in a top-level group with no seat, so they have no
+# category to be read from. The nine areas here are the ones that do, which is why the
+# denominator is 583 and not 826.
 SDT_PICKUP_NOTE = (
     "one-off world items picked up, from each area's item-lot flags — covers the "
-    "nine areas whose flag bank is mapped, 589 of the 826 lots the table knows"
+    "nine areas whose flag bank is mapped, 583 of the 826 lots the table knows"
 )
 
 

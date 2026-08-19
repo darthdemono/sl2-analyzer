@@ -1953,6 +1953,12 @@ function sdtFlagOffset(fid) {
   } else if (area >= 90 || area + sub === 0) {
     if (!(fid >= 0 && fid < SDT_FLAG_GLOBAL_MAX)) return null;
     k = 0;
+  } else if (Math.floor(fid / 10000000) % 10 > SDT_PICKUP_GROUP) {
+    // A group above the pickup bank has no seat, and the map lookup below would alias
+    // it onto a real flag rather than fail: 61300000 (a Prayer Bead) lands on the
+    // Underground Waterway idol's exact bit. See sdt_flag_offset for the pair that
+    // measured it.
+    return null;
   } else {
     k = SDT_FLAG_MAPS.get(`${area},${sub}`);
     if (k === undefined) return null;
@@ -2013,7 +2019,9 @@ function sdtAttachFlags(ch, buf, dbs) {
   for (const [fid, name, where] of (dbs.sdt.itemFlags || {}).item_pickup || []) {
     const id = Number(fid);
     const key = `${Math.floor(id / 100000) % 100},${Math.floor(id / 10000) % 10}`;
-    if (rows.has(key)) rows.get(key).push([id, name, where]);
+    // The area alone is not enough — six rows in a seated area are 6xxxxxxx, a group
+    // with no seat, and would sit unread in the denominator. Ask the addressing.
+    if (rows.has(key) && sdtFlagOffset(id) !== null) rows.get(key).push([id, name, where]);
   }
   const picks = [];
   let anyFound = false;
@@ -2151,7 +2159,7 @@ export const GAMES = {
     tier: "full",
     slots: [0, SDT_SLOT_COUNT],
     coverage:
-      "world item pickups are read for the nine areas whose flag bank is mapped (589 of the 826 known item lots); the rest sit in families no idol names, so they have no category to be read from",
+      "world item pickups are read for the nine areas whose flag bank is mapped (583 of the 826 known item lots); the rest sit in families no idol names, so they have no category to be read from",
   },
 };
 

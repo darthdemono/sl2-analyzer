@@ -1,0 +1,158 @@
+{
+ "_source": "Starting classes as published on the Dark Souls III wiki, every row checked against the identity sum(base stats) - starting level = 89, which holds for all ten and is the same constant measured on all 89 DS3 characters in the local corpus. It also predicts the published maximum SL 802 = 99*9 - 89, which is the bound sl2/ds3.py already uses when it locates the stat block.",
+ "stat_order": [
+  "Vigor",
+  "Attunement",
+  "Endurance",
+  "Vitality",
+  "Strength",
+  "Dexterity",
+  "Intelligence",
+  "Faith",
+  "Luck"
+ ],
+ "stat_cap": 99,
+ "souls_cap": 999999999,
+ "starting_classes": {
+  "Knight": {
+   "level": 9,
+   "stats": {
+    "Vigor": 12,
+    "Attunement": 10,
+    "Endurance": 11,
+    "Vitality": 15,
+    "Strength": 13,
+    "Dexterity": 12,
+    "Intelligence": 9,
+    "Faith": 9,
+    "Luck": 7
+   }
+  },
+  "Mercenary": {
+   "level": 8,
+   "stats": {
+    "Vigor": 11,
+    "Attunement": 12,
+    "Endurance": 11,
+    "Vitality": 10,
+    "Strength": 10,
+    "Dexterity": 16,
+    "Intelligence": 10,
+    "Faith": 8,
+    "Luck": 9
+   }
+  },
+  "Warrior": {
+   "level": 7,
+   "stats": {
+    "Vigor": 14,
+    "Attunement": 6,
+    "Endurance": 12,
+    "Vitality": 11,
+    "Strength": 16,
+    "Dexterity": 9,
+    "Intelligence": 8,
+    "Faith": 9,
+    "Luck": 11
+   }
+  },
+  "Herald": {
+   "level": 9,
+   "stats": {
+    "Vigor": 12,
+    "Attunement": 10,
+    "Endurance": 9,
+    "Vitality": 12,
+    "Strength": 12,
+    "Dexterity": 11,
+    "Intelligence": 8,
+    "Faith": 13,
+    "Luck": 11
+   }
+  },
+  "Thief": {
+   "level": 5,
+   "stats": {
+    "Vigor": 10,
+    "Attunement": 11,
+    "Endurance": 10,
+    "Vitality": 9,
+    "Strength": 9,
+    "Dexterity": 13,
+    "Intelligence": 10,
+    "Faith": 8,
+    "Luck": 14
+   }
+  },
+  "Assassin": {
+   "level": 10,
+   "stats": {
+    "Vigor": 10,
+    "Attunement": 14,
+    "Endurance": 11,
+    "Vitality": 10,
+    "Strength": 10,
+    "Dexterity": 14,
+    "Intelligence": 11,
+    "Faith": 9,
+    "Luck": 10
+   }
+  },
+  "Sorcerer": {
+   "level": 6,
+   "stats": {
+    "Vigor": 9,
+    "Attunement": 16,
+    "Endurance": 9,
+    "Vitality": 7,
+    "Strength": 7,
+    "Dexterity": 12,
+    "Intelligence": 16,
+    "Faith": 7,
+    "Luck": 12
+   }
+  },
+  "Pyromancer": {
+   "level": 8,
+   "stats": {
+    "Vigor": 11,
+    "Attunement": 12,
+    "Endurance": 10,
+    "Vitality": 8,
+    "Strength": 12,
+    "Dexterity": 9,
+    "Intelligence": 14,
+    "Faith": 14,
+    "Luck": 7
+   }
+  },
+  "Cleric": {
+   "level": 7,
+   "stats": {
+    "Vigor": 10,
+    "Attunement": 14,
+    "Endurance": 9,
+    "Vitality": 7,
+    "Strength": 12,
+    "Dexterity": 8,
+    "Intelligence": 7,
+    "Faith": 16,
+    "Luck": 13
+   }
+  },
+  "Deprived": {
+   "level": 1,
+   "stats": {
+    "Vigor": 10,
+    "Attunement": 10,
+    "Endurance": 10,
+    "Vitality": 10,
+    "Strength": 10,
+    "Dexterity": 10,
+    "Intelligence": 10,
+    "Faith": 10,
+    "Luck": 10
+   }
+  }
+ }
+}

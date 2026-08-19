@@ -48,6 +48,12 @@ Leave the path off entirely and it looks in the current folder plus the usual St
 python3 sl2_to_md.py -o playthrough.md
 ```
 
+**Ask whether the save adds up** with `--validate`. It reports states an unmodified game could not produce and fields that contradict each other, never a verdict — see [Does this save add up?](#does-this-save-add-up---validate):
+
+```bash
+python3 sl2_to_md.py "/path/to/DS30000.sl2" --validate -o playthrough.md
+```
+
 **Point it at a folder of backups** and you get a history instead of a photograph, across characters and across games:
 
 ```bash
@@ -107,7 +113,7 @@ The third was in the item walk, and it is worth separating what it broke from wh
 
 Confidence here means *how likely a printed number is to be right*, not *will it survive the file*. Every read is bounds-checked, so a save the tool cannot understand loses fields rather than crashing, and a character whose stat block fails validation drops to inventory tier instead of printing something invented. What the corpus size changes is how much of a game's **inference** has been proved against real play instead of merely reasoned about. DS3 and DS2 have been walked end to end; Elden Ring has been sampled widely but never followed through a playthrough, which is a different kind of evidence and buys a different kind of confidence.
 
-Two things do not vary by game. Every offset traces either to a published source or to a differential save with exactly one variable changed, and both are listed in [Credits](#credits). And the browser parser is never trusted on its own: three harnesses diff the JS output against the CLI's for every save in that corpus, across all three output formats, and a change ships only when all three report an exact match.
+Two things do not vary by game. Every offset traces either to a published source or to a differential save with exactly one variable changed, and both are listed in [Credits](#credits). And the browser parser is never trusted on its own: four harnesses diff the JS output against the CLI's for every save in that corpus — across all three output formats, plus one for the validation pass, which compares both ports' findings on every reference character under a fixed set of deliberate edits, since a legitimate save trips nothing and two empty lists prove nothing. A change ships only when all of them report an exact match.
 
 Where a table is known to be soft, it says so in the file it prints, and the reasons are collected under [The honest limitations](#the-honest-limitations).
 
@@ -519,6 +525,54 @@ Said out loud rather than papered over:
 
 ---
 
+## Does this save add up? (`--validate`)
+
+Off by default, on both front ends: `--validate` on the command line, a **Validate** toggle beside the export buttons on the page. It is a second pass over an already-parsed character — the parsers never see it, so a rule that is wrong costs a wrong finding and never a wrong stat.
+
+It reports **contradictions, not verdicts.** There is no score, no "cheat probability" and no word like "modded" anywhere in the output. Every finding names what an unmodified game would have to produce and what the file actually holds, and the reader decides what that means. Intent is not stored in a save file, so it is not in the output.
+
+```
+VALIDATION — Slot 1: Joy
+  [impossible] Stat above cap
+    expected  <= 99
+    found     vigor 255
+  [inconsistent] Level vs stat total
+    expected  level 252 for a stat total of 341
+    found     level 1
+  2 findings. Rules run: 4. Not implemented for this game: item stack caps (no stack-size column in db_ds3); weapon upgrade caps and infusion legality (no reinforceParamWeapon data); unrecognised item ids.
+```
+
+Three tiers, and the summary line is part of the answer:
+
+| Tier | Means |
+| --- | --- |
+| `impossible` | The game cannot produce this state. A stat past its hard cap, a currency past its ceiling |
+| `inconsistent` | Two fields the game keeps in lockstep disagree. The level-versus-stat-total identity is why this tier exists |
+| `suspicious` | Odd but legitimately reachable. Every rule at this tier must name the legitimate cause in the finding itself, or it does not ship — and none currently do, which is why nothing here is at this tier |
+
+**The rule that does the work is the level identity.** Every Souls game computes `level = starting level + (stat total - starting stat total)`, so for each starting class the quantity `sum(stats) - level` is a constant. Edit stats without fixing the level, or the level without the stats, and the constant is wrong. It is tested as set membership, because the set is not always one value:
+
+| Game | Constants | Predicted maximum level | Measured on |
+| --- | --- | --- | --- |
+| Dark Souls | 79 (Sorcerer), 81, 82, 83 | 713 = 99×8 − 79 | 3 characters, Warrior and Deprived |
+| Dark Souls II | 53 | 838 = 99×9 − 53 | 75 characters, five classes |
+| Dark Souls III | 89 | 802 = 99×9 − 89 | 89 characters |
+| Elden Ring | 79 | 713 = 99×8 − 79 | 182 characters |
+
+The right-hand column is the check that makes the class tables trustworthy: each game's smallest constant, subtracted from 99 in every stat, lands exactly on that game's published maximum level. DS3's 802 is the same bound `sl2/ds3.py` already used to locate a stat block, arrived at from the other direction.
+
+**A save that trips nothing has not been cleared, and the summary line says so.** It prints how many rules ran and what this game has no data for — item stack caps, weapon upgrade maximums and infusion legality need `reinforceParamWeapon`, which is not in `db_*/`, so those checks do not exist rather than silently passing. Dark Souls II ships no per-stat floor at all: its constant is measured, its individual class bases are not, and a floor that is too high would invent findings. Sekiro has no attributes, no level and no class, so nothing runs; Nightreign is read at roster tier and levels a Nightfarer rather than a character, so no Souls rule applies to it. Both say that outright instead of reporting a clean bill of health.
+
+**Known false positives are designed out rather than documented away.** Stats go down legitimately (a Soul Vessel, Rosaria, Rennala), so the floor is the class's starting value and not "never decreases". Multiplayer transfer breaks any item-versus-progress assumption, which is why no rule reads inventory against progress. Unrecognised item ids are not a finding: `db_*/` is known to be incomplete, so an unknown id is a gap in the table as often as it is an edit.
+
+**The acceptance criterion is the corpus.** Every `.sl2` on the author's machine — 264 files, 89 DS3 characters, 75 DS2, 91 Sekiro, 182 Elden Ring, three DS1 — must produce zero `impossible` and zero `inconsistent` findings. One hit means the rule is wrong, not the save. `tests/test_corpus.py` is that check; it skips where the saves are absent, and `SL2_CORPUS` points it at another collection.
+
+**One rule is about the file rather than a character:** every BND4 entry carries an `MD5` of its own bytes, and a game always writes a correct one. A mismatch is reported — and its note is the important half, because any save editor rewrites the checksum, so this catches a hex-editor poke and a truncated copy, and a file that passes has proved nothing. Nightreign is excluded outright: its entries are AES with the IV in front, so the MD5 only exists after decryption, and reporting that as a finding would be reporting the tool's own blind spot as a fact about the save. Splicing slots from two accounts is *not* checked: the reader exposes the one account the container records, not a per-slot copy, and a validation pass inventing offsets is exactly how it would start lying.
+
+Findings ride along in both machine formats: the Markdown gets a `### Validation` section per character plus a `## Validation — file` block, the JSON a `validation` object per character and a `file_validation` object at the root (`schema.json` describes both). The web toggle adds the per-character section to the page only — the CLI is what writes findings into a document.
+
+---
+
 ## The full command line
 
 `-o` is the output path, and its folder is created for you if it does not exist. Leave `-o` off and it writes `playthrough.md` in the current directory. On an unsupported or malformed file the tool prints why and exits non-zero, so it drops cleanly into a script.
@@ -644,7 +698,7 @@ These are the interesting ones, and they took a lot more work than the item list
 | `db_ds3/npcs.json` | `{family: [[dist, bit, label]]}` | 7 families / 85 flags | NPC deaths, hostility and questline milestones |
 | `db_ds1/world_events.json` | `{family: [[offset, mask, JP name]]}` | 15 families / 275 flags | DS1 world flags by kind, names verbatim Japanese and not rendered |
 | `db_er/event_flags.json` | `{family: [[id, name, area]]}` | 22 families / 4,199 flags | Every Elden Ring flag family a public source names. **Not read** — ER's flag region base is unsolved |
-| `db_sdt/item_flags.json` | `{family: [[id, name, area]]}` | 2 families / 927 flags | Sekiro item-lot flags, `50000000 + lot id`. The 826 world pickups **are read** — the family sits in a second bank of flag categories, 66 along from each map's own — for the nine areas an idol names, which is 589 of them. The 101 shop-purchase rows are not read |
+| `db_sdt/item_flags.json` | `{family: [[id, name, area]]}` | 2 families / 927 flags | Sekiro item-lot flags, `50000000 + lot id`. The 826 world pickups **are read** — the family sits in a second bank of flag categories, 66 along from each map's own — for the nine areas an idol names, which is 583 of them. The 101 shop-purchase rows are not read |
 | `db_ds3/boss_route.json` | `{boss: [gate_area, [predecessors]]}` | 26 | The hard route gates, for working out which missing boss is reachable now |
 | `db_er/boss_souls.json` | `{remembrance: boss}` | 14 | Remembrance to the boss that drops it |
 | `db_er/graces.json` | `{area: [[id, name]]}` | 419 in 54 areas | Every Site of Grace, Shadow of the Erdtree included. Shipped for the **names**: which are lit needs Elden Ring's event-flag region base, which nobody has published. Same situation as `db_sdt/idols.json` |
@@ -816,7 +870,7 @@ Sekiro needs none of this. Its fields do not move between patches, so they are r
 | **Sekiro** | Sculptor's Idols | 55 in 8 areas | of 55 | `db_sdt/idols.json`, corroborated id-for-id against SoulSplitter `Idol.cs` |
 | Sekiro | Boss defeats | 15 | of 18 tracked | `Boss.cs`. The only thing that can name a Sekiro boss, since a held Memory resolves as a bare "Memory" |
 | Sekiro | Minibosses | 37 in 9 areas | of 37 tracked | The enemy's **entity ID used directly as the flag** — Sekiro's own convention, confirmed by a two-save window either side of the Blazing Bull. The table is generated from the game's own event scripts by `tools/gamefiles.py roster --write`, so every row is an entity the scripts pass to `Handle Miniboss Defeat` / `Display Miniboss Health Bar`, and every name is the one the game prints over the bar. It replaced a 33-row community list that was missing all five Headless, named fourteen rows by model family, and carried one entity (`1120450`, a mallet-carrying servant) that is not a miniboss at all |
-| Sekiro | World item pickups | 589 in 9 areas | of the 826 lots the table knows | The item-lot family (`5xxxxxxx`) sits in a SECOND bank of flag categories, 66 along from each map's own — the same offset Dark Souls III uses, found here from the other end. Derived from a 25-second save pair whose only pickup was one Mibu Balloon of Wealth: of the eleven rows carrying that name, nine are excluded by the bit index alone and only one puts its block on the region's `0x500` grid. The 237 rows in families no idol names have no category to read, so the denominator says 589 and the section says why |
+| Sekiro | World item pickups | 583 in 9 areas | of the 826 lots the table knows | The item-lot family (`5xxxxxxx`) sits in a SECOND bank of flag categories, 66 along from each map's own — the same offset Dark Souls III uses, found here from the other end. Derived from a 25-second save pair whose only pickup was one Mibu Balloon of Wealth: of the eleven rows carrying that name, nine are excluded by the bit index alone and only one puts its block on the region's `0x500` grid. The 237 rows in families no idol names have no category to read, and six more are `6xxxxxxx` — a top-level group with no seat of its own, which used to fall through to the map branch and alias onto a real flag: `61300000`, a Prayer Bead, landed byte-for-byte on the Underground Waterway idol's bit and reported itself collected the moment that idol was lit. Those are refused now, so the denominator says 583 and the section says why |
 | **Elden Ring** | — | **0** | — | Reads no flags at all. See below |
 
 Held as data and **not read**, because its game's flag region is unsolved: `db_er/event_flags.json` (4,199 rows in 22 families — Great Runes, map fragments, remembrances, crystal tears, whetblades, endings, item pickups). It ships so the research survives a clone; neither front end loads it.
@@ -827,7 +881,7 @@ Two things that look like flags here and are not, because the games do not store
 
 - **Elden Ring, everything.** The region base is unsolved, so 419 Sites of Grace with IDs sit in `db_er/graces.json` unread, and so does a sourced table of 174 one-time enemies whose defeat flag is the entity ID, Sekiro-style. The unlock is one save pair: save, light **one** Site of Grace, save. `scratch/er_flagbase.py` is written and waiting.
 - **DS1 one-time enemies**, 206 rows that decode and discriminate but whose mechanism is the *event ID + slot* rule on spawn-control templates, which may fire on area entry rather than on a kill. Needs one window: save, kill a single Black Knight, save.
-- **Sekiro's unseated flag families**, 237 of the 826 world pickups plus all 101 shop-purchase rows. The bank arithmetic is solved; what these rows lack is a map seat, because their `(area, sub)` belongs to a map with no Sculptor's Idol and so appears in no table here. Each needs the same thing the bank itself needed: a window that picks up exactly one of them.
+- **Sekiro's unseated flag families**, 237 of the 826 world pickups, six more in the `6xxxxxxx` group, plus all 101 shop-purchase rows. The bank arithmetic is solved; what these rows lack is a map seat, because their `(area, sub)` belongs to a map with no Sculptor's Idol and so appears in no table here. Each needs the same thing the bank itself needed: a window that picks up exactly one of them.
 - **Per-row meaning for what shipped this pass.** DS1's world events are counts of families whose names came from a source rather than from a save here — `Levers` reads 0 on a finished run and `Boss-fight flags` counts flags, not bosses. DS3's NPC labels have one known-wrong row (`1158`, "after killing Leonhard", on a run where he demonstrably died). Both are shipped with the caveat in the section note; fixing them means splitting the families per row against the event-script text.
 - **DS3 flag groups `53400`, `53600`, `54004`** — twelve pickup flags with no map row to offset from. Absent from the table rather than guessed.
 - **DS3 groups `70000` and `73xxx`–`74xxx`**, roughly 250 shop-availability and handover flags. Two orders of magnitude past the single-digit grid, so the `111 + 128g` shortcut does not reach them and each needs its own anchor.
@@ -923,6 +977,14 @@ Two techniques account for nearly every offset here, and neither is guesswork.
 
 **Otherwise, take a differential.** One save before, one save after, exactly one thing changed. That is how DS2's class, covenant, sex, play time, and deaths were pinned, and how DS3's covenant, embered flag, weapon slots, and reinforcement scheme were pinned. A single labelled save cannot isolate a byte; a pair with one variable can. Two independent sources agreeing can substitute for a differential, and that is exactly what made DS1's gender polarity shippable when one editor alone would have left it unverified.
 
+Once a game's flag region is seated, a pair is worth reading as *flags* rather than as bytes, and for Sekiro that is `scratch/sdt_flagdiff.py`:
+
+```bash
+python3 scratch/sdt_flagdiff.py <before.sl2> <after.sl2>
+```
+
+It prints two lists. Every id in the shipped tables — bosses, idols, minibosses, pickups, shop rows — that reads differently across the pair, which is what the window actually did; then every bit in the flag region that moved and is in **no** table, addressed back through the region arithmetic to the id that would land there. The second list is where a new family gets found. Bits in the temporary range (`id % 10000 >= 5000`, which an idol rest wipes) are counted and not listed, because a twenty-second window still clears hundreds of them and they bury the two or three permanent bits that are the point. It also catches a table lying: one bit moving with *two* shipped ids claiming it is what exposed the `6xxxxxxx` alias described above.
+
 ---
 
 ## Layout
@@ -951,6 +1013,17 @@ sl2/              the Python package, one module per layer and one per game
   jsonout.py      JSON rendering and the --meta environment block
   convert.py      the driver: parse_save, then either writer
   cli.py          argument parsing and main()
+validators/       the validation pass — a SEPARATE layer that reads what the parsers
+                  produced and never the file, so it cannot change a reading
+  models.py       Finding and Report: tier, title, expected, found, note
+  data.py         per-game constants derived from db_<game>/classes.json
+  text.py         the terminal block and the Markdown section, from the same findings
+  rules/common.py the game-independent rules (level identity, caps, floors)
+  rules/ds1.py ds2.py ds3.py er.py sekiro.py nightreign.py   one registry per game,
+                  each also declaring what it has NO rule for
+tests/            unittest, no dependency: one test per rule, the level identity per
+                  game per starting class, and the corpus regression that is the
+                  acceptance criterion (skips where the saves are absent)
 index.html        the web app: markup only, no inline styles
 css/
   theme.css       colour tokens, plus one accent override per game
@@ -977,10 +1050,12 @@ app/
   render.js       the per-game Level-Up screen replicas (framed panels, DS2 derived stats)
   markdown.js     the browser's Copy-Markdown output
   jsonout.js      the browser's JSON export, byte-identical to the CLI's
+  validators.js   the validation pass ported, held to the Python by its own harness
   timeline.js chart.js combine.js   the combined document, ported from sl2/
   mdview.js       renders that document to DOM without ever setting innerHTML
   worker.js       runs detect + load + parse off the main thread
   main.js         file-drop wiring and the inline fallback
+db_<game>/classes.json   starting classes and caps: the level identity's constants
 db_ds1/*.json     DS1 items (shared by DSR and PtDE), bonfires, boss flags, boss souls
 db_ds2/*.json     DS2 items, bonfires + areas, boss flags, boss souls
 db_ds3/*.json     DS3 items, bonfires, boss flags, boss souls, covenants, questlines, endings

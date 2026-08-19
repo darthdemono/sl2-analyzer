@@ -6,6 +6,11 @@ import json
 import os
 import sys
 
+from validators import run_validation
+from validators.file_rules import run_file_validation
+from validators.text import validation_text, validation_text_file
+
+from .bnd4 import checksum_ok, parse_bnd4
 from .combine import build_combined, find_saves
 from .convert import parse_save, render_markdown
 from .jsonout import build_json, parse_meta
@@ -130,6 +135,13 @@ def main():
         help="JSON indent; 0 for one dense line (default: 2)",
     )
     ap.add_argument(
+        "--validate",
+        action="store_true",
+        help="run the validation pass and add its findings to the output: "
+        "states an unmodified game could not produce, and internal "
+        "contradictions. Off by default, and it never changes what is parsed",
+    )
+    ap.add_argument(
         "--combined",
         action="store_true",
         help="force the combined document even for a single save",
@@ -181,13 +193,36 @@ def main():
     warn_foreign_folder(sl2, save)
     if fmt == "json":
         text = json.dumps(
-            build_json(save, name, meta), ensure_ascii=False, indent=args.indent or None
+            build_json(save, name, meta, args.validate, data),
+            ensure_ascii=False,
+            indent=args.indent or None,
         )
         text += "\n"
     else:
-        text = render_markdown(save, name, meta)
+        text = render_markdown(save, name, meta, args.validate, data)
 
     write_out(args.out, text)
+    if args.validate:
+        print_validation(save, data)
+
+
+##
+# @brief Print each character's validation block to the terminal.
+# @details The findings are already in the document; this is so a run that was only
+# asking "does this save add up" answers without opening the file. Stdout, one block per
+# character, in the shape validators/text.py defines.
+# @param save The parsed @ref sl2.convert.SaveData. @param data The file bytes, for
+#        the file-level rules.
+def print_validation(save, data):
+    start = save.cfg["slots"].start
+    for i, ch in save.characters:
+        label = f"Slot {i - start + 1}" + (f": {ch['name']}" if ch.get("name") else "")
+        print()
+        print("\n".join(validation_text(run_validation(ch, save.game), label)))
+    entries = parse_bnd4(data) or []
+    report = run_file_validation(save.game, entries, data, checksum_ok)
+    print()
+    print("\n".join(validation_text_file(report)))
 
 
 ##

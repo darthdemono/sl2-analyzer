@@ -1,0 +1,20 @@
+{
+ "_source": "MEASURED, not transcribed. sum(stats) - level is 53 on every one of the 75 DS2 characters in the local corpus, across Knight, Swordsman, Sorcerer, Explorer and (vanilla) Warrior, and 53 is also what Deprived's published start gives: nine stats of 6 at SL 1. 53 predicts the published maximum SL 838 = 99*9 - 53. No per-class table is shipped because no source for the other classes' base stats has been checked against a save here, and a floor that is too HIGH invents findings - see the note in validators/rules/common.py.",
+ "stat_order": [
+  "Vigor",
+  "Endurance",
+  "Vitality",
+  "Attunement",
+  "Strength",
+  "Dexterity",
+  "Adaptability",
+  "Intelligence",
+  "Faith"
+ ],
+ "stat_cap": 99,
+ "souls_cap": 999999999,
+ "k_values": [
+  53
+ ],
+ "starting_classes": {}
+}

@@ -1,0 +1,147 @@
+{
+ "_source": "Starting classes as published on the Dark Souls wiki (fextralife / Fandom), cross-checked by the level identity: sum(base stats) - starting level is the class constant K, and the smallest K here (Sorcerer, 79) predicts the game's published maximum of SL 713 = 99*8 - 79. Warrior and Deprived (K=82) are the two the local corpus exercises and both agree.",
+ "stat_order": [
+  "Vitality",
+  "Attunement",
+  "Endurance",
+  "Strength",
+  "Dexterity",
+  "Resistance",
+  "Intelligence",
+  "Faith"
+ ],
+ "stat_cap": 99,
+ "souls_cap": 999999999,
+ "starting_classes": {
+  "Warrior": {
+   "level": 4,
+   "stats": {
+    "Vitality": 11,
+    "Attunement": 8,
+    "Endurance": 12,
+    "Strength": 13,
+    "Dexterity": 13,
+    "Resistance": 11,
+    "Intelligence": 9,
+    "Faith": 9
+   }
+  },
+  "Knight": {
+   "level": 5,
+   "stats": {
+    "Vitality": 14,
+    "Attunement": 10,
+    "Endurance": 10,
+    "Strength": 11,
+    "Dexterity": 11,
+    "Resistance": 10,
+    "Intelligence": 9,
+    "Faith": 11
+   }
+  },
+  "Wanderer": {
+   "level": 3,
+   "stats": {
+    "Vitality": 10,
+    "Attunement": 11,
+    "Endurance": 10,
+    "Strength": 10,
+    "Dexterity": 14,
+    "Resistance": 12,
+    "Intelligence": 11,
+    "Faith": 8
+   }
+  },
+  "Thief": {
+   "level": 5,
+   "stats": {
+    "Vitality": 9,
+    "Attunement": 11,
+    "Endurance": 9,
+    "Strength": 9,
+    "Dexterity": 15,
+    "Resistance": 10,
+    "Intelligence": 12,
+    "Faith": 11
+   }
+  },
+  "Bandit": {
+   "level": 4,
+   "stats": {
+    "Vitality": 12,
+    "Attunement": 8,
+    "Endurance": 14,
+    "Strength": 14,
+    "Dexterity": 9,
+    "Resistance": 11,
+    "Intelligence": 8,
+    "Faith": 10
+   }
+  },
+  "Hunter": {
+   "level": 4,
+   "stats": {
+    "Vitality": 11,
+    "Attunement": 9,
+    "Endurance": 11,
+    "Strength": 12,
+    "Dexterity": 14,
+    "Resistance": 11,
+    "Intelligence": 9,
+    "Faith": 9
+   }
+  },
+  "Sorcerer": {
+   "level": 3,
+   "stats": {
+    "Vitality": 8,
+    "Attunement": 15,
+    "Endurance": 8,
+    "Strength": 9,
+    "Dexterity": 11,
+    "Resistance": 8,
+    "Intelligence": 15,
+    "Faith": 8
+   }
+  },
+  "Pyromancer": {
+   "level": 1,
+   "stats": {
+    "Vitality": 10,
+    "Attunement": 12,
+    "Endurance": 11,
+    "Strength": 12,
+    "Dexterity": 9,
+    "Resistance": 12,
+    "Intelligence": 10,
+    "Faith": 8
+   }
+  },
+  "Cleric": {
+   "level": 2,
+   "stats": {
+    "Vitality": 11,
+    "Attunement": 11,
+    "Endurance": 9,
+    "Strength": 12,
+    "Dexterity": 8,
+    "Resistance": 11,
+    "Intelligence": 8,
+    "Faith": 14
+   }
+  },
+  "Deprived": {
+   "level": 6,
+   "stats": {
+    "Vitality": 11,
+    "Attunement": 11,
+    "Endurance": 11,
+    "Strength": 11,
+    "Dexterity": 11,
+    "Resistance": 11,
+    "Intelligence": 11,
+    "Faith": 11
+   }
+  }
+ }
+}

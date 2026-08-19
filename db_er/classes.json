@@ -1,0 +1,147 @@
+{
+ "_source": "Starting classes as published on the Elden Ring wiki, every row checked against the identity sum(base stats) - starting level = 79, which holds for all ten and is the constant measured on all 182 ER characters in the local corpus (two personal saves plus Bergbok's build collection). It predicts the published maximum RL 713 = 99*8 - 79.",
+ "stat_order": [
+  "Vigor",
+  "Mind",
+  "Endurance",
+  "Strength",
+  "Dexterity",
+  "Intelligence",
+  "Faith",
+  "Arcane"
+ ],
+ "stat_cap": 99,
+ "souls_cap": 999999999,
+ "starting_classes": {
+  "Vagabond": {
+   "level": 9,
+   "stats": {
+    "Vigor": 15,
+    "Mind": 10,
+    "Endurance": 11,
+    "Strength": 14,
+    "Dexterity": 13,
+    "Intelligence": 9,
+    "Faith": 9,
+    "Arcane": 7
+   }
+  },
+  "Warrior": {
+   "level": 8,
+   "stats": {
+    "Vigor": 11,
+    "Mind": 12,
+    "Endurance": 11,
+    "Strength": 10,
+    "Dexterity": 16,
+    "Intelligence": 10,
+    "Faith": 8,
+    "Arcane": 9
+   }
+  },
+  "Hero": {
+   "level": 7,
+   "stats": {
+    "Vigor": 14,
+    "Mind": 9,
+    "Endurance": 12,
+    "Strength": 16,
+    "Dexterity": 9,
+    "Intelligence": 7,
+    "Faith": 8,
+    "Arcane": 11
+   }
+  },
+  "Bandit": {
+   "level": 5,
+   "stats": {
+    "Vigor": 10,
+    "Mind": 11,
+    "Endurance": 10,
+    "Strength": 9,
+    "Dexterity": 13,
+    "Intelligence": 9,
+    "Faith": 8,
+    "Arcane": 14
+   }
+  },
+  "Astrologer": {
+   "level": 6,
+   "stats": {
+    "Vigor": 9,
+    "Mind": 15,
+    "Endurance": 9,
+    "Strength": 8,
+    "Dexterity": 12,
+    "Intelligence": 16,
+    "Faith": 7,
+    "Arcane": 9
+   }
+  },
+  "Prophet": {
+   "level": 7,
+   "stats": {
+    "Vigor": 10,
+    "Mind": 14,
+    "Endurance": 8,
+    "Strength": 11,
+    "Dexterity": 10,
+    "Intelligence": 7,
+    "Faith": 16,
+    "Arcane": 10
+   }
+  },
+  "Samurai": {
+   "level": 9,
+   "stats": {
+    "Vigor": 12,
+    "Mind": 11,
+    "Endurance": 13,
+    "Strength": 12,
+    "Dexterity": 15,
+    "Intelligence": 9,
+    "Faith": 8,
+    "Arcane": 8
+   }
+  },
+  "Prisoner": {
+   "level": 9,
+   "stats": {
+    "Vigor": 11,
+    "Mind": 12,
+    "Endurance": 11,
+    "Strength": 11,
+    "Dexterity": 14,
+    "Intelligence": 14,
+    "Faith": 6,
+    "Arcane": 9
+   }
+  },
+  "Confessor": {
+   "level": 10,
+   "stats": {
+    "Vigor": 10,
+    "Mind": 13,
+    "Endurance": 10,
+    "Strength": 12,
+    "Dexterity": 12,
+    "Intelligence": 9,
+    "Faith": 14,
+    "Arcane": 9
+   }
+  },
+  "Wretch": {
+   "level": 1,
+   "stats": {
+    "Vigor": 10,
+    "Mind": 10,
+    "Endurance": 10,
+    "Strength": 10,
+    "Dexterity": 10,
+    "Intelligence": 10,
+    "Faith": 10,
+    "Arcane": 10
+   }
+  }
+ }
+}

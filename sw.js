@@ -5,7 +5,7 @@
 // There is nothing cross-origin to think about: the page fetches only itself and its
 // own tables, so everything it asks for is cacheable.
 
-const VERSION = "v32";
+const VERSION = "v34";
 const CACHE = `sl2-analyzer-${VERSION}`;
 
 // The app shell. Item tables are not listed: there are ~50 of them across five game
@@ -30,6 +30,7 @@ const SHELL = [
   "app/timeline.js",
   "app/chart.js",
   "app/mdview.js",
+  "app/validators.js",
   // The stylesheet, split by concern the way the page's own sections are.
   "css/theme.css",
   "css/normal.css",

@@ -12,7 +12,7 @@ import { REPO_URL } from "./markdown.js";
 export const SCHEMA_URL = "https://sl2-analyzer.darthdemono.com/schema.json";
 
 /** Semver for the document format. MINOR adds an optional field, MAJOR breaks a reader. */
-export const SCHEMA_VERSION = "1.1.0";
+export const SCHEMA_VERSION = "1.2.0";
 
 /**
  * ISO-8601 UTC to the second, which is what the Python writes. `toISOString` includes

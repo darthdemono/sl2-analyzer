@@ -6,7 +6,11 @@ import os
 import sys
 from datetime import datetime
 
-from .bnd4 import parse_bnd4
+from validators import run_validation
+from validators.file_rules import run_file_validation
+from validators.text import validation_md, validation_md_file
+
+from .bnd4 import checksum_ok, parse_bnd4
 from .crypto import decrypt_ds2, decrypt_iv_prefixed, decrypt_none, decrypt_nr
 from .detect import detect_game
 from .ds1 import ds1_augment, dsr_parse, ptde_parse
@@ -173,7 +177,7 @@ GAMES = {
         # "full" does not fairly infer that everything the other games report is
         # here. Moving the tier would redefine what the word means for every game.
         "coverage": "world item pickups are read for the nine areas whose flag "
-        "bank is mapped (589 of the 826 known item lots); the rest sit in "
+        "bank is mapped (583 of the 826 known item lots); the rest sit in "
         "families no idol names, so they have no category to be read from",
         "how": "the save is not encrypted and, unlike every other game here, its "
         "fields do not move between patches — so play time, journey (New "
@@ -720,8 +724,8 @@ SDT_NOTE = (
 # @param filename The source filename, for the header line.
 # @param base_dir Folder holding the @c db_* item-table directories.
 # @return The complete Markdown string.
-def convert(data, filename, base_dir, meta=None):
-    return render_markdown(parse_save(data, base_dir), filename, meta)
+def convert(data, filename, base_dir, meta=None, validate=False):
+    return render_markdown(parse_save(data, base_dir), filename, meta, validate, data)
 
 
 ##
@@ -729,8 +733,12 @@ def convert(data, filename, base_dir, meta=None):
 # @param save     A @ref SaveData from @ref parse_save.
 # @param filename The source filename, for the header line.
 # @param meta Caller-supplied environment for the footer, or None.
+# @param validate Append each character's validation section (off by default; the
+#        validators package is a separate pass and nothing here depends on it).
+# @param data The original file bytes, when the caller has them: the file-level rules
+#        (entry checksums) need the container, not a character.
 # @return The complete Markdown string.
-def render_markdown(save, filename, meta=None):
+def render_markdown(save, filename, meta=None, validate=False, data=None):
     cfg = save.cfg
     # Only the save's own identity up top; what the TOOL is and how far to trust it
     # is the same in every export, so it goes in the closing block (footer_for).
@@ -745,6 +753,14 @@ def render_markdown(save, filename, meta=None):
     body = ["_No populated character slots found._"] if not save.characters else []
     for i, ch in save.characters:
         body.append(md_for_character(ch, i - cfg["slots"].start + 1))
+        if validate:
+            body += validation_md(run_validation(ch, save.game))
+        body += ["---", ""]
+    if validate and data is not None:
+        entries = parse_bnd4(data) or []
+        body += validation_md_file(
+            run_file_validation(save.game, entries, data, checksum_ok)
+        )
         body += ["---", ""]
     if save.game == "er":
         body += [ER_NOTE, ""]

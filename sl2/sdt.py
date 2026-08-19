@@ -518,7 +518,8 @@ SDT_FLAG_MAPS = {
 # Carp Scale, the Dragon's Blood Droplet picked up the day before. The four areas the run
 # has never entered (Ashina Depths, Sunken Valley, Senpou, Fountainhead) read ZERO at
 # their own seats. And a third-party FINISHED save reads 474 of 589 spread across all
-# nine areas, none of them empty — which is the shape a wrong seat cannot fake.
+# nine areas, none of them empty — which is the shape a wrong seat cannot fake. (That
+# 589 was before the group-6 rows were refused; the denominator is 583 now.)
 SDT_PICKUP_BANK = 66
 ## @brief Top-level group of the item-lot family, the digit SoulSplitter switches on.
 SDT_PICKUP_GROUP = 5
@@ -540,7 +541,7 @@ SDT_PICKUP_GROUP = 5
 #
 # A group-5 id whose map has no seat in @ref SDT_FLAG_MAPS still returns None: 237 of the
 # 826 shipped pickups sit in families (areas 0, 1, 2, 4-8, 18, 19, 30-47) that no idol
-# names, so nothing here can place them. There are further populated categories past the
+# names, so nothing here can place them, and a further six are `6xxxxxxx` — 583 readable. There are further populated categories past the
 # banks too (k=35..46 at least) and nothing published names a single flag in them.
 # @param fid The event flag id. @return @c (offset, bit) or None.
 def sdt_flag_offset(fid):
@@ -557,6 +558,18 @@ def sdt_flag_offset(fid):
         if not 0 <= fid < SDT_FLAG_GLOBAL_MAX:
             return None
         k = 0
+    elif (fid // 10000000) % 10 > SDT_PICKUP_GROUP:
+        # A top-level group ABOVE the pickup bank has no seat here, and falling through
+        # to the map lookup is not a harmless guess — it is an alias. `item_flags.json`
+        # carries 115 `6xxxxxxx` rows, and six of them read an area this table seats:
+        # `61300000` (a Prayer Bead) lands byte-for-byte on the Underground Waterway
+        # idol's bit, so the pickup would report itself collected the moment that idol
+        # was lit. Measured on the `Wolf_22-01-15` -> `Wolf_22-01-35` pair, where one
+        # bit moved and two shipped ids both claimed it. Four of the six collide with an
+        # idol outright; the other two are the same arithmetic with nothing shipped on
+        # top of them yet. Nothing published says where group 6 lives, so it reads as
+        # unplaceable rather than as somebody else's flag.
+        return None
     else:
         k = SDT_FLAG_MAPS.get((area, sub))
         if k is None:
@@ -696,7 +709,10 @@ def sdt_pickup_rows(base_dir):
     for fid, name, where in load_sdt_item_flags(base_dir).get("item_pickup", []):
         fid = int(fid)
         key = ((fid // 100000) % 100, (fid // 10000) % 10)
-        if key in rows:
+        # The area alone is not enough: six rows in a seated area are `6xxxxxxx`, a
+        # group with no seat of its own, so they would sit in the denominator forever
+        # unread. Ask the addressing, not the area.
+        if key in rows and sdt_flag_offset(fid) is not None:
             rows[key].append((fid, name, where))
     return rows
 
