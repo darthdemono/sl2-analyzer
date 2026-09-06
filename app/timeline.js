@@ -64,6 +64,7 @@ export function snapshot(ch, file, slot, game, title) {
     souls: ch.souls || 0,
     attack: ch.attack == null ? null : ch.attack,
     vitality: ch.vitality == null ? null : ch.vitality,
+    gourd: ch.gourd == null ? null : ch.gourd,
     key_items: [...new Set((ch.key_items || []).map(([n]) => n))].sort(),
     soul_memory: ch.soul_memory == null ? null : ch.soul_memory,
     deaths: ch.deaths == null ? null : ch.deaths,
@@ -163,6 +164,7 @@ export function progress(s) {
     // by a New Game+ lap. See progress() in sl2/timeline.py.
     attack: s.attack == null ? -1 : s.attack,
     vitality: s.vitality == null ? -1 : s.vitality,
+    gourd: s.gourd == null ? -1 : s.gourd,
     estus: s.estus == null ? -1 : s.estus,
     ng_plus: s.ng_plus == null ? -1 : s.ng_plus,
   };
@@ -183,6 +185,7 @@ export function descends(a, b) {
   if (!subset(pa.endings, pb.endings)) return false;
   if (pa.level > pb.level || pa.estus > pb.estus) return false;
   if (pa.attack > pb.attack || pa.vitality > pb.vitality) return false;
+  if (pa.gourd > pb.gourd) return false;
   if (pb.ng_plus > pa.ng_plus) return true;
   for (const k of RESETTABLE) if (!subset(pa[k], pb[k])) return false;
   return Object.entries(pa.pickups).every(([area, n]) => n <= (pb.pickups[area] || 0));
@@ -278,6 +281,7 @@ export function achievements(cur, prev, cap = 3) {
         level: 0,
         attack: -1,
         vitality: -1,
+        gourd: -1,
         estus: -1,
         ng_plus: -1,
       };
@@ -307,7 +311,12 @@ export function achievements(cur, prev, cap = 3) {
   if (cur.vitality != null && was.vitality >= 0 && cur.vitality > was.vitality) {
     out.push(`NECKLACE USED: vitality ${was.vitality} \u2192 ${cur.vitality}`);
   }
-  // Key items are the one per-save delta Sekiro can show besides its two counters.
+  // The third of them. A Gourd Seed vanishes the moment Emma takes it, so the gourd's
+  // own capacity is the only thing that records the upgrade ever happened.
+  if (cur.gourd != null && was.gourd >= 0 && cur.gourd > was.gourd) {
+    out.push(`GOURD SEED USED: gourd ${was.gourd} \u2192 ${cur.gourd}`);
+  }
+  // Key items are the one per-save delta Sekiro can show besides its three counters.
   // NOT in the containment test — some key items are consumed on use.
   const nk = diff(new Set(cur.key_items), new Set(prev ? prev.key_items : []));
   if (nk.length) {

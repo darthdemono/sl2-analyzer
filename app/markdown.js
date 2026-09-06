@@ -23,6 +23,7 @@ import {
   countDupes,
   memoriesLine,
   vitalityNecklaces,
+  gourdSeeds,
   catTitle,
 } from "./tables.js";
 
@@ -131,6 +132,11 @@ export function mdCharacter(ch, slot) {
   if (ch.attack != null) L.push(`- **Attack Power:** ${ch.attack}`);
   if (ch.vitality != null)
     L.push(`- **Vitality:** ${ch.vitality}  _(${vitalityNecklaces(ch.vitality)})_`);
+  if (ch.gourd != null)
+    L.push(
+      `- **Healing Gourd:** ${ch.gourd} charge${ch.gourd === 1 ? "" : "s"}` +
+        `  _(${gourdSeeds(ch.gourd)})_`,
+    );
   if (ch.skill_points != null)
     L.push(
       `- **Skill Points Held:** ${ch.skill_points}` +

@@ -311,6 +311,25 @@ def vitality_necklaces(vitality):
     )
 
 
+##
+# @brief What a Healing Gourd charge count says about Gourd Seeds used.
+# @details The Memory trick a third time, and the one where the subtraction earns the
+# most: a seed is consumed the moment Emma takes it, so a finished upgrade leaves
+# nothing at all in the inventory to say it happened. One seed buys one charge and a
+# fresh gourd holds one, so the charges recover the spent tokens. Like the other two
+# counters it carries into New Game+, which is why the count is never claimed to belong
+# to this journey.
+# @param gourd The gourd's charge count. @return The parenthetical, without brackets.
+def gourd_seeds(gourd):
+    used = gourd - 1
+    return (
+        "no Gourd Seed used yet"
+        if used == 0
+        else f"{used} Gourd Seed{'' if used == 1 else 's'} used — handed to Emma, read "
+        f"back from the gourd's own capacity across every journey so far"
+    )
+
+
 ## @brief Format a value, or "—" when it is unknown (None).
 def fmt(value):
     return (
@@ -489,6 +508,11 @@ def md_for_character(ch, slot_no):
     if ch.get("vitality") is not None:
         L.append(
             f"- **Vitality:** {ch['vitality']}  _({vitality_necklaces(ch['vitality'])})_"
+        )
+    if ch.get("gourd") is not None:
+        L.append(
+            f"- **Healing Gourd:** {ch['gourd']} charge"
+            f"{'' if ch['gourd'] == 1 else 's'}  _({gourd_seeds(ch['gourd'])})_"
         )
     if ch.get("skill_points") is not None:
         L.append(

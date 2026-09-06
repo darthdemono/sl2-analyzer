@@ -243,6 +243,20 @@ export function vitalityNecklaces(vitality) {
         "read back from Vitality across every journey so far";
 }
 
+/**
+ * What a Healing Gourd charge count says about Gourd Seeds used. The Memory trick a
+ * third time: a seed is consumed the moment Emma takes it, so nothing is left in the
+ * inventory to say it happened, but one seed buys one charge and a fresh gourd holds
+ * one. Mirrors gourd_seeds.
+ */
+export function gourdSeeds(gourd) {
+  const used = gourd - 1;
+  return used === 0
+    ? "no Gourd Seed used yet"
+    : `${used} Gourd Seed${used === 1 ? "" : "s"} used — handed to Emma, read back ` +
+        "from the gourd's own capacity across every journey so far";
+}
+
 export const DS2_GREAT_SOULS = new Set([
   "Old Witch Soul",
   "Old Dead One Soul",

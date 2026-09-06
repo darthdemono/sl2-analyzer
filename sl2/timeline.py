@@ -73,6 +73,7 @@ def snapshot(ch, path, slot_no, game, title):
         "ng_plus": ch.get("ng_plus"),
         "attack": ch.get("attack"),
         "vitality": ch.get("vitality"),
+        "gourd": ch.get("gourd"),
         "key_items": sorted({n for n, _q in (ch.get("key_items") or [])}),
         "estus": estus_level(ch),
         "bonfires": bonfires,
@@ -140,6 +141,7 @@ def progress(s):
         "level": s["level"],
         "attack": s["attack"] if s["attack"] is not None else -1,
         "vitality": s["vitality"] if s["vitality"] is not None else -1,
+        "gourd": s["gourd"] if s["gourd"] is not None else -1,
         "estus": s["estus"] if s["estus"] is not None else -1,
         "ng_plus": s["ng_plus"] if s["ng_plus"] is not None else -1,
     }
@@ -167,6 +169,8 @@ def descends(a, b):
     if pa["level"] > pb["level"] or pa["estus"] > pb["estus"]:
         return False
     if pa["attack"] > pb["attack"] or pa["vitality"] > pb["vitality"]:
+        return False
+    if pa["gourd"] > pb["gourd"]:
         return False
     if pb["ng_plus"] > pa["ng_plus"]:
         return True
@@ -277,6 +281,7 @@ def achievements(cur, prev, cap=3):
             "level": 0,
             "attack": -1,
             "vitality": -1,
+            "gourd": -1,
             "estus": -1,
             "ng_plus": -1,
         }
@@ -307,7 +312,11 @@ def achievements(cur, prev, cap=3):
     # consumed, so only Vitality remembers it.
     if cur["vitality"] is not None and cur["vitality"] > was["vitality"] >= 0:
         out.append(f"NECKLACE USED: vitality {was['vitality']} → {cur['vitality']}")
-    # Key items are the one per-save delta Sekiro can show besides its two counters —
+    # The third of them. A Gourd Seed vanishes the moment Emma takes it, so the gourd's
+    # own level is the only thing that records the upgrade ever happened.
+    if cur["gourd"] is not None and cur["gourd"] > was["gourd"] >= 0:
+        out.append(f"GOURD SEED USED: gourd {was['gourd']} → {cur['gourd']}")
+    # Key items are the one per-save delta Sekiro can show besides its three counters —
     # it has no bonfires and no readable flags, so without this its nodes carry nothing
     # but "atk 1". Deliberately NOT part of the containment test: a few key items are
     # consumed on use, so a run can legitimately hold fewer than an ancestor did.

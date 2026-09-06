@@ -24,6 +24,7 @@ import {
   countDupes,
   memoriesLine,
   vitalityNecklaces,
+  gourdSeeds,
   catTitle,
 } from "./tables.js";
 import { buildMarkdown } from "./markdown.js";
@@ -164,6 +165,10 @@ function leftColumn(slot, ch) {
     rows.push(
       statRow("hp", "Vitality", ch.vitality, { big: true, title: vitalityNecklaces(ch.vitality) }),
     );
+  // And the third: a Gourd Seed leaves nothing behind either, so the gourd's own
+  // capacity is the only record it was ever held.
+  if (ch.gourd != null)
+    rows.push(statRow("hp", "Healing Gourd", ch.gourd, { title: gourdSeeds(ch.gourd) }));
   if (ch.skill_points != null)
     rows.push(
       statRow("mag", "Skill Points", ch.skill_points, {

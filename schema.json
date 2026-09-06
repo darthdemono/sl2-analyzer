@@ -351,6 +351,12 @@
           "maximum": 20,
           "description": "Sekiro only: Vitality, the track that raises max HP and Posture. Also a COUNT — it rises by exactly one per Prayer Necklace used, so `vitality - 1` is how many necklaces (four Prayer Beads each) have been consumed, cumulative across journeys. 1 is the value on a character who has used none."
         },
+        "gourd": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Sekiro only: how many charges the Healing Gourd holds. Also a COUNT — a fresh gourd holds one and each Gourd Seed handed to Emma buys exactly one more, so `gourd - 1` is how many seeds have been consumed, cumulative across journeys. 1 is the value on a character who has used none; the maximum is the game's own maxNum for the item."
+        },
         "skill_points": {
           "type": "integer",
           "minimum": 0,

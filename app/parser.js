@@ -1806,6 +1806,12 @@ const SDT_POSTURE_OFF = 0x3448c,
 // the status screen shows; a fresh character reads 1.
 const SDT_VITALITY_OFF = 0x34498,
   SDT_VITALITY_MAX = 20;
+// The Healing Gourd's charge count — a byte, and the third spent-token counter. Pinned
+// by a Gourd Seed differential and held by a conservation check over the whole save
+// ladder; see SDT_GOURD_OFF in sl2/sdt.py. A fresh gourd holds one charge and each seed
+// buys exactly one more, so `gourd - 1` is the seeds consumed. Max is the game's own.
+const SDT_GOURD_OFF = 0x34562,
+  SDT_GOURD_MAX = 10;
 // Attack power on a character who has consumed no Memory — measured on a real save
 // that is minutes from the opening, which is what makes it a base and not a guess.
 const SDT_ATTACK_BASE = 1,
@@ -2105,6 +2111,8 @@ function sdtParse(buf, db) {
   const ng = u8(buf, SDT_NG_OFF);
   let vitality = u32(buf, SDT_VITALITY_OFF);
   if (vitality != null && (vitality < 1 || vitality > SDT_VITALITY_MAX)) vitality = null;
+  let gourd = u8(buf, SDT_GOURD_OFF);
+  if (gourd != null && (gourd < 1 || gourd > SDT_GOURD_MAX)) gourd = null;
   const ch = {
     tier: "full",
     game: "sdt",
@@ -2123,6 +2131,7 @@ function sdtParse(buf, db) {
     souls: u32(buf, SDT_SEN_OFF),
     attack,
     vitality,
+    gourd,
     skill_points: skillPoints,
     boss_souls: memories,
     key_items: keyItems,

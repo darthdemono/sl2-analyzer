@@ -8,8 +8,11 @@ item id — a prosthetic tool's upgrade tier is its own id, so a straight lookup
 "Lazulite Shuriken" with no arithmetic.
 
 What it does not have is a character name — Sekiro's profiles are unnamed by design —
-or attributes. Its numbers are Attack Power, max HP and max Posture; the Vitality LEVEL
-behind the last two is in no published source and is not read.
+or attributes. Its numbers are Attack Power, max HP and max Posture, and the two upgrade
+levels behind them: Vitality and the Healing Gourd. Neither of the last two is in any
+published source; both were pinned here by differentials, and both are spent-token
+counters — the item that raised them is consumed, so the level is the only record that
+it was ever held.
 
 Offsets from uberhalit/SimpleSekiroSavegameHelper (the container) and
 alfizari/Sekiro-Save-Editor (the slot fields), every one of them verified against a real
@@ -77,6 +80,38 @@ SDT_POSTURE_OFF, SDT_POSTURE_ALT = 0x3448C, 0x34490
 # The ceiling is the in-game cap; past it the read landed somewhere it should not have.
 SDT_VITALITY_OFF = 0x34498
 SDT_VITALITY_MAX = 20
+
+
+##
+# @brief The Healing Gourd's CHARGE COUNT — a byte, and Sekiro's third spent-token
+#        counter — at @c 0x34562.
+# @details In no published source either, and pinned the same way Vitality was. A
+# four-minute window in which one Gourd Seed was handed to Emma moved exactly one byte
+# in the whole player struct: this one, 7 → 8. The other five words that moved in the
+# same window are play time, two timers and a pair that only tracks with play time,
+# none of them a small monotone count.
+#
+# Two independent checks across the whole 45-save ladder say what the byte MEANS, and
+# they disagree with the obvious first reading of "seeds used":
+#
+# - **Conservation.** A seed is consumed the moment Emma takes it, so `this byte + the
+#   Gourd Seeds still in the inventory` must never fall. It never does, over 45 saves,
+#   and on each save where a held seed disappears the byte takes exactly the +1 the
+#   inventory lost. A wrong offset cannot stay conserved against a list parsed
+#   independently of it.
+# - **It is the capacity, not the tally.** The Healing Gourd is an ordinary inventory
+#   row whose quantity is its remaining charges, and that quantity never exceeds this
+#   byte and repeatedly equals it — 4 on all eight saves at 4, 5 at 5, 7 at 7. Were the
+#   byte a count of seeds with charges some fixed amount above it, a gourd refilled at
+#   every idol would have to read higher than this somewhere in 45 saves. It never does.
+#
+# So the byte IS the number of charges, it starts at 1 (a characterless save and every
+# unused slot read 0; the earliest save on the ladder reads 1 with a one-charge gourd),
+# and one seed buys one charge — which makes `value - 1` the seeds consumed, cumulative
+# across journeys like Attack Power and Vitality. The ceiling is the game's own: the
+# @c maxNum of @c EquipParamGoods row 3000, read out of this machine's install.
+SDT_GOURD_OFF = 0x34562
+SDT_GOURD_MAX = 10
 
 
 ##
@@ -370,6 +405,9 @@ def sdt_parse(buf, db):
     vitality = u32(buf, SDT_VITALITY_OFF)
     if vitality is not None and not 1 <= vitality <= SDT_VITALITY_MAX:
         vitality = None
+    gourd = u8(buf, SDT_GOURD_OFF)
+    if gourd is not None and not 1 <= gourd <= SDT_GOURD_MAX:
+        gourd = None
     ch = {
         "tier": "full",
         "game": "sdt",
@@ -391,6 +429,7 @@ def sdt_parse(buf, db):
         "souls": u32(buf, SDT_SEN_OFF),
         "attack": attack,
         "vitality": vitality,
+        "gourd": gourd,
         "skill_points": skill_points,
         "boss_souls": memories,
         "key_items": key_items,
