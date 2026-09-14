@@ -16,6 +16,12 @@ it there: two generators writing one table from two sources is how the two disag
       python3 tools/gamefiles.py roster <unpacked>/event --msg <unpacked>/msg/engus \
           --maps <unpacked>/map/mapstudio --write db_sdt/minibosses.json
 
+  lot_flags.json                              the flag each item lot REALLY sets,
+      where it is not `50000000 + lot id` (item_flags.json's shortcut), and the rows
+      filed under another lot's id.  Joined from the game's own ItemLotParam:
+      python3 tools/gen_sdt_lot_flags.py --lots <out>/item_flags.tsv --write
+      where <out> is gen_sdt_from_regulation.py's output directory.
+
 That roster is why the rule above is worth keeping.  Regenerating it from the scripts
 returned 37 rows where the community list carried 33: all five Headless were missing,
 fourteen more were named after their model family rather than the enemy, and one entry

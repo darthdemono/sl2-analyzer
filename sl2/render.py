@@ -402,10 +402,12 @@ DS3_PICKUP_NOTE = (
 # shape: the addressing is solved, but 237 of the 826 known lots sit in families that no
 # idol names, and six more are in a top-level group with no seat, so they have no
 # category to be read from. The nine areas here are the ones that do, which is why the
-# denominator is 583 and not 826.
+# denominator is 581 and not 826 — two fewer than the seats alone allow, because one row
+# is misfiled under another lot's id and one lot's real flag is in a family with no seat
+# (see load_sdt_lot_flags).
 SDT_PICKUP_NOTE = (
     "one-off world items picked up, from each area's item-lot flags — covers the "
-    "nine areas whose flag bank is mapped, 583 of the 826 lots the table knows"
+    "nine areas whose flag bank is mapped, 581 of the 826 lots the table knows"
 )
 
 
@@ -681,8 +683,11 @@ def md_for_character(ch, slot_no):
     # Boss souls get a top section only where the inventory does NOT already have a
     # category holding them (DS2 and DS3 have `bosssouls`, Sekiro has `memories`) —
     # printing both is the same list twice.
-    if ch["boss_souls"] and not (
-        ch["inv"].get("bosssouls") or ch["inv"].get("memories")
+    # Sekiro's held Memories are already in Key Items, where the game lists them.
+    if (
+        ch["boss_souls"]
+        and ch["game"] != "sdt"
+        and not (ch["inv"].get("bosssouls") or ch["inv"].get("memories"))
     ):
         header = (
             "### Remembrances Held  _(major bosses defeated, not yet traded)_"
@@ -991,9 +996,10 @@ def md_for_character(ch, slot_no):
             f"_{ch['suppressed_count']} further entr"
             f"{'y' if ch['suppressed_count'] == 1 else 'ies'} were engine state "
             "rather than inventory — Sekiro has no armour system, so the character's "
-            "own body models sit in the protector table, and the `Virtual Weapon:` "
-            "rows restate a Combat Art already listed under its own name. Counted "
-            "here, not printed._",
+            "own body models sit in the protector table, the `Virtual Weapon:` "
+            "rows restate a Combat Art already listed under its own name, and the "
+            "two plain `Memory` rows are the game's counters of Memories spent and "
+            "held. Counted here, not printed._",
             "",
         ]
     return "\n".join(L)

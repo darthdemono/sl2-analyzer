@@ -243,6 +243,18 @@ def sdt_suppressed(name):
     return name.startswith(SDT_SUPPRESSED_PREFIXES)
 
 
+## @brief The two goods rows both named plain "Memory" are engine COUNTERS, not tokens.
+#  Read across the 60-save ladder: `5100`'s quantity is the number of Memories consumed
+#  (it tracks Attack Power − 1 on every save, through NG+ on the finished one), and
+#  `5400` sits at 1 exactly while a boss Memory is carried unspent. Counting them as
+#  held Memories is what made a character with nothing to spend report one "still held",
+#  and listing them printed `Memory ×5` in an inventory that holds no Memory at all.
+SDT_MEMORY_COUNTER_IDS = (5100, 5400)
+## @brief The boss Memories themselves (`Memory: Gyoubu Oniwa` …), the only rows that
+#  are a token in hand. The game files them in the key-item list.
+SDT_BOSS_MEMORY_IDS = (5200, 5299)
+
+
 ## @brief Skill points are a spendable currency, not a consumable, so the report puts
 #  them beside Attack Power and Vitality instead of in with the sugars and the gourds.
 SDT_SKILL_POINT_ID = 1200
@@ -371,7 +383,7 @@ def sdt_parse(buf, db):
         if is_internal:
             internal += 1
             continue
-        if sdt_suppressed(name):
+        if sdt_suppressed(name) or (cat == "memories" and iid in SDT_MEMORY_COUNTER_IDS):
             suppressed += 1
             continue
         # A skill point is spendable currency, so it rides in the header beside the
@@ -382,6 +394,10 @@ def sdt_parse(buf, db):
             skill_points = (skill_points or 0) + (qty or 0)
             continue
         row = (name, qty)
+        # A boss Memory is the kill's proof wherever it is listed, and the game lists
+        # it with the key items — so it is collected before the list decides placement.
+        if cat == "memories" and SDT_BOSS_MEMORY_IDS[0] <= iid <= SDT_BOSS_MEMORY_IDS[1]:
+            memories.append(row)
         # The box wins over the category: a key item sitting in storage is in
         # storage, and saying otherwise would report it as carried.
         if which == "storage":
@@ -390,8 +406,6 @@ def sdt_parse(buf, db):
             key_items.append(row)
         else:
             inv.setdefault(cat, []).append(row)
-            if cat == "memories":
-                memories.append(row)
 
     play_time = u32(buf, SDT_PLAYTIME_OFF)
     steam_id = u64(buf, SDT_STEAM_OFF)
@@ -558,7 +572,8 @@ SDT_FLAG_MAPS = {
 # has never entered (Ashina Depths, Sunken Valley, Senpou, Fountainhead) read ZERO at
 # their own seats. And a third-party FINISHED save reads 474 of 589 spread across all
 # nine areas, none of them empty — which is the shape a wrong seat cannot fake. (That
-# 589 was before the group-6 rows were refused; the denominator is 583 now.)
+# 589 was before the group-6 rows were refused, and two more went with @ref
+# load_sdt_lot_flags; the denominator is 581 now.)
 SDT_PICKUP_BANK = 66
 ## @brief Top-level group of the item-lot family, the digit SoulSplitter switches on.
 SDT_PICKUP_GROUP = 5
@@ -580,8 +595,9 @@ SDT_PICKUP_GROUP = 5
 #
 # A group-5 id whose map has no seat in @ref SDT_FLAG_MAPS still returns None: 237 of the
 # 826 shipped pickups sit in families (areas 0, 1, 2, 4-8, 18, 19, 30-47) that no idol
-# names, so nothing here can place them, and a further six are `6xxxxxxx` — 583 readable. There are further populated categories past the
-# banks too (k=35..46 at least) and nothing published names a single flag in them.
+# names, so nothing here can place them, and a further six are `6xxxxxxx` — 583 placeable, 581 once @ref load_sdt_lot_flags
+# drops a misfiled row and a lot whose real flag has no seat. There are further populated
+# categories past the banks too (k=35..46 at least) and nothing published names a single flag in them.
 # @param fid The event flag id. @return @c (offset, bit) or None.
 def sdt_flag_offset(fid):
     area, sub = (fid // 100000) % 100, (fid // 10000) % 10
@@ -712,10 +728,40 @@ def load_sdt_item_flags(base_dir):
 
 
 ##
+# @brief Load the corrections to that table: @c {"moved": {row id: flag}, "misfiled":
+#        [[row id, name]]}. Cached per dir.
+# @details `item_flags.json` files a pickup under `50000000 + lot id`, and that is a
+# shortcut, not the game's rule. `ItemLotParam` gives every lot its own
+# `getItemFlagId`, and the lots that matter most break the shortcut: every prosthetic
+# part, esoteric text, Gourd Seed and world Prayer Bead sets a GLOBAL flag (`6500` for
+# the Shuriken Wheel). Read at the lot-shaped id, all of them sat in the "still out
+# there" list forever. `tools/gen_sdt_lot_flags.py` is the generator.
+#
+# Checked against the ladder rather than trusted: every moved flag in a read area first
+# sets in the save that picked the item up, none ever clears, and the moved Prayer Bead
+# flags count exactly the beads earned (four per necklace used, plus the ones held) on
+# every one of 60 saves, one short only once a shop bead is bought — the shop list is not
+# in the table. The Gourd Seeds close the same way against the gourd's charges.
+_LOT_FLAG_CACHE = {}
+
+
+def load_sdt_lot_flags(base_dir):
+    if base_dir not in _LOT_FLAG_CACHE:
+        path = os.path.join(base_dir, "db_sdt", "lot_flags.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _LOT_FLAG_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _LOT_FLAG_CACHE[base_dir] = {}
+    return _LOT_FLAG_CACHE[base_dir]
+
+
+##
 # @brief The area each seated pickup family belongs to, in `idols.json`'s own order.
 # @details Only the nine families with a seat are here, because only those can be read —
 # an area missing from the section means "not addressable", never "nothing found", and
-# the section's note says so. The Ashina Reservoir is its own map file `(11, 2)` while
+# the section's note says so. The area is always the ROW id's, even where the flag has
+# moved to a global one, because a global flag names no map. The Ashina Reservoir is its own map file `(11, 2)` while
 # `idols.json` files its idol under Ashina Castle, so it gets a row of its own rather
 # than being folded into a count that would then mean two different things.
 SDT_PICKUP_AREAS = {
@@ -742,8 +788,13 @@ def sdt_place(where):
 # @brief Every seated pickup, grouped by area in @ref SDT_PICKUP_AREAS order.
 # @details Rows in families with no seat are dropped here rather than in the reader, so
 # a total printed beside a count is the number of pickups that CAN be read in that area.
-# @param base_dir Repo root. @return @c {(area, sub): [(flag id, name, map)]}.
+# A misfiled row is dropped the same way — its id belongs to a lot that hands out
+# something else, so reading it would report that other item under this one's name.
+# @param base_dir Repo root. @return @c {(area, sub): [(flag to read, name, map)]}.
 def sdt_pickup_rows(base_dir):
+    fixes = load_sdt_lot_flags(base_dir)
+    moved = fixes.get("moved") or {}
+    misfiled = {(int(fid), name) for fid, name in fixes.get("misfiled") or []}
     rows = {key: [] for key in SDT_PICKUP_AREAS}
     for fid, name, where in load_sdt_item_flags(base_dir).get("item_pickup", []):
         fid = int(fid)
@@ -751,8 +802,11 @@ def sdt_pickup_rows(base_dir):
         # The area alone is not enough: six rows in a seated area are `6xxxxxxx`, a
         # group with no seat of its own, so they would sit in the denominator forever
         # unread. Ask the addressing, not the area.
-        if key in rows and sdt_flag_offset(fid) is not None:
-            rows[key].append((fid, name, where))
+        if key not in rows or sdt_flag_offset(fid) is None or (fid, name) in misfiled:
+            continue
+        flag = int(moved.get(str(fid), fid))
+        if sdt_flag_offset(flag) is not None:
+            rows[key].append((flag, name, where))
     return rows
 
 

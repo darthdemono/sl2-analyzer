@@ -365,7 +365,7 @@
         "suppressed_count": {
           "type": "integer",
           "minimum": 0,
-          "description": "Sekiro only: item records that resolved to a real name but are engine state rather than inventory — the character's own body models (Sekiro has no armour system) and the `Virtual Weapon:` / `Upgrade Menu:` rows that restate something already listed. Counted rather than hidden, and separate from `internal_count`, which is rows that only had a development name."
+          "description": "Sekiro only: item records that resolved to a real name but are engine state rather than inventory — the character's own body models (Sekiro has no armour system) and the `Virtual Weapon:` / `Upgrade Menu:` rows that restate something already listed, and the two plain `Memory` rows (ids 5100 and 5400) that count Memories spent and held. Counted rather than hidden, and separate from `internal_count`, which is rows that only had a development name."
         },
         "memories": {
           "type": "object",
@@ -385,7 +385,7 @@
             "held": {
               "type": "integer",
               "minimum": 0,
-              "description": "Memories still in the inventory."
+              "description": "Boss Memories (`Memory: <boss>`) still carried and not yet consumed. The two plain `Memory` rows the game keeps as counters are not Memories and are not counted."
             },
             "cumulative": {
               "type": "boolean",

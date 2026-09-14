@@ -52,7 +52,7 @@ const DS3_PICKUP_NOTE =
 // Sekiro's gap is the reverse shape: the addressing is solved, but 243 of the 826 known
 // lots sit in families no idol names. Verbatim from SDT_PICKUP_NOTE in sl2/render.py.
 const SDT_PICKUP_NOTE =
-  "one-off world items picked up, from each area's item-lot flags — covers the nine areas whose flag bank is mapped, 583 of the 826 lots the table knows";
+  "one-off world items picked up, from each area's item-lot flags — covers the nine areas whose flag bank is mapped, 581 of the 826 lots the table knows";
 // Enemies that do not respawn, so the game has to remember each one dead. These are the
 // enemy's own DEATH flag, not the pickup flag its loot sets. Verbatim from DS3_ENEMY_NOTE
 // in sl2/render.py.
@@ -269,9 +269,11 @@ export function mdCharacter(ch, slot) {
 
   // Boss souls get a top section only where the inventory does NOT already have a
   // boss-souls category (DS2 and DS3 do) — printing both is the same list twice.
+  // Sekiro's held Memories are already in Key Items, where the game lists them.
   if (
     ch.boss_souls &&
     ch.boss_souls.length &&
+    ch.game !== "sdt" &&
     !(ch.inv.bosssouls || []).length &&
     !(ch.inv.memories || []).length
   ) {
@@ -562,7 +564,7 @@ export function mdCharacter(ch, slot) {
   }
   if (ch.suppressed_count) {
     L.push(
-      `_${ch.suppressed_count} further entr${ch.suppressed_count === 1 ? "y" : "ies"} were engine state rather than inventory — Sekiro has no armour system, so the character's own body models sit in the protector table, and the \`Virtual Weapon:\` rows restate a Combat Art already listed under its own name. Counted here, not printed._`,
+      `_${ch.suppressed_count} further entr${ch.suppressed_count === 1 ? "y" : "ies"} were engine state rather than inventory — Sekiro has no armour system, so the character's own body models sit in the protector table, the \`Virtual Weapon:\` rows restate a Combat Art already listed under its own name, and the two plain \`Memory\` rows are the game's counters of Memories spent and held. Counted here, not printed._`,
       "",
     );
   }

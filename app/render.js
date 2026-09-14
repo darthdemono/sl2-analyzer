@@ -721,7 +721,7 @@ function characterCard(slot, ch, bonfireTotal) {
           class: "hint",
           text:
             ch.game === "sdt"
-              ? "One-off world items picked up, from each area's item-lot flags. Nine areas have a mapped flag bank, which is 583 of the 826 lots the table knows — the rest are untracked, not empty."
+              ? "One-off world items picked up, from each area's item-lot flags. Nine areas have a mapped flag bank, which is 581 of the 826 lots the table knows — the rest are untracked, not empty."
               : "One-off world items picked up, from each area's pickup flags. Only the areas whose flag group is mapped are counted — an area not listed is untracked, not empty.",
         }),
         bar,

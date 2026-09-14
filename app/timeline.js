@@ -43,6 +43,8 @@ export function snapshot(ch, file, slot, game, title) {
   for (const [c, v] of Object.entries(ch.covenants || {})) covenants[c] = [...v];
   const questlines = {};
   for (const [q, v] of Object.entries(ch.questlines || {})) questlines[q] = [...v];
+  const minibosses = [];
+  for (const [a, , names] of ch.minibosses || []) for (const n of names) minibosses.push([a, n]);
   const pickups = {};
   let pickupTotal = 0;
   for (const [a, c, t] of ch.pickups || []) {
@@ -75,6 +77,7 @@ export function snapshot(ch, file, slot, game, title) {
     estus: estusLevel(ch),
     bonfires,
     bosses,
+    minibosses,
     covenants,
     questlines,
     pickups,
@@ -265,6 +268,34 @@ const sortedSet = (s) => [...s].sort(cmp);
 const diff = (a, b) => sortedSet(new Set([...a].filter((x) => !b.has(x))));
 
 /**
+ * The minibosses `cur` has killed that `prev` had not, in table order. A MULTISET
+ * difference, not a set one: four different entity ids really are called "Shura
+ * Samurai", and a set would swallow the second kill. Repeats collapse to "name ×N"
+ * the way the render's own lists do.
+ * @returns {string[]} display names
+ */
+function gainedMinibosses(cur, prev) {
+  const tally = (rows) => {
+    const m = new Map();
+    for (const [area, name] of rows || []) {
+      const k = pairKey(area, name);
+      m.set(k, (m.get(k) || 0) + 1);
+    }
+    return m;
+  };
+  const was = tally(prev ? prev.minibosses : null);
+  const out = [];
+  for (const [k, n] of tally(cur.minibosses)) {
+    const extra = n - (was.get(k) || 0);
+    if (extra > 0) {
+      const name = pairName(k);
+      out.push(extra === 1 ? name : `${name} ×${extra}`);
+    }
+  }
+  return out;
+}
+
+/**
  * What this snapshot achieved that its parent had not — the node's headline, ordered
  * by how much it means and capped so a node stays readable.
  */
@@ -299,6 +330,16 @@ export function achievements(cur, prev, cap = 3) {
   if (nb.length) {
     out.push(
       "BOSS: " + nb.slice(0, 2).join(" · ") + (nb.length > 2 ? ` +${nb.length - 2} more` : ""),
+    );
+  }
+  // Sekiro's OTHER kills. A miniboss is a separate flag family from the Memory
+  // bosses and it drops no Memory, so without this line the kill is invisible: Attack
+  // Power does not move and nothing else on the list notices. Delta only, never the
+  // containment test — these are per-map flags a new journey clears.
+  const nm = gainedMinibosses(cur, prev);
+  if (nm.length) {
+    out.push(
+      "MINIBOSS: " + nm.slice(0, 2).join(" · ") + (nm.length > 2 ? ` +${nm.length - 2} more` : ""),
     );
   }
   // Sekiro's version of the same news, and the only one it can give: Attack Power

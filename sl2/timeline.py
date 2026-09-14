@@ -16,7 +16,7 @@ and the document can change without touching the inference.
 
 import os
 import re
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 
 ##
 # @brief The Estus Flask's reinforcement level, or None if this character holds none.
@@ -80,6 +80,11 @@ def snapshot(ch, path, slot_no, game, title):
         "bosses": {b: list(ev) for b, ev in (ch.get("bosses") or {}).items()},
         "covenants": {c: list(v) for c, v in (ch.get("covenants") or {}).items()},
         "questlines": {q: list(v) for q, v in (ch.get("questlines") or {}).items()},
+        "minibosses": [
+            (area, n)
+            for area, _c, names, _t, _m in (ch.get("minibosses") or [])
+            for n in names
+        ],
         "pickups": {a: c for a, c, _t, _m in (ch.get("pickups") or [])},
         "pickup_total": sum(t for _a, _c, t, _m in (ch.get("pickups") or [])),
         "endings": list(ch.get("endings") or []),
@@ -259,6 +264,25 @@ def fork_count(parents):
 
 
 ##
+# @brief The minibosses @p cur has killed that @p prev had not, in table order.
+# @details A MULTISET difference, not a set one: four different entity ids really are
+# called "Shura Samurai", and a set would swallow the second kill. Repeats collapse to
+# @c "name ×N" the way the render's own lists do, so a node that cleared two of them
+# says it once instead of printing the name twice.
+# @param cur The snapshot, @param prev its parent (or None).
+# @return A list of display names.
+def gained_minibosses(cur, prev):
+    was = Counter(tuple(m) for m in (prev.get("minibosses") if prev else None) or [])
+    now = Counter(tuple(m) for m in cur.get("minibosses") or [])
+    out = []
+    for (_area, name), n in now.items():
+        extra = n - was.get((_area, name), 0)
+        if extra > 0:
+            out.append(name if extra == 1 else f"{name} ×{extra}")
+    return out
+
+
+##
 # @brief What this snapshot achieved that its parent had not — the node's headline.
 # @details Ordered by how much it means, and capped, because a node has to stay
 # readable: an ending outranks a boss, a boss outranks a bonfire, and "+3 bonfires"
@@ -302,6 +326,18 @@ def achievements(cur, prev, cap=3):
             "BOSS: "
             + " · ".join(new_bosses[:2])
             + (f" +{len(new_bosses) - 2} more" if len(new_bosses) > 2 else "")
+        )
+    # Sekiro's OTHER kills. A miniboss is a separate flag family from the Memory
+    # bosses and it drops no Memory, so without this line the kill is invisible: Attack
+    # Power does not move and nothing else on the list notices. Delta only, never the
+    # containment test — these are per-map flags a new journey clears, and the tree
+    # already has the families that decide lineage.
+    new_minis = gained_minibosses(cur, prev)
+    if new_minis:
+        out.append(
+            "MINIBOSS: "
+            + " · ".join(new_minis[:2])
+            + (f" +{len(new_minis) - 2} more" if len(new_minis) > 2 else "")
         )
     # Sekiro's version of the same news, and the only one it can give: Attack Power
     # goes up by one per Memory consumed, so a step here IS a boss whose token has

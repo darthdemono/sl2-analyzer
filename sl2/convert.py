@@ -177,7 +177,7 @@ GAMES = {
         # "full" does not fairly infer that everything the other games report is
         # here. Moving the tier would redefine what the word means for every game.
         "coverage": "world item pickups are read for the nine areas whose flag "
-        "bank is mapped (583 of the 826 known item lots); the rest sit in "
+        "bank is mapped (581 of the 826 known item lots); the rest sit in "
         "families no idol names, so they have no category to be read from",
         "how": "the save is not encrypted and, unlike every other game here, its "
         "fields do not move between patches — so play time, journey (New "

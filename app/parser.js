@@ -1874,6 +1874,12 @@ const SDT_SUPPRESSED_PREFIXES = [
 ];
 const sdtSuppressed = (name) => SDT_SUPPRESSED_PREFIXES.some((p) => name.startsWith(p));
 
+// The two goods rows named plain "Memory" are the game's counters of Memories spent
+// (5100) and held (5400), not tokens — see SDT_MEMORY_COUNTER_IDS in sl2/sdt.py. The
+// boss Memories themselves are 5200..5299.
+const SDT_MEMORY_COUNTER_IDS = [5100, 5400],
+  SDT_BOSS_MEMORY_IDS = [5200, 5299];
+
 // A skill point is spendable currency, so it rides in the header, not the consumables.
 const SDT_SKILL_POINT_ID = 1200;
 
@@ -2022,12 +2028,20 @@ function sdtAttachFlags(ch, buf, dbs) {
   // combined timeline need no new code. Only the nine seated families are counted, and a
   // missing item carries WHERE it is — see sdt_attach_flags in sl2/sdt.py.
   const rows = new Map([...SDT_PICKUP_AREAS.keys()].map((key) => [key, []]));
+  // A lot's real flag where it is not the row's own id, and the rows filed under another
+  // lot's id — see load_sdt_lot_flags in sl2/sdt.py.
+  const fixes = dbs.sdt.lotFlags || {};
+  const moved = fixes.moved || {};
+  const misfiled = new Set((fixes.misfiled || []).map(([fid, name]) => `${Number(fid)}|${name}`));
   for (const [fid, name, where] of (dbs.sdt.itemFlags || {}).item_pickup || []) {
     const id = Number(fid);
     const key = `${Math.floor(id / 100000) % 100},${Math.floor(id / 10000) % 10}`;
     // The area alone is not enough — six rows in a seated area are 6xxxxxxx, a group
-    // with no seat, and would sit unread in the denominator. Ask the addressing.
-    if (rows.has(key) && sdtFlagOffset(id) !== null) rows.get(key).push([id, name, where]);
+    // with no seat, and would sit unread in the denominator. Ask the addressing. The
+    // area stays the ROW id's even where the flag moved, since a global flag names no map.
+    if (!rows.has(key) || sdtFlagOffset(id) === null || misfiled.has(`${id}|${name}`)) continue;
+    const flag = Number(moved[String(id)] ?? id);
+    if (sdtFlagOffset(flag) !== null) rows.get(key).push([flag, name, where]);
   }
   const picks = [];
   let anyFound = false;
@@ -2082,7 +2096,7 @@ function sdtParse(buf, db) {
       internal++;
       continue;
     }
-    if (sdtSuppressed(name)) {
+    if (sdtSuppressed(name) || (cat === "memories" && SDT_MEMORY_COUNTER_IDS.includes(id))) {
       suppressed++;
       continue;
     }
@@ -2092,14 +2106,15 @@ function sdtParse(buf, db) {
       continue;
     }
     const row = [name, qty];
+    // A boss Memory is the kill's proof wherever it is listed, and the game lists it
+    // with the key items — so it is collected before the list decides placement.
+    if (cat === "memories" && id >= SDT_BOSS_MEMORY_IDS[0] && id <= SDT_BOSS_MEMORY_IDS[1])
+      memories.push(row);
     // The box wins over the category: a key item sitting in storage is in storage,
     // and saying otherwise would report it as carried.
     if (which === "storage") (inv.storage || (inv.storage = [])).push(row);
     else if (which === "key" || cat === "key") keyItems.push(row);
-    else {
-      (inv[cat] || (inv[cat] = [])).push(row);
-      if (cat === "memories") memories.push(row);
-    }
+    else (inv[cat] || (inv[cat] = [])).push(row);
   }
   const playTime = u32(buf, SDT_PLAYTIME_OFF),
     steamId = u64(buf, SDT_STEAM_OFF);
@@ -2168,7 +2183,7 @@ export const GAMES = {
     tier: "full",
     slots: [0, SDT_SLOT_COUNT],
     coverage:
-      "world item pickups are read for the nine areas whose flag bank is mapped (583 of the 826 known item lots); the rest sit in families no idol names, so they have no category to be read from",
+      "world item pickups are read for the nine areas whose flag bank is mapped (581 of the 826 known item lots); the rest sit in families no idol names, so they have no category to be read from",
   },
 };
 
