@@ -9,3 +9,12 @@ documentation/
 scratch/
 Handoff-*.md
 DATA.md
+
+# Local LLM assistant instructions and state
+.claude/
+.codex/
+.gemini/
+AGENTS*.md
+CLAUDE*.md
+CODEX*.md
+GEMINI*.md

@@ -2012,14 +2012,25 @@ function sdtAttachFlags(ch, buf, dbs) {
   }
   if (anyLit) ch.bonfire_areas = areas;
   // Minibosses, in the bonfire shape — a miniboss is a named kill, so the section says
-  // WHICH. Sekiro files a defeat under the enemy's own ENTITY id — see
-  // load_sdt_minibosses in sl2/sdt.py for how that was measured.
+  // WHICH. Sekiro normally files a defeat under the enemy's own ENTITY id. Four
+  // state-replaced encounters use their permanent fallback flag instead; Masanaga's
+  // shared flag is additionally gated by Father's Bell — see sl2/sdt.py.
   const minis = [];
   let anyDead = false;
+  const keys = new Set((ch.key_items || []).map(([name]) => name));
   for (const [area, enemies] of Object.entries(dbs.sdt.minibosses || {})) {
     const dead = [],
       alive = [];
-    for (const [eid, name] of enemies) (sdtFlag(buf, Number(eid)) ? dead : alive).push(name);
+    for (const [eid, name] of enemies) {
+      const entry = dbs.sdt.minibossFallbacks?.[eid];
+      const fallback = entry && typeof entry === "object"
+        ? (!entry.key_item || keys.has(entry.key_item) ? entry.flag : null)
+        : entry;
+      (sdtFlag(buf, Number(eid)) || (fallback != null && sdtFlag(buf, Number(fallback)))
+        ? dead
+        : alive
+      ).push(name);
+    }
     anyDead = anyDead || dead.length > 0;
     minis.push([area, dead.length, dead, enemies.length, alive]);
   }

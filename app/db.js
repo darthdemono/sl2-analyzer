@@ -293,6 +293,7 @@ async function loadSdt(getJSON) {
     "db_sdt/boss_flags.json",
     "db_sdt/idols.json",
     "db_sdt/minibosses.json",
+    "db_sdt/miniboss_fallbacks.json",
     "db_sdt/item_flags.json",
     "db_sdt/lot_flags.json",
   ];
@@ -312,8 +313,9 @@ async function loadSdt(getJSON) {
     bossFlags: got[rest + 2] || {},
     idols: got[rest + 3] || {},
     minibosses: got[rest + 4] || {},
-    itemFlags: got[rest + 5] || {},
-    lotFlags: got[rest + 6] || {},
+    minibossFallbacks: got[rest + 5] || {},
+    itemFlags: got[rest + 6] || {},
+    lotFlags: got[rest + 7] || {},
   };
 }
 
@@ -446,6 +448,7 @@ export function dbPathsFor(family) {
     "db_sdt/boss_flags.json",
     "db_sdt/idols.json",
     "db_sdt/minibosses.json",
+    "db_sdt/miniboss_fallbacks.json",
     "db_sdt/item_flags.json",
     "db_sdt/lot_flags.json",
   ];
