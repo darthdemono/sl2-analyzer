@@ -91,7 +91,9 @@ def build(lots, rows, names):
 ## House style for db_*/: one-space indent, a short pair kept on one line.
 def dump(table):
     moved = ",\n".join(f'  "{k}": {v}' for k, v in table["moved"].items())
-    misfiled = ",\n".join(f"  {json.dumps(r, ensure_ascii=False)}" for r in table["misfiled"])
+    misfiled = ",\n".join(
+        f"  {json.dumps(r, ensure_ascii=False)}" for r in table["misfiled"]
+    )
     return f'{{\n "moved": {{\n{moved}\n }},\n "misfiled": [\n{misfiled}\n ]\n}}\n'
 
 

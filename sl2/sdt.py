@@ -383,7 +383,9 @@ def sdt_parse(buf, db):
         if is_internal:
             internal += 1
             continue
-        if sdt_suppressed(name) or (cat == "memories" and iid in SDT_MEMORY_COUNTER_IDS):
+        if sdt_suppressed(name) or (
+            cat == "memories" and iid in SDT_MEMORY_COUNTER_IDS
+        ):
             suppressed += 1
             continue
         # A skill point is spendable currency, so it rides in the header beside the
@@ -396,7 +398,10 @@ def sdt_parse(buf, db):
         row = (name, qty)
         # A boss Memory is the kill's proof wherever it is listed, and the game lists
         # it with the key items — so it is collected before the list decides placement.
-        if cat == "memories" and SDT_BOSS_MEMORY_IDS[0] <= iid <= SDT_BOSS_MEMORY_IDS[1]:
+        if (
+            cat == "memories"
+            and SDT_BOSS_MEMORY_IDS[0] <= iid <= SDT_BOSS_MEMORY_IDS[1]
+        ):
             memories.append(row)
         # The box wins over the category: a key item sitting in storage is in
         # storage, and saying otherwise would report it as carried.
