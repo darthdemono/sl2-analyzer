@@ -2027,9 +2027,12 @@ function sdtAttachFlags(ch, buf, dbs) {
       alive = [];
     for (const [eid, name] of enemies) {
       const entry = dbs.sdt.minibossFallbacks?.[eid];
-      const fallback = entry && typeof entry === "object"
-        ? (!entry.key_item || keys.has(entry.key_item) ? entry.flag : null)
-        : entry;
+      const fallback =
+        entry && typeof entry === "object"
+          ? !entry.key_item || keys.has(entry.key_item)
+            ? entry.flag
+            : null
+          : entry;
       (sdtFlag(buf, Number(eid)) || (fallback != null && sdtFlag(buf, Number(fallback)))
         ? dead
         : alive
