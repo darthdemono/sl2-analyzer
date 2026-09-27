@@ -10,7 +10,7 @@ Two front ends run off one reading engine. Drop the file on [the web page](https
 
 One rule decides every judgement call in the code: a wrong number is worse than a missing one. A field the tool cannot verify is left out, and the file says it was left out. Progress is a floor and never a ceiling. Everything listed is real. There may be more you have already done that the save can no longer prove.
 
-Both front ends only ever read. Point either at your live save if you like. The worst case is a bad output file, not a bricked character.
+The browser and normal CLI reports only read. The CLI also has two explicit archive-edit modes; they never overwrite the input, require a separate `.sl2` output, and verify every BND4 checksum before writing that copy.
 
 There is a third way to use this repo and it has nothing to do with saves. The `db_*/` folders are a curated Souls data set: item ID tables for five game families, bonfire tables, boss-defeat flag tables, NPC questline flags, covenant flags, boss-soul-to-boss maps. Plain JSON, no dependency on the parser. If you are building a randomizer, a wiki scraper, a speedrun tool, a mod, or a Cheat Engine table and you only need "ID 7010900 is a Deep Battle Axe", take the folder and ignore the rest. It is MIT, same as the code. See [The data](#the-data-a-curated-souls-json-set).
 
@@ -67,6 +67,24 @@ Where the saves live, if the auto-detect misses: on Windows, `%APPDATA%` (`C:\Us
 - **Lutris or plain Wine:** `~/.local/share/lutris/<game>/pfx/...` or `~/.wine/drive_c/users/<you>/AppData/Roaming/<game>`
 
 Copy the `.sl2` out first if you would rather not touch the live folder. You do not have to.
+
+**Make an archive copy.** These are deliberately narrow write operations. The output is a new, checksum-verified save; an existing output needs `--force`, and the source path is always refused. A bare `--archive-manifest` is written beside that new copy, never beside the input save. Steam usernames are not in `.sl2` files, so there is no username editor.
+
+```bash
+# DS2, DS3, or Sekiro: change the verified SteamID64 copies the game uses.
+python3 sl2_to_md.py DS30000.sl2 --set-steam-id 76561199030416229 -o DS30000-account-copy.sl2
+
+# Elden Ring: preserve slots 1 and 3 and clear every other fixed slot/profile.
+python3 sl2_to_md.py ER0000.sl2 --trim-slots 1 3 -o ER0000-archive.sl2
+
+# Clear only inactive Sekiro or Elden Ring residual slots, then write its audit sidecar.
+python3 sl2_to_md.py ER0000.sl2 --trim-inactive -o ER0000-clean.sl2 --archive-manifest
+
+# Read-only verification for an archive folder: checksums, parsing, and owner-folder warning.
+python3 sl2_to_md.py ~/saves/ --verify-archive
+```
+
+Elden Ring repeats its SteamID64 inside variable-length active slots. This tool refuses to edit only the visible menu copy until every duplicate has a verified writer. `--trim-slots` is archive trimming, not file-size compaction: it clears unkept fixed slots and their roster profiles, then reseals the unchanged-size container.
 
 ---
 
@@ -156,7 +174,7 @@ What each game actually surfaces. A `no` means the field is not readable from th
 
 ## Which account owns the save
 
-Three of these games write the Steam account into the save, and then refuse to load a save that does not match. Change your account ID and your old characters vanish, with the game offering no explanation. That is worth being able to check, so the tool reads it.
+Four of these games write the Steam account into the save, and then refuse to load a save that does not match. Change your account ID and your old characters vanish, with the game offering no explanation. That is worth being able to check, so the tool reads it.
 
 ```
 - **Steam account:** 1070150501  _(SteamID64 76561199030416229 — the account this save was written by)_
@@ -172,10 +190,10 @@ Both lines sit in the closing block of the report, beside the save-format versio
 | Dark Souls III | yes, menu block `+0x04` | hex: `011000013fc93365` |
 | Sekiro | yes, menu block `+0x24` | decimal: `76561199030416229` |
 | Elden Ring | yes, menu block `+0x04` | not checked here, so not claimed |
-| Dark Souls II (both) | **no** | hex, but nothing in the file to derive it from |
+| Dark Souls II (both) | yes, header `+0x35` as ASCII hex | hex |
 | Dark Souls 1 (both) | **no** | no account folder |
 
-DS1 and DS2 are a real absence, not a gap in the reading. An exact byte search for both the full SteamID64 and the bare account ID, across saves whose owning account is known from the folder they live in, finds neither anywhere in the file. Those two games pick the folder from whoever is logged in and never write it down, which is also why their saves move between accounts and the other three do not.
+DS1 is a real absence, not a gap in the reading: it picks the folder from whoever is logged in and never writes an account into the save. DS2 instead writes the same sixteen-digit hexadecimal folder name as ASCII in its header.
 
 **The Steam username is not in the save.** Not in DS3, not in Sekiro, not in Elden Ring. I went looking for it properly, since it would be the friendlier thing to print: a case-insensitive hunt for the two names I could verify, in ASCII and UTF-16, over every entry of every save in both encrypted and decrypted form, returns nothing at all. The name you see on a repack ("DODI" and the like) comes from the Steam emulator's own config in the game's install folder, not from anything the game wrote. So the account **number** is what gets printed, because it is what is actually there.
 

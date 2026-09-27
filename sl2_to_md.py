@@ -13,8 +13,8 @@
 # exposes: name, class, level, attributes, souls, the full inventory with real item
 # names, and a progress section built from event flags, boss souls and key items.
 #
-# It reads the save. It never writes to it. Point it at your live save if you want;
-# the worst case is a bad output file, not a bricked character.
+# Reports only read the save. The explicit CLI archive-edit modes always create and
+# verify a separate output file; they refuse to overwrite the input.
 #
 # **This file is the entry point, not the program.** The code lives in the `sl2`
 # package, one module per layer and one per game — see `sl2/__init__.py` for the map.

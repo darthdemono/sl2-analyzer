@@ -1,10 +1,13 @@
 """Command line: argument parsing, save auto-detection, and main()."""
 
 import argparse
+import hashlib
 import glob
 import json
 import os
 import sys
+import tempfile
+from datetime import datetime, timezone
 
 from validators import run_validation
 from validators.file_rules import run_file_validation
@@ -13,6 +16,7 @@ from validators.text import validation_text, validation_text_file
 from .bnd4 import checksum_ok, parse_bnd4
 from .combine import build_combined, find_saves
 from .convert import parse_save, render_markdown
+from .edit import set_steam_id, trim_er_slots, trim_inactive_slots
 from .jsonout import build_json, parse_meta
 
 
@@ -146,15 +150,69 @@ def main():
         action="store_true",
         help="force the combined document even for a single save",
     )
+    ap.add_argument(
+        "--set-steam-id",
+        metavar="STEAMID64",
+        help="write a verified SteamID64 to a NEW .sl2 copy (DS2, DS3, Sekiro)",
+    )
+    ap.add_argument(
+        "--set-username",
+        metavar="USERNAME",
+        help="always refused: Steam usernames are not stored in .sl2 saves",
+    )
+    ap.add_argument(
+        "--trim-slots",
+        metavar="SLOT",
+        nargs="+",
+        type=int,
+        help="write a NEW Elden Ring archive copy retaining only these one-based slots",
+    )
+    ap.add_argument(
+        "--trim-inactive",
+        action="store_true",
+        help="write a NEW Sekiro or Elden Ring copy with inactive slots cleared",
+    )
+    ap.add_argument(
+        "--archive-manifest",
+        nargs="?",
+        const="",
+        metavar="PATH",
+        help="write a JSON archive sidecar; omit PATH only with an archive-copy edit",
+    )
+    ap.add_argument(
+        "--verify-archive",
+        action="store_true",
+        help="read and verify one save, or every save in the named folder(s)",
+    )
+    ap.add_argument(
+        "--force",
+        action="store_true",
+        help="allow an archive copy or manifest to replace its existing output",
+    )
     args = ap.parse_args()
+
+    if args.set_username is not None:
+        sys.exit("Steam usernames are not stored in .sl2 saves; nothing was changed.")
+    if args.trim_slots is not None and args.trim_inactive:
+        sys.exit("Choose either --trim-slots or --trim-inactive.")
+    edit_requested = any((args.set_steam_id is not None, args.trim_slots is not None, args.trim_inactive))
+    # The db_* folders sit beside the package, not inside it.
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if args.verify_archive:
+        if edit_requested or args.archive_manifest is not None or args.combined:
+            sys.exit("--verify-archive cannot be combined with edit, manifest, or combined mode.")
+        verify_archive(args.sl2, base_dir)
+        return
+    if edit_requested and (args.combined or len(args.sl2) != 1 or not os.path.isfile(args.sl2[0])):
+        sys.exit("An edit needs exactly one existing .sl2 input file.")
+    if edit_requested:
+        edit_save(args)
+        return
 
     try:
         meta = parse_meta(args.meta, args.meta_json)
     except (OSError, ValueError) as exc:
         sys.exit(str(exc))
-
-    # The db_* folders sit beside the package, not inside it.
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     # A folder, or more than one path, can only mean the combined document — there is
     # no single save to summarise. One file still takes the single-save path unless
@@ -183,6 +241,13 @@ def main():
         sys.exit(f"No such file: {sl2}")
     with open(sl2, "rb") as f:
         data = f.read()
+
+    if args.archive_manifest is not None:
+        if args.archive_manifest == "":
+            sys.exit("Pass a manifest path when not creating an archive copy.")
+        save = parse_save(data, base_dir)
+        write_archive_manifest(args.archive_manifest, sl2, data, save, force=args.force)
+        return
 
     fmt = args.format
     if fmt == "auto":
@@ -264,3 +329,149 @@ def write_out(path, text):
     with open(path, "w", encoding="utf-8") as f:
         f.write(text)
     print(f"Wrote {path}")
+
+
+## @brief Apply one or both copy-only edits and atomically create the requested .sl2.
+def edit_save(args):
+    source = os.path.abspath(args.sl2[0])
+    output = os.path.abspath(args.out)
+    if not output.lower().endswith(".sl2"):
+        sys.exit("An edited save needs an explicit .sl2 --out path.")
+    if os.path.realpath(source) == os.path.realpath(output):
+        sys.exit("Refusing to overwrite the input save; choose a different --out path.")
+    if os.path.exists(output) and not args.force:
+        sys.exit("Output already exists; choose another path or pass --force.")
+    if args.archive_manifest is not None:
+        manifest = archive_manifest_path(args.archive_manifest, output)
+        if os.path.exists(manifest) and not args.force:
+            sys.exit("Manifest already exists; choose another path or pass --force.")
+    with open(source, "rb") as f:
+        data = f.read()
+    original = data
+    try:
+        if args.set_steam_id is not None:
+            data = set_steam_id(data, args.set_steam_id)
+        if args.trim_slots is not None:
+            data = trim_er_slots(data, args.trim_slots)
+        if args.trim_inactive:
+            data = trim_inactive_slots(data)
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        checked = parse_save(data, base_dir)
+    except (ValueError, SystemExit) as exc:
+        sys.exit(str(exc))
+    folder = os.path.dirname(output) or os.curdir
+    os.makedirs(folder, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=".sl2-analyzer-", suffix=".tmp", dir=folder)
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, output)
+    except OSError:
+        try:
+            os.unlink(temporary)
+        except OSError:
+            pass
+        raise
+    print(f"Wrote verified archive copy {args.out}")
+    if args.set_steam_id is not None and checked.folder is not None:
+        print(f"Place it in the Steam folder named {checked.folder}.")
+    if args.archive_manifest is not None:
+        operations = []
+        if args.set_steam_id is not None:
+            operations.append({"set_steam_id": checked.owner[1]})
+        if args.trim_slots is not None:
+            operations.append({"trim_slots": sorted(set(args.trim_slots))})
+        if args.trim_inactive:
+            operations.append({"trim_inactive": True})
+        write_archive_manifest(
+            args.archive_manifest, output, data, checked, source=(source, original), operations=operations, force=args.force
+        )
+
+
+## @brief Write a small, auditable sidecar describing one parsed archive copy.
+def write_archive_manifest(option, archive, data, save, source=None, operations=None, force=False):
+    path = archive_manifest_path(option, archive)
+    if os.path.exists(path) and not force:
+        sys.exit("Manifest already exists; choose another path or pass --force.")
+    slots = []
+    for index, ch in save.characters:
+        row = {"slot": index - save.cfg["slots"].start + 1}
+        for key in ("name", "level"):
+            if ch.get(key) is not None:
+                row[key] = ch[key]
+        slots.append(row)
+    manifest = {
+        "format": "sl2-analyzer archive manifest",
+        "version": 1,
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "archive": {
+            "name": os.path.basename(archive),
+            "bytes": len(data),
+            "sha256": hashlib.sha256(data).hexdigest(),
+        },
+        "game": save.game,
+        "steam_id64": save.owner[1] if save.owner else None,
+        "slots": slots,
+        "operations": operations or [],
+    }
+    if source is not None:
+        manifest["source"] = {
+            "name": os.path.basename(source[0]),
+            "sha256": hashlib.sha256(source[1]).hexdigest(),
+        }
+    folder = os.path.dirname(path) or os.curdir
+    os.makedirs(folder, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=".sl2-analyzer-", suffix=".tmp", dir=folder)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(manifest, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, path)
+    except OSError:
+        try:
+            os.unlink(temporary)
+        except OSError:
+            pass
+        raise
+    print(f"Wrote archive manifest {path}")
+
+
+## @brief Resolve an explicit archive sidecar path, or the archive's default neighbor.
+def archive_manifest_path(option, archive):
+    return archive + ".archive.json" if option == "" else os.path.abspath(option)
+
+
+## @brief Read every named archive and report BND4, parse, and ownership status.
+def verify_archive(paths, base_dir):
+    files = []
+    for path in paths or [auto_find_save()]:
+        if os.path.isdir(path):
+            files += find_saves(path)
+        elif os.path.isfile(path):
+            files.append(os.path.abspath(path))
+        else:
+            sys.exit(f"No such file or folder: {path}")
+    if not files:
+        sys.exit("No .sl2 files found to verify.")
+    failures = []
+    for path in sorted(set(files)):
+        try:
+            with open(path, "rb") as f:
+                data = f.read()
+            entries = parse_bnd4(data)
+            bad = [str(e.index) for e in entries if not checksum_ok(data, e)]
+            if bad:
+                raise ValueError("bad checksum(s): " + ", ".join(bad))
+            save = parse_save(data, base_dir)
+            warn_foreign_folder(path, save)
+        except (OSError, ValueError, SystemExit) as exc:
+            failures.append(f"FAIL {path}: {exc}")
+            continue
+        print(f"OK {path}: {save.cfg['title']}, {len(save.characters)} slot(s), sha256 {hashlib.sha256(data).hexdigest()}")
+    if failures:
+        print("\n".join(failures), file=sys.stderr)
+        sys.exit(f"Archive verification failed for {len(failures)} file(s).")
