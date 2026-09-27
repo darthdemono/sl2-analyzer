@@ -84,7 +84,7 @@ python3 sl2_to_md.py ER0000.sl2 --trim-inactive -o ER0000-clean.sl2 --archive-ma
 python3 sl2_to_md.py ~/saves/ --verify-archive
 ```
 
-Elden Ring repeats its SteamID64 inside variable-length active slots. This tool refuses to edit only the visible menu copy until every duplicate has a verified writer. `--trim-slots` is archive trimming, not file-size compaction: it clears unkept fixed slots and their roster profiles, then reseals the unchanged-size container.
+Elden Ring repeats its SteamID64 inside variable-length active slots. This tool refuses to edit only the visible menu copy until every duplicate has a verified writer. `--trim-slots` and `--trim-inactive` are logical slot cleanup, not file-size compaction: they clear the selected fixed slot data and roster profiles, then reseal the unchanged-size container. They cannot safely make DS2, Sekiro, or Elden Ring containers shorter because the games index fixed slot blocks.
 
 ---
 

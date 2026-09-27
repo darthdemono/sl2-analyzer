@@ -165,12 +165,12 @@ def main():
         metavar="SLOT",
         nargs="+",
         type=int,
-        help="write a NEW Elden Ring archive copy retaining only these one-based slots",
+        help="write a NEW Elden Ring copy clearing every unselected fixed slot (same file size)",
     )
     ap.add_argument(
         "--trim-inactive",
         action="store_true",
-        help="write a NEW Sekiro or Elden Ring copy with inactive slots cleared",
+        help="write a NEW Sekiro or Elden Ring copy clearing inactive slots (same file size)",
     )
     ap.add_argument(
         "--archive-manifest",
