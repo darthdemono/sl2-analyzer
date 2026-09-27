@@ -2001,6 +2001,10 @@ function sdtAttachFlags(ch, buf, dbs) {
     }
   }
   if (Object.keys(bosses).length) ch.bosses = bosses;
+  const endings = Object.entries(dbs.sdt.endings || {})
+    .filter(([, fid]) => sdtFlag(buf, Number(fid)))
+    .map(([name]) => name);
+  if (endings.length) ch.endings = endings;
   const areas = [];
   let anyLit = false;
   for (const [area, idols] of Object.entries(dbs.sdt.idols || {})) {

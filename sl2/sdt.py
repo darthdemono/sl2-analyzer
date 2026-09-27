@@ -486,6 +486,25 @@ def load_sdt_boss_flags(base_dir):
 
 
 ##
+# @brief Load the Sekiro ending table (ending name → global event flag id).
+# @details The four adjacent flags came from four branches of the same ending save:
+#  each terminal save sets exactly its own bit. Cached per dir with the other event
+#  tables, because the generic combined timeline already knows how endings fork.
+_ENDING_CACHE = {}
+
+
+def load_sdt_endings(base_dir):
+    if base_dir not in _ENDING_CACHE:
+        path = os.path.join(base_dir, "db_sdt", "endings.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                _ENDING_CACHE[base_dir] = json.load(f)
+        except (OSError, ValueError):
+            _ENDING_CACHE[base_dir] = {}
+    return _ENDING_CACHE[base_dir]
+
+
+##
 # @brief Slot offset of the global event-flag category.
 # @details Sekiro serialises its flags exactly the way Dark Souls III does — this repo
 # has had that arithmetic since the DS3 bonfire work — and the only thing nobody
@@ -868,6 +887,11 @@ def sdt_attach_flags(ch, buf, base_dir):
             bosses[name] = sorted(set(bosses.get(name, ())) | {"flag"})
     if bosses:
         ch["bosses"] = bosses
+    endings = [
+        name for name, fid in load_sdt_endings(base_dir).items() if sdt_flag(buf, fid)
+    ]
+    if endings:
+        ch["endings"] = endings
     areas, any_lit = [], False
     for area, idols in load_sdt_idols(base_dir).items():
         named, missing = [], []

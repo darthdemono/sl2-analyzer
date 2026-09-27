@@ -82,7 +82,7 @@ Not every Souls save is mapped to the same depth in public tooling, so each game
 | Dark Souls II (vanilla) | `DARKSII0000.sl2` | Yes | **full** | identity, stats, souls, full inventory, deep progress |
 | Dark Souls III | `DS30000.sl2` | Yes | **full** | identity, stats, souls, full inventory, deepest progress |
 | Elden Ring | `ER0000.sl2` | Yes | **full\*** | identity, attributes, runes, remembrances, owned items (\*item list partial) |
-| Sekiro: Shadows Die Twice | `S0000.sl2` | Yes | **full** | play time, journey, Sen, Attack Power, Vitality, max HP and Posture, every item carried and stored, bosses from Memories, Prayer Necklaces used, Gourd Seeds used |
+| Sekiro: Shadows Die Twice | `S0000.sl2` | Yes | **full** | play time, journey, Sen, Attack Power, Vitality, max HP and Posture, every item carried and stored, bosses from Memories, Prayer Necklaces used, Gourd Seeds used, ending reached |
 | Elden Ring Nightreign | `NR0000.sl2` | Yes | **roster** | the character list, and which Steam account owns the file. Nothing else yet — see below |
 
 **Nightreign gets a tier of its own, and the tier is the honest part.** Its container is not the wall — it opens completely. The save is a BND4 like the rest, every entry is AES-128-CBC, and the layout is half a step from Dark Souls III: the initialisation vector sits at the very front instead of behind a checksum, which is exactly the kind of near-miss that decrypts to noise you could mistake for data. The key is not taken on trust either, because it does not have to be: **Nightreign stores an MD5 of each entry's own plaintext, and with this key all fourteen entries hash to the value they carry.** A wrong key cannot do that. What is missing is everything after the character list. Nightreign keeps no persistent level, attributes or souls to read — progression is relics, unlocked Nightfarers, Murks and Sigs, and which Nightlords are dead — and all of that sits in structures pinned against exactly one save so far, which is not enough to print a number from. So it prints the name, the account, and a note saying that is all it is claiming.
@@ -504,6 +504,8 @@ That matters more in Sekiro than it would elsewhere, because the arithmetic can 
 
 **Both reset on a new journey**, which no other game here has to say — Dark Souls carries its bonfires and its boss flags into NG+, and Sekiro does not. Attack Power carries and the flags do not, so an NG+ save reports fewer kills than the character has earned. The report says so where it counts them.
 
+**Sekiro's four endings are read from their global flags too.** `6830` through `6833` identify Immortal Severance, Purification, Return and Shura respectively; each was isolated by finishing the same root save on that branch. They feed the ordinary ending field, so the combined view names the four terminal branches without special-case code.
+
 **Elden Ring** gets the soul floor plus the endgame-gate idea. Hold the Remembrance of Hoarah Loux and Maliketh, the Fire Giant, and Morgott fall with it, because that chain is forced. Only strictly-linear, cannot-skip endgame chains qualify, for the same reason DS2's gates are endgame-only.
 
 What it still does **not** do is read boss-defeat event flags for Elden Ring. ER keeps its flags in a runtime structure that tools read out of the live game's process, and no published editor maps how that block lands in the `.sl2`. The DS3 breakthrough was a save editor that did exactly that, and no equivalent for ER has surfaced. So on ER a consumed soul with no gate stays off the list. Honest floor, not a guess.
@@ -714,6 +716,7 @@ These are the interesting ones, and they took a lot more work than the item list
 | `db_ds1/endings.json`, `db_er/endings.json` | `{ending: {flag, how}}` | 2 / 5 | The endings each game has, with `flag: null`. No flag base, so nothing reads them |
 | `db_sdt/boss_souls.json` | `{memory_item: boss}` | 17 | Memory to the boss that drops it. Sekiro's Memories are the boss-soul analogue, and a cleaner one: one per major boss, no ambiguity |
 | `db_sdt/boss_flags.json` | `{boss: flag_id}` | 15 | Boss-defeat event flag IDs, **read** — they are the `flag` evidence behind a Sekiro kill, and the only thing that can name a boss whose Memory has already been spent. Also the "of N tracked" denominator |
+| `db_sdt/endings.json` | `{ending: flag_id}` | 4 | Sekiro's four ending flags in the global category, **read** — Immortal Severance, Purification, Return and Shura |
 | `db_sdt/idols.json` | `{area: [[flag_id, name]]}` | 55 in 8 areas | Every Sculptor's Idol, by flag ID, **read** — rendered as `Sculptor's Idols Lit`, the Sekiro equivalent of the bonfire section. The eight area keys and the nine per-map flag categories are not the same partition: the areas are the game's, the categories are the map files' |
 | `db_sdt/prosthetics.json` | `{id: name}` | 40 | The `7xxxx` weapon range, every prosthetic tool and every upgrade tier, used to split them out of the weapons table |
 
@@ -1065,7 +1068,7 @@ db_ds1/*.json     DS1 items (shared by DSR and PtDE), bonfires, boss flags, boss
 db_ds2/*.json     DS2 items, bonfires + areas, boss flags, boss souls
 db_ds3/*.json     DS3 items, bonfires, boss flags, boss souls, covenants, questlines, endings
 db_er/*.json      Elden Ring items by type nibble, remembrance map
-db_sdt/*.json     Sekiro items by type, Memory→boss map, idol and boss flag ids
+db_sdt/*.json     Sekiro items by type, Memory→boss map, idol, boss and ending flag ids
 requirements.txt  the one Python dependency
 ```
 
