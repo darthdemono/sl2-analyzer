@@ -1,8 +1,8 @@
 """Command line: argument parsing, save auto-detection, and main()."""
 
 import argparse
-import hashlib
 import glob
+import hashlib
 import json
 import os
 import sys
@@ -195,15 +195,21 @@ def main():
         sys.exit("Steam usernames are not stored in .sl2 saves; nothing was changed.")
     if args.trim_slots is not None and args.trim_inactive:
         sys.exit("Choose either --trim-slots or --trim-inactive.")
-    edit_requested = any((args.set_steam_id is not None, args.trim_slots is not None, args.trim_inactive))
+    edit_requested = any(
+        (args.set_steam_id is not None, args.trim_slots is not None, args.trim_inactive)
+    )
     # The db_* folders sit beside the package, not inside it.
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if args.verify_archive:
         if edit_requested or args.archive_manifest is not None or args.combined:
-            sys.exit("--verify-archive cannot be combined with edit, manifest, or combined mode.")
+            sys.exit(
+                "--verify-archive cannot be combined with edit, manifest, or combined mode."
+            )
         verify_archive(args.sl2, base_dir)
         return
-    if edit_requested and (args.combined or len(args.sl2) != 1 or not os.path.isfile(args.sl2[0])):
+    if edit_requested and (
+        args.combined or len(args.sl2) != 1 or not os.path.isfile(args.sl2[0])
+    ):
         sys.exit("An edit needs exactly one existing .sl2 input file.")
     if edit_requested:
         edit_save(args)
@@ -386,12 +392,20 @@ def edit_save(args):
         if args.trim_inactive:
             operations.append({"trim_inactive": True})
         write_archive_manifest(
-            args.archive_manifest, output, data, checked, source=(source, original), operations=operations, force=args.force
+            args.archive_manifest,
+            output,
+            data,
+            checked,
+            source=(source, original),
+            operations=operations,
+            force=args.force,
         )
 
 
 ## @brief Write a small, auditable sidecar describing one parsed archive copy.
-def write_archive_manifest(option, archive, data, save, source=None, operations=None, force=False):
+def write_archive_manifest(
+    option, archive, data, save, source=None, operations=None, force=False
+):
     path = archive_manifest_path(option, archive)
     if os.path.exists(path) and not force:
         sys.exit("Manifest already exists; choose another path or pass --force.")
@@ -471,7 +485,9 @@ def verify_archive(paths, base_dir):
         except (OSError, ValueError, SystemExit) as exc:
             failures.append(f"FAIL {path}: {exc}")
             continue
-        print(f"OK {path}: {save.cfg['title']}, {len(save.characters)} slot(s), sha256 {hashlib.sha256(data).hexdigest()}")
+        print(
+            f"OK {path}: {save.cfg['title']}, {len(save.characters)} slot(s), sha256 {hashlib.sha256(data).hexdigest()}"
+        )
     if failures:
         print("\n".join(failures), file=sys.stderr)
         sys.exit(f"Archive verification failed for {len(failures)} file(s).")
