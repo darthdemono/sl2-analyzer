@@ -1,6 +1,6 @@
 # Third-party notices
 
-This project is [MIT licensed](LICENSE). Nothing here is a fork of anything, and no
+This project is [Apache 2.0 licensed](LICENSE). Nothing here is a fork of anything, and no
 third-party source code is bundled or vendored. What this file records is where the
 *facts* came from — the encryption keys, the field offsets, the flag IDs, the item
 names — because that is the part somebody else worked out first, and they deserve the
@@ -9,7 +9,7 @@ credit whether or not a licence demands it.
 Three of the projects below are GPL-3.0. That is worth addressing head-on rather than
 hoping nobody checks.
 
-## Why MIT is compatible with the GPL-3.0 sources
+## Why Apache 2.0 sits fine next to the GPL-3.0 sources
 
 **No GPL-licensed code is in this repository.** Every line of the Python and the
 JavaScript was written for this project. From the GPL-3.0 projects listed below, what
