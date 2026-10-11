@@ -1018,7 +1018,7 @@ It prints two lists. Every id in the shipped tables — bosses, idols, minibosse
 ```
 sl2_to_md.py      the entry point; re-exports the package so `import sl2_to_md` still works
 schema.json       JSON Schema for the --json export, published at the site root
-LICENSE           MIT
+LICENSE           Apache 2.0
 CONTRIBUTING.md   how to report a wrong reading, and what a differential save pair is for
 THIRD-PARTY-NOTICES.md   where every reverse-engineered fact came from, and its licence
 sl2/              the Python package, one module per layer and one per game
@@ -1096,7 +1096,9 @@ The Python tool and the JavaScript port keep the same offsets and constants. Cha
 
 ## License
 
-[MIT](LICENSE). Use it for anything, commercial included, no permission needed and nothing owed. Keep the copyright notice and that is the whole of it.
+[Apache 2.0](LICENSE). Use it for anything, commercial included, and you don't need to ask. Keep the copyright notice and the `NOTICE` file with it, say so on any file you changed, and know that the licence also comes with a patent grant from me.
+
+It was MIT until 11 October 2026. Copies you already took under MIT stay MIT.
 
 That applies to the code *and* the data tables, which is the deliberate part: the tables are the half of this repo most likely to be useful to somebody who never touches a `.sl2`, and a restrictive licence on them would defeat the point of documenting them.
 
