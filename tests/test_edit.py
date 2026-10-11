@@ -40,16 +40,25 @@ class Editor(unittest.TestCase):
     def test_ds3_steam_id_round_trip(self):
         steam = (STEAM_ID64_HIGH << 32) | 123
         first = b"A" * 16
-        first_plain = Cipher(algorithms.AES(DS3_KEY), modes.ECB()).decryptor().update(first)
+        first_plain = (
+            Cipher(algorithms.AES(DS3_KEY), modes.ECB()).decryptor().update(first)
+        )
         plain = bytearray(bytes(a ^ b for a, b in zip(first_plain, first)) + b"\0" * 16)
         struct.pack_into("<I", plain, 16, 12)
         struct.pack_into("<Q", plain, 24, steam)
-        menu = Cipher(algorithms.AES(DS3_KEY), modes.CBC(first)).encryptor().update(plain)
+        menu = (
+            Cipher(algorithms.AES(DS3_KEY), modes.CBC(first)).encryptor().update(plain)
+        )
         self.assertEqual(menu[:16], first)
-        data = bnd([wrapped(b"\0" * 16) for _ in range(10)] + [wrapped(menu), wrapped(b"\0" * 16)])
+        data = bnd(
+            [wrapped(b"\0" * 16) for _ in range(10)]
+            + [wrapped(menu), wrapped(b"\0" * 16)]
+        )
 
         changed = set_steam_id(data, str(steam + 1))
-        self.assertEqual(steam_owner(changed, parse_bnd4(changed), "ds3")[1], str(steam + 1))
+        self.assertEqual(
+            steam_owner(changed, parse_bnd4(changed), "ds3")[1], str(steam + 1)
+        )
         self.assertTrue(all(checksum_ok(changed, e) for e in parse_bnd4(changed)))
         self.assertEqual(set_steam_id(changed, steam), data)
 
@@ -64,12 +73,16 @@ class Editor(unittest.TestCase):
         changed = trim_er_slots(data, [1])
         entries = parse_bnd4(changed)
         self.assertEqual(changed[entries[0].offset + 16], 1)
-        self.assertFalse(any(changed[entries[1].offset + 16 : entries[1].offset + entries[1].size]))
+        self.assertFalse(
+            any(changed[entries[1].offset + 16 : entries[1].offset + entries[1].size])
+        )
         self.assertTrue(all(checksum_ok(changed, e) for e in entries))
 
         inactive = trim_er_slots(data)
         self.assertEqual(inactive[entries[0].offset + 16], 1)
-        self.assertFalse(any(inactive[entries[1].offset + 16 : entries[1].offset + entries[1].size]))
+        self.assertFalse(
+            any(inactive[entries[1].offset + 16 : entries[1].offset + entries[1].size])
+        )
 
 
 if __name__ == "__main__":
